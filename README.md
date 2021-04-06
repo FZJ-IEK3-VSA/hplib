@@ -11,9 +11,10 @@ This repository is based on all pdf files that were download for every manufactu
 ## Setup & Pre-Processing
 First of all, you are free to download new keymark-files and process them with the following processing steps. The requirements are:
 - clone this repository, e.g. `https://github.com/RE-Lab-Projects/hplib-database.git`
-- chande into the new directiory and setup an environment with `conda create --name hplib-database --file requirements.txt`
-- put your pdf files into the fodler `input/pdf`
-- run the unix bash script `./input/pdf2text.sh` or replace this step with an appropriate tool on windows/mac which converts pdf files to simple textfiles.
+- change into the new directiory and setup an environment with `conda create --name hplib-database --file requirements.txt`
+- put your pdf files into the folder `input/pdf`
+- unix: *pdftotext* is included in many linux distributions | windows: install xpdf https://www.xpdfreader.com/
+- run the unix bash script `./input/pdf2text.sh` or replace this step with an appropriate tool on windows/mac which converts pdf files to simple textfiles. For windows try 
 
 ## Processing
 The main processing uses python / pandas to parse the text files and find the relevant data. It creates a dataframe and saves its content als CSV file.
