@@ -1,7 +1,4 @@
-
-###############################################
 WORK IN PROGRESS. PLEASE WAIT FOR FIRST RELEASE
-###############################################
 
 # hplib
 Repository with code to 
