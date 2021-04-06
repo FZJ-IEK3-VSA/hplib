@@ -1,6 +1,8 @@
 # hplib-database
 Repository with code for building a database with efficiency parameters from public Heatpump Keymark datasets
 
+WORK IN PROGRESS. PLEASE WAIT FOR FIRST RELEASE
+
 ## Input-Data
 The European Heat Pump Association (EHPA) hosts a webiste with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
 
