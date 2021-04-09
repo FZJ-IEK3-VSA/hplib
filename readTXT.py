@@ -8,8 +8,10 @@ Refrigerant=[]
 Mass=[]
 Poff=[]
 Psb=[]
-SPLind=[]
-SPLoutdoor=[]
+SPLindoor_low=[]
+SPLindoor_medium=[]
+SPLoutdoor_low=[]
+SPLoutdoor_medium=[]
 Type=[]
 Mode=[]
 Climate=[]
@@ -27,13 +29,17 @@ with Scan as dir1:
     for file in dir1:
         with open (file, 'r',encoding='utf-8') as f:
             contents=f.readlines()
-            
-            date=''
-            modul=''
-            heatpumpType=''
-            refrigerant=''
-            poff=''
-            climate=''
+            date='NaN'
+            modul='NaN'
+            heatpumpType='NaN'
+            refrigerant='NaN'
+            splindoor_low='NaN'
+            splindoor_medium='NaN'
+            sploutdoor_low='NaN'
+            sploutdoor_medium='NaN'
+            poff='NaN'
+            climate='NaN'
+            NumberOfTestsPerModule=[]
             i=1#indicator for the line wich is read
             d=0 #indicator if only medium Temperature is given
             p=0#-15° yes or no
@@ -53,20 +59,270 @@ with Scan as dir1:
                 i=i+1
                 if(lines.startswith('Name\n')==1):
                     manufacturer = (contents[i])
-                if(lines.endswith('Date\n')==1):
+                    if (manufacturer.find('(')>0):
+                        manufacturer=manufacturer.split('(', 1)[1].split('\n')[0]
+                    elif manufacturer.startswith('NIBE'):
+                        manufacturer='Nibe\n'
+                    elif manufacturer.startswith('Nibe'):
+                        manufacturer='Nibe\n'
+                    elif manufacturer.startswith('Mitsubishi'):
+                        manufacturer='Mitsubishi\n'
+                    elif manufacturer.startswith('Ochsner'):
+                        manufacturer='Ochsner\n'
+                    elif manufacturer.startswith('OCHSNER'):
+                        manufacturer='Ochsner\n' 
+                    elif manufacturer.startswith('Viessmann'):
+                        manufacturer='Viessmann\n'   
+                elif(lines.endswith('Date\n')==1):
                     date = (contents[i])
                     if (date=='basis\n'):
                         date = contents[i-3]
                         date = date[14:] 
-                if(lines.startswith('Model')==1):
+                elif(lines.startswith('Model')==1):
                     modul = (contents[i-2])
-                if lines.endswith('Type\n'):
+                    splindoor_low='NaN'
+                    splindoor_medium='NaN'
+                    sploutdoor_low='NaN'
+                    sploutdoor_medium='NaN'
+                elif lines.endswith('Type\n'):
                     heatpumpType=contents[i][:-1]
-                if(lines=='Refrigerant\n'):
+                    if heatpumpType.startswith('A'):
+                        heatpumpType= 'Outdoor Air/Water'
+                    if heatpumpType.startswith('Eau glycol'):
+                        heatpumpType= 'Brine/Water'
+                elif(lines.startswith('Sound power level indoor')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            splindoor_low= contents[i+4][:-7]
+                            splindoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        splindoor_medium=contents[i+4][:-7]
+                        splindoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            splindoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        
+                        if(contents[i-6].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        else:
+                            splindoor_low=contents[i][:-7]
+                            splindoor_medium=contents[i][:-7]
+
+                elif(lines.startswith('Sound power level outdoor')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            sploutdoor_low= contents[i+4][:-7]
+                            sploutdoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        sploutdoor_medium=contents[i+4][:-7]
+                        sploutdoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            sploutdoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        else:
+                            sploutdoor_low=contents[i][:-7]
+                            sploutdoor_medium=contents[i][:-7]
+
+                elif(lines.startswith('Puissance acoustique extérieure')):
+                    b=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            sploutdoor_low= contents[i+4][:-7]
+                            sploutdoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        sploutdoor_medium=contents[i+4][:-7]
+                        sploutdoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            sploutdoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        else:
+                            sploutdoor_low=contents[i][:-7]
+                            sploutdoor_medium=contents[i][:-7]
+                elif(lines.startswith('Potencia sonora de la unidad interior')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            splindoor_low= contents[i+4][:-7]
+                            splindoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        splindoor_medium=contents[i+4][:-7]
+                        splindoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            splindoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        else:
+                            splindoor_low=contents[i][:-7]
+                            splindoor_medium=contents[i][:-7]
+                elif(lines.startswith('Potencia sonora de la unidad exterior')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            sploutdoor_low= contents[i+4][:-7]
+                            sploutdoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        sploutdoor_medium=contents[i+4][:-7]
+                        sploutdoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            sploutdoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        else:
+                            sploutdoor_low=contents[i][:-7]
+                            sploutdoor_medium=contents[i][:-7]
+                elif(lines.startswith('Nivel de Potência sonora interior')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            splindoor_low= contents[i+4][:-7]
+                            splindoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        splindoor_medium=contents[i+4][:-7]
+                        splindoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            splindoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        else:
+                            splindoor_low=contents[i][:-7]
+                            splindoor_medium=contents[i][:-7]
+                elif(lines.startswith('Nivel de Potência sonora exterior')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            sploutdoor_low= contents[i+4][:-7]
+                            sploutdoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        sploutdoor_medium=contents[i+4][:-7]
+                        sploutdoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            sploutdoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        else:
+                            sploutdoor_low=contents[i][:-7]
+                            sploutdoor_medium=contents[i][:-7]
+                elif(lines.startswith('Livello di potenza acustica interna')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            splindoor_low= contents[i+4][:-7]
+                            splindoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        splindoor_medium=contents[i+4][:-7]
+                        splindoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            splindoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            splindoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            splindoor_medium=contents[i+2][:-7]
+                        else:
+                            splindoor_low=contents[i][:-7]
+                            splindoor_medium=contents[i][:-7]
+                elif(lines.startswith('Livello di potenza acustica externa')):
+                    SPL=1
+                    if(contents[i].startswith('Low')):
+                        if contents[i+2].startswith('Medium'):
+                            sploutdoor_low= contents[i+4][:-7]
+                            sploutdoor_medium= contents[i+6][:-7]
+                    if contents[i].startswith('Medium'):
+                        sploutdoor_medium=contents[i+4][:-7]
+                        sploutdoor_low= contents[i+6][:-7]
+                    elif(contents[i].endswith('dB(A)\n')):
+                        if(contents[i-3].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-3].startswith('Medium')):
+                            sploutdoor_medium=contents[i][:-7]
+                        if(contents[i-6].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-6].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        if(contents[i-4].startswith('Low')):
+                            sploutdoor_low=contents[i][:-7]
+                        if(contents[i-4].startswith('Medium')):
+                            sploutdoor_medium=contents[i+2][:-7]
+                        else:
+                            sploutdoor_low=contents[i][:-7]
+                            sploutdoor_medium=contents[i][:-7]
+                elif(lines=='Refrigerant\n'):
                     if(contents[i-3]=='Mass Of\n'):
                         continue
                     refrigerant = (contents[i])
-                if(lines.startswith('Mass Of')==1):
+                elif(lines.startswith('Mass Of')==1):
                     if (lines=='Mass Of\n'):
                         mass=contents[i+1]
                     elif(lines.endswith('kg\n')==1):
@@ -75,14 +331,14 @@ with Scan as dir1:
                     else:
                         mass=contents[i]
                 
-                if lines.startswith('Average'):
+                elif lines.startswith('Average'):
                     climate='average'
-                if lines.startswith('Cold'):
+                elif lines.startswith('Cold'):
                     climate='cold'
-                if lines.startswith('Warmer Climate'):
+                elif lines.startswith('Warmer Climate'):
                     climate='warm'
                        
-                if(lines.startswith('EN')==1):
+                elif(lines.startswith('EN')==1):
                     if(p==1):
                         Poff.append(poff)
                         Psb.append(psb)
@@ -94,8 +350,7 @@ with Scan as dir1:
                     guideline=(contents[i-2])
                     d=0 #Medium or Low Content
                     p=0 #-15 yes or no
-                    NumberOfTestsPerModule=[]
-                    NumberOfTestsPerModule=[]
+                    NumberOfTestsPerNorm=[]
                     if(contents[i-1].startswith('Low')==1):
                         d=0
                         continue
@@ -106,7 +361,7 @@ with Scan as dir1:
                         d=1
                     else: 
                         d=0
-                if(lines.startswith('Pdh Tj = -15°C')==1): #check
+                elif(lines.startswith('Pdh Tj = -15°C')==1): #check
                     if(contents[i].endswith('Cdh\n')==1):#wrong content
                         continue
                     if(contents[i]=='\n'):#no content
@@ -137,7 +392,10 @@ with Scan as dir1:
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
                         Mass.append(mass[:-4])
-                        
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
                         Type.append(heatpumpType)
@@ -163,16 +421,22 @@ with Scan as dir1:
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
                         Mass.append(mass[:-4])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                if(lines.startswith('COP Tj = -15°C')):
+                elif(lines.startswith('COP Tj = -15°C')):
                     if(contents[i]=='\n'):
                         continue
                     if(contents[i].startswith('EHPA')):
                         continue
                     COP.append(contents[i][:-1])
+                    NumberOfTestsPerModule.append(i)
                     p=1
+
             
                     if(contents[i+2].startswith('Pdh')):#no medium Climate
                         continue
@@ -181,10 +445,11 @@ with Scan as dir1:
                     if(contents[i+2].startswith('EHPA')):#no medium Climate
                         continue
                     COP.append(contents[i+2][:-1])
+                    NumberOfTestsPerModule.append(i)
                     p=2
 
 
-                if(lines.startswith('Pdh Tj = -7°C')==1):#check
+                elif(lines.startswith('Pdh Tj = -7°C')==1):#check
                     minusseven_low=contents[i]
                     P_th.append(minusseven_low[:-4])
                     T_in.append('-7')
@@ -209,6 +474,10 @@ with Scan as dir1:
                     Date.append(date[:-1])
                     Refrigerant.append(refrigerant[:-1])
                     Mass.append(mass[:-4])
+                    SPLindoor_low.append(splindoor_low)
+                    SPLindoor_medium.append(splindoor_medium)
+                    SPLoutdoor_low.append(sploutdoor_low)
+                    SPLoutdoor_medium.append(sploutdoor_medium)
                     Type.append(heatpumpType)
                     Guideline.append(guideline[:-1])
                     Climate.append(climate)
@@ -229,22 +498,28 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                if(lines.startswith('COP Tj = -7°C')):
+                elif(lines.startswith('COP Tj = -7°C')):
                     COP.append(contents[i][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
                     if(contents[i+2].startswith('Pdh')):#no medium Climate
                         continue
                     if(contents[i+2].startswith('Cdh')):#no medium Climate
                         continue
                     COP.append(contents[i+2][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
 
-                if(lines.startswith('Pdh Tj = +2°C')==1): 
+                elif(lines.startswith('Pdh Tj = +2°C')==1): 
                     if(contents[i].endswith('Cdh\n')==1):#wrong content
                         continue
                     if(contents[i]=='\n'):#no content
@@ -272,6 +547,10 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
@@ -302,11 +581,15 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                if(lines.startswith('COP Tj = +2°C')):#check
+                elif(lines.startswith('COP Tj = +2°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
                     if(contents[i].startswith('EHPA')):#end of page
@@ -317,6 +600,7 @@ with Scan as dir1:
                     if(contents[i]=='n/a\n'):#usless infos
                         continue
                     COP.append(contents[i][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
                     if(contents[i+2].startswith('Pdh')):#no medium Climate
@@ -326,10 +610,11 @@ with Scan as dir1:
                     if(contents[i+2].startswith('EHPA')):#no medium Climate
                         continue
                     COP.append(contents[i+2][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
 
-                if(lines.startswith('Pdh Tj = +7°C')==1):
+                elif(lines.startswith('Pdh Tj = +7°C')==1):
                     if(contents[i].endswith('Cdh\n')==1):#wrong content
                         continue
                     if(contents[i]=='\n'):#no content
@@ -357,6 +642,10 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
@@ -384,11 +673,15 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                if(lines.startswith('COP Tj = +7°C')):#check
+                elif(lines.startswith('COP Tj = +7°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
                     if(contents[i].startswith('EHPA')):#end of page
@@ -398,6 +691,7 @@ with Scan as dir1:
                     if(contents[i]=='n/a\n'):#usless infos
                         continue
                     COP.append(contents[i][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
                     if(contents[i+2].startswith('Pdh')):#no medium Climate
@@ -407,10 +701,11 @@ with Scan as dir1:
                     if(contents[i+2].startswith('EHPA')):#no medium Climate
                         continue
                     COP.append(contents[i+2][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
 
-                if(lines.startswith('Pdh Tj = 12°C')==1):
+                elif(lines.startswith('Pdh Tj = 12°C')==1):
                     
                     if(contents[i].endswith('Cdh\n')==1):#wrong content
                         continue
@@ -431,6 +726,10 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
@@ -450,6 +749,10 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
@@ -478,6 +781,10 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
@@ -505,11 +812,15 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
+                        SPLindoor_low.append(splindoor_low)
+                        SPLindoor_medium.append(splindoor_medium)
+                        SPLoutdoor_low.append(sploutdoor_low)
+                        SPLoutdoor_medium.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                if(lines.startswith('COP Tj = 12°C')):#check
+                elif(lines.startswith('COP Tj = 12°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
                     if(contents[i].startswith('EHPA')):#end of page
@@ -520,6 +831,7 @@ with Scan as dir1:
                     if(contents[i]=='n/a\n'):#usless infos
                         continue
                     COP.append(contents[i][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
                     if(contents[i+2].startswith('Pdh')):#no medium Climate
@@ -529,40 +841,56 @@ with Scan as dir1:
                     if(contents[i+2].startswith('EHPA')):#no medium Climate
                         continue
                     COP.append(contents[i+2][:-1])
+                    NumberOfTestsPerNorm.append(i)
                     NumberOfTestsPerModule.append(i)
 
 
-                if(lines.startswith('Poff')):
+                elif(lines.startswith('Poff')):
                     l=0 #l shows if Poff Medium is different to Poff Low Temperature
                     c=2 # c is just an iterator to print every second Poff
                     poff=contents[i][:-2]
+                    if poff.endswith(' '):
+                        poff=poff[:-1]
+                        if poff.endswith('.00'):
+                            poff=poff[:-3]
                     second_poff=contents[i+2][:-2]
+                    if second_poff.endswith(' '):
+                        second_poff=second_poff[:-1]
+                        if second_poff.endswith('.00'):
+                            second_poff=second_poff[:-3]
                     if(poff!=second_poff): #see if Poff Medium to Poff low
                         if(contents[i+2].endswith('W\n')):
                             if (contents[i+2]!='W\n'):
                                 l=1
-                    for Tests in NumberOfTestsPerModule:
+                    for Tests in NumberOfTestsPerNorm:
                         if l==0:
                             Poff.append(poff)
-                            SPLind.append(file.name)
                         if l==1:
                             c+=1
                             if c%2==1:
                                 Poff.append(poff)
-                                SPLind.append(file.name)
                             if c%2==0:
                                 Poff.append(second_poff)
-                                SPLind.append(file.name)
-                if(lines.startswith('PSB')):
+                elif(lines.startswith('PSB')):
                     l=0 #l shows if Poff Medium is different to Poff Low Temperature
                     c=2 # c is just an iterator to print every second Poff
                     psb=contents[i][:-2]
+                    if psb.endswith(' '):
+                        psb=psb[:-1]
+                        if psb.endswith('.00'):
+                            psb=psb[:-3]
                     psb_medium=contents[i+2][:-2]
+                    if psb_medium.endswith(' '):
+                        psb_medium=psb_medium[:-1]
+                        if psb_medium.endswith('.00'):
+                            psb_medium=psb_medium[:-3]
                     if(psb!=psb_medium): #see if Poff Medium to Poff low
                         if(contents[i+2].endswith('W\n')):
                             if (contents[i+2]!='W\n'):
                                 l=1
-                    for Tests in NumberOfTestsPerModule:
+                    
+
+                    for Tests in NumberOfTestsPerNorm:
                         if l==0:
                             Psb.append(psb)
                         if l==1:
@@ -579,17 +907,24 @@ with Scan as dir1:
                 Poff.append(poff)
                 Poff.append(second_poff)
                 Psb.append(psb)
-                Psb.append(psb_medium)            
+                Psb.append(psb_medium) 
+
+       
 df['Manufacturer']=Manufacturer
 df['Model']=Modul                 
 df['Date']=Date
 df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y')
 df['Type']=Type
+df['SPL indoor low T']=SPLindoor_low
+df['SPL indoor medium T']=SPLindoor_medium
+df['SPL outdoor low T']=SPLoutdoor_low
+df['SPL outdoor medium T']=SPLoutdoor_medium
 df['Refrigerant']=Refrigerant
 df['Mass of Refrigerant [kg]']=Mass
 df['Poff [W]']= Poff
+df['Poff [W]']=df['Poff [W]'].astype(int)
 df['PSB [W]']=Psb
-
+df['PSB [W]']=df['PSB [W]'].astype(int)
 
 
 df['Guideline']=Guideline
@@ -615,9 +950,20 @@ Average Climate 55  52  42  36  30
 Warm Climate    55  55  55  46  34                    
 """
 df['P_th']=P_th
-df['P_th']=df['P_th'].astype(float)
+df['P_th']=round(df['P_th'].astype(float),2)
 df['COP']=COP
-df['COP']=df['COP'].astype(float)
+df['COP']=round(df['COP'].astype(float),2)
 df['P_el']=round((df['P_th'] / df['COP']),2)
+df['PSB [W]']=df['PSB [W]'].where(df['PSB [W]'] > df['Poff [W]'], df['Poff [W]']) #Poff should not be bigger than PSB
+df.drop(columns=['Poff [W]'], inplace=True) #not needed anymore
+filt=df['P_th']<0.05    #P_th too small 
+df.drop(index=df[filt].index , inplace=True) 
 
-df.to_csv(os.path.dirname(__file__)+r'/data_heatpumpkeymark.csv')
+'''
+pf=pd.DataFrame()
+pf['splind_low']=SPLindoor_low
+pf['Splind_med']=SPLindoor_medium
+pf['modul']=Modul[0:46343]'''
+
+
+df.to_csv(os.path.dirname(__file__)+r'/hplib-database.csv', index=False)
