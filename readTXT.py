@@ -8,10 +8,11 @@ Refrigerant=[]
 Mass=[]
 Poff=[]
 Psb=[]
-SPLindoor_low=[]
-SPLindoor_medium=[]
-SPLoutdoor_low=[]
-SPLoutdoor_medium=[]
+Prated=[]
+SPLindoor=[]
+
+SPLoutdoor=[]
+
 Type=[]
 Mode=[]
 Climate=[]
@@ -31,6 +32,8 @@ with Scan as dir1:
             contents=f.readlines()
             date='NaN'
             modul='NaN'
+            prated_low='NaN'
+            prated_medium='NaN'
             heatpumpType='NaN'
             refrigerant='NaN'
             splindoor_low='NaN'
@@ -80,6 +83,7 @@ with Scan as dir1:
                         date = date[14:] 
                 elif(lines.startswith('Model')==1):
                     modul = (contents[i-2])
+                    climappend=0
                     splindoor_low='NaN'
                     splindoor_medium='NaN'
                     sploutdoor_low='NaN'
@@ -91,6 +95,7 @@ with Scan as dir1:
                     if heatpumpType.startswith('Eau glycol'):
                         heatpumpType= 'Brine/Water'
                 elif(lines.startswith('Sound power level indoor')):
+                    #if(climappend==1):
                     SPL=1
                     if(contents[i].startswith('Low')):
                         if contents[i+2].startswith('Medium'):
@@ -361,6 +366,12 @@ with Scan as dir1:
                         d=1
                     else: 
                         d=0
+                if lines.startswith('Prated'):
+                    prated_low=contents[i][:-4]
+                    if(contents[i+2].endswith('kW\n')):
+                        prated_medium=contents[i+2][:-4]                        
+
+
                 elif(lines.startswith('Pdh Tj = -15°C')==1): #check
                     if(contents[i].endswith('Cdh\n')==1):#wrong content
                         continue
@@ -392,12 +403,14 @@ with Scan as dir1:
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
                         Mass.append(mass[:-4])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        Prated.append(prated_low)
+                        SPLindoor.append(splindoor_low)
+                        #SPLindoor.append(splindoor_medium)
+                        SPLoutdoor.append(sploutdoor_low)
+                        #SPLoutdoor.append(sploutdoor_medium)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
+                        climappend=1 #indicator that climate has been added
                         Type.append(heatpumpType)
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
@@ -421,13 +434,15 @@ with Scan as dir1:
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
                         Mass.append(mass[:-4])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        Prated.append(prated_medium)
+                        #SPLindoor.append(splindoor_low)
+                        SPLindoor.append(splindoor_medium)
+                        #SPLoutdoor.append(sploutdoor_low)
+                        SPLoutdoor.append(sploutdoor_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
+                        climappend=1 #indicator that climate has been added
                 elif(lines.startswith('COP Tj = -15°C')):
                     if(contents[i]=='\n'):
                         continue
@@ -474,14 +489,15 @@ with Scan as dir1:
                     Date.append(date[:-1])
                     Refrigerant.append(refrigerant[:-1])
                     Mass.append(mass[:-4])
-                    SPLindoor_low.append(splindoor_low)
-                    SPLindoor_medium.append(splindoor_medium)
-                    SPLoutdoor_low.append(sploutdoor_low)
-                    SPLoutdoor_medium.append(sploutdoor_medium)
+                    Prated.append(prated_low)
+                    SPLindoor.append(splindoor_low)
+                    #SPLindoor.append(splindoor_medium)
+                    SPLoutdoor.append(sploutdoor_low)
+                    #SPLoutdoor.append(sploutdoor_medium)
                     Type.append(heatpumpType)
                     Guideline.append(guideline[:-1])
                     Climate.append(climate)
-
+                    climappend=1 #indicator that climate has been added
                     if(contents[i+2].startswith('COP')==1):
                         continue
                     else:
@@ -498,14 +514,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        #SPLindoor.append(splindoor_low)
+                        SPLindoor.append(splindoor_medium)
+                        #SPLoutdoor.append(sploutdoor_low)
+                        SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
+                        climappend=1 #indicator that climate has been added
                 elif(lines.startswith('COP Tj = -7°C')):
                     COP.append(contents[i][:-1])
                     NumberOfTestsPerNorm.append(i)
@@ -547,15 +565,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        SPLindoor.append(splindoor_low)
+                        #SPLindoor.append(splindoor_medium)
+                        SPLoutdoor.append(sploutdoor_low)
+                        #SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_low)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-
+                        climappend=1 #indicator that climate has been added
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
                         if(contents[i+2].startswith('Disclaimer')): #for PDF without medium heat
@@ -581,14 +600,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        #SPLindoor.append(splindoor_low)
+                        SPLindoor.append(splindoor_medium)
+                        #SPLoutdoor.append(sploutdoor_low)
+                        SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
+                        climappend=1 #indicator that climate has been added
                 elif(lines.startswith('COP Tj = +2°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
@@ -642,15 +663,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        SPLindoor.append(splindoor_low)
+                        #SPLindoor.append(splindoor_medium)
+                        SPLoutdoor.append(sploutdoor_low)
+                        #SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_low)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-
+                        climappend=1 #indicator that climate has been added
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
                         if(contents[i+2].startswith('Disclaimer')): #for PDF without medium heat
@@ -673,14 +695,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        #SPLindoor.append(splindoor_low)
+                        SPLindoor.append(splindoor_medium)
+                        #SPLoutdoor.append(sploutdoor_low)
+                        SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
+                        climappend=1 #indicator that climate has been added
                 elif(lines.startswith('COP Tj = +7°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
@@ -726,15 +750,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        SPLindoor.append(splindoor_low)
+                        #SPLindoor.append(splindoor_medium)
+                        SPLoutdoor.append(sploutdoor_low)
+                        #SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_low)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-
+                        climappend=1 #indicator that climate has been added
                         plustwelfe_medium=(contents[i-9])
                         
                         P_th.append(plustwelfe_medium[:-4])
@@ -749,14 +774,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        #SPLindoor.append(splindoor_low)
+                        SPLindoor.append(splindoor_medium)
+                        #SPLoutdoor.append(sploutdoor_low)
+                        SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
-                        Climate.append(climate)                      
+                        Climate.append(climate)  
+                        climappend=1 #indicator that climate has been added                    
                     else:
                         plustwelfe_low=contents[i]
                         
@@ -781,15 +808,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        SPLindoor.append(splindoor_low)
+                        
+                        SPLoutdoor.append(sploutdoor_low)
+                        
                         Mass.append(mass[:-4])
+                        Prated.append(prated_low)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-
+                        climappend=1 #indicator that climate has been added
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
                         if(contents[i+2].startswith('Disclaimer')): #for PDF without medium heat
@@ -812,14 +840,16 @@ with Scan as dir1:
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
                         Refrigerant.append(refrigerant[:-1])
-                        SPLindoor_low.append(splindoor_low)
-                        SPLindoor_medium.append(splindoor_medium)
-                        SPLoutdoor_low.append(sploutdoor_low)
-                        SPLoutdoor_medium.append(sploutdoor_medium)
+                        #SPLindoor.append(splindoor_low)
+                        SPLindoor.append(splindoor_medium)
+                        
+                        SPLoutdoor.append(sploutdoor_medium)
                         Mass.append(mass[:-4])
+                        Prated.append(prated_medium)
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
+                        climappend=1 #indicator that climate has been added
                 elif(lines.startswith('COP Tj = 12°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
@@ -915,17 +945,15 @@ df['Model']=Modul
 df['Date']=Date
 df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y')
 df['Type']=Type
-df['SPL indoor low T']=SPLindoor_low
-df['SPL indoor medium T']=SPLindoor_medium
-df['SPL outdoor low T']=SPLoutdoor_low
-df['SPL outdoor medium T']=SPLoutdoor_medium
+df['SPL indoor']=SPLindoor
+df['SPL outdoor']=SPLoutdoor
 df['Refrigerant']=Refrigerant
 df['Mass of Refrigerant [kg]']=Mass
 df['Poff [W]']= Poff
 df['Poff [W]']=df['Poff [W]'].astype(int)
 df['PSB [W]']=Psb
 df['PSB [W]']=df['PSB [W]'].astype(int)
-
+df['Prated [W]']=Prated
 
 df['Guideline']=Guideline
 df['Climate']=Climate
@@ -958,12 +986,5 @@ df['PSB [W]']=df['PSB [W]'].where(df['PSB [W]'] > df['Poff [W]'], df['Poff [W]']
 df.drop(columns=['Poff [W]'], inplace=True) #not needed anymore
 filt=df['P_th']<0.05    #P_th too small 
 df.drop(index=df[filt].index , inplace=True) 
-
-'''
-pf=pd.DataFrame()
-pf['splind_low']=SPLindoor_low
-pf['Splind_med']=SPLindoor_medium
-pf['modul']=Modul[0:46343]'''
-
 
 df.to_csv(os.path.dirname(__file__)+r'/hplib-database.csv', index=False)
