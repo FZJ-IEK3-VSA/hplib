@@ -42,6 +42,7 @@ with Scan as dir1:
             sploutdoor_medium='NaN'
             poff='NaN'
             climate='NaN'
+            NumberOfTestsPerNorm=[]
             NumberOfTestsPerModule=[]
             i=1#indicator for the line wich is read
             d=0 #indicator if only medium Temperature is given
@@ -83,7 +84,6 @@ with Scan as dir1:
                         date = date[14:] 
                 elif(lines.startswith('Model')==1):
                     modul = (contents[i-2])
-                    climappend=0
                     splindoor_low='NaN'
                     splindoor_medium='NaN'
                     sploutdoor_low='NaN'
@@ -95,7 +95,7 @@ with Scan as dir1:
                     if heatpumpType.startswith('Eau glycol'):
                         heatpumpType= 'Brine/Water'
                 elif(lines.startswith('Sound power level indoor')):
-                    #if(climappend==1):
+
                     SPL=1
                     if(contents[i].startswith('Low')):
                         if contents[i+2].startswith('Medium'):
@@ -355,6 +355,8 @@ with Scan as dir1:
                     guideline=(contents[i-2])
                     d=0 #Medium or Low Content
                     p=0 #-15 yes or no
+                    
+                    
                     NumberOfTestsPerNorm=[]
                     if(contents[i-1].startswith('Low')==1):
                         d=0
@@ -410,7 +412,7 @@ with Scan as dir1:
                         #SPLoutdoor.append(sploutdoor_medium)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                         Type.append(heatpumpType)
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
@@ -442,7 +444,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                 elif(lines.startswith('COP Tj = -15°C')):
                     if(contents[i]=='\n'):
                         continue
@@ -497,7 +499,7 @@ with Scan as dir1:
                     Type.append(heatpumpType)
                     Guideline.append(guideline[:-1])
                     Climate.append(climate)
-                    climappend=1 #indicator that climate has been added
+                    
                     if(contents[i+2].startswith('COP')==1):
                         continue
                     else:
@@ -523,7 +525,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                 elif(lines.startswith('COP Tj = -7°C')):
                     COP.append(contents[i][:-1])
                     NumberOfTestsPerNorm.append(i)
@@ -574,7 +576,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
                         if(contents[i+2].startswith('Disclaimer')): #for PDF without medium heat
@@ -609,7 +611,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                 elif(lines.startswith('COP Tj = +2°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
@@ -672,7 +674,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
                         if(contents[i+2].startswith('Disclaimer')): #for PDF without medium heat
@@ -704,7 +706,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                 elif(lines.startswith('COP Tj = +7°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
@@ -759,7 +761,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                         plustwelfe_medium=(contents[i-9])
                         
                         P_th.append(plustwelfe_medium[:-4])
@@ -783,7 +785,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)  
-                        climappend=1 #indicator that climate has been added                    
+                                            
                     else:
                         plustwelfe_low=contents[i]
                         
@@ -817,7 +819,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                         if(contents[i+2].startswith('COP')): #for PDF without medium heat
                             continue
                         if(contents[i+2].startswith('Disclaimer')): #for PDF without medium heat
@@ -849,7 +851,7 @@ with Scan as dir1:
                         Type.append(heatpumpType)
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
-                        climappend=1 #indicator that climate has been added
+                        
                 elif(lines.startswith('COP Tj = 12°C')):#check
                     if(contents[i]=='\n'):#no infos
                         continue
@@ -939,7 +941,6 @@ with Scan as dir1:
                 Psb.append(psb)
                 Psb.append(psb_medium) 
 
-       
 df['Manufacturer']=Manufacturer
 df['Model']=Modul                 
 df['Date']=Date
