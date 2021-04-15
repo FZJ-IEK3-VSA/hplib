@@ -86,6 +86,8 @@ with Scan as dir1:
                         if(contents[i].startswith('+')):
                             temperatur2=contents[i][:-1]
                             T=1
+                            temperatur2=(temperatur2[1:3])
+                        temperatur1=(temperatur1[1:2])
                     else:
                         T=0
                 elif lines.startswith('Pdesignc'):
@@ -231,14 +233,14 @@ df['Type']=Type
 df['Refrigerant']=Refrigerant
 df['Mass of Refrigerant [kg]']=Mass
 df['Pdesignc']=Pdesignc
-df['Temperatur']=Temperatur
-df['T_outside']=T_outside
-df['Pdc']=PDC
+df['T_outside [°C]']=T_outside
+df['T_out [°C]']=Temperatur 
+
+df['Pdc [kW]']=PDC
 df['EER']=EER
 
 filt=df['EER']=='Cdc'    #P_th too small 
 df.drop(index=df[filt].index , inplace=True)
 filt=df['EER']=='Pdc Tj = 30°C'    #P_th too small 
 df.drop(index=df[filt].index , inplace=True)
-print(df)
 df.to_csv(os.path.dirname(__file__)+r'/hplib-database_cooling.csv', index=False)
