@@ -988,4 +988,4 @@ df.drop(columns=['Poff [W]'], inplace=True) #not needed anymore
 filt=df['P_th']<0.05    #P_th too small 
 df.drop(index=df[filt].index , inplace=True) 
 
-df.to_csv(os.path.dirname(__file__)+r'/hplib-database.csv', index=False)
+df.to_csv(os.path.dirname(__file__)+r'/hplib-database_heating.csv', index=False)
