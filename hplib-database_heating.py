@@ -65,6 +65,28 @@ with Scan as dir1:
                     manufacturer = (contents[i])
                     if (manufacturer.find('(')>0):
                         manufacturer=manufacturer.split('(', 1)[1].split('\n')[0]
+                    if manufacturer.endswith('GmbH\n'):
+                        manufacturer=manufacturer[:-5]
+                    if manufacturer.endswith('S.p.A.\n'):
+                        manufacturer=manufacturer[:-6]
+                    if manufacturer.endswith('s.p.a.\n'):
+                        manufacturer=manufacturer[:-6]
+                    if manufacturer.endswith('S.p.A\n'):
+                        manufacturer=manufacturer[:-5]
+                    if manufacturer.endswith('S.L.U.\n'):
+                        manufacturer=manufacturer[:-6]
+                    if manufacturer.endswith('s.r.o.\n'):
+                        manufacturer=manufacturer[:-6]
+                    if manufacturer.endswith('S.A.\n'):
+                        manufacturer=manufacturer[:-4]
+                    if manufacturer.endswith('S.L.\n'):
+                        manufacturer=manufacturer[:-4]
+                    if manufacturer.endswith('B.V.\n'):
+                        manufacturer=manufacturer[:-4]
+                    if manufacturer.endswith('N.V.\n'):
+                        manufacturer=manufacturer[:-4]
+                    if manufacturer.endswith('GmbH & Co KG\n'):
+                        manufacturer=manufacturer[:-12]
                     elif manufacturer.startswith('NIBE'):
                         manufacturer='Nibe\n'
                     elif manufacturer.startswith('Nibe'):
@@ -76,7 +98,8 @@ with Scan as dir1:
                     elif manufacturer.startswith('OCHSNER'):
                         manufacturer='Ochsner\n' 
                     elif manufacturer.startswith('Viessmann'):
-                        manufacturer='Viessmann\n'   
+                        manufacturer='Viessmann\n'
+                       
                 elif(lines.endswith('Date\n')==1):
                     date = (contents[i])
                     if (date=='basis\n'):
@@ -946,8 +969,8 @@ df['Model']=Modul
 df['Date']=Date
 df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y')
 df['Type']=Type
-df['SPL indoor']=SPLindoor
-df['SPL outdoor']=SPLoutdoor
+df['SPL indoor [dBA]']=SPLindoor
+df['SPL outdoor [dBA]']=SPLoutdoor
 df['Refrigerant']=Refrigerant
 df['Mass of Refrigerant [kg]']=Mass
 df['Poff [W]']= Poff
@@ -959,9 +982,9 @@ df['Prated [W]']=Prated
 df['Guideline']=Guideline
 df['Climate']=Climate
 df['T_in']=T_in
-df['T_in']=df['T_in'].astype(int)
+df['T_in [°C]']=df['T_in'].astype(int)
 df['T_out']=T_out
-df['T_out']=df['T_out'].astype(int)
+df['T_out [°C]']=df['T_out'].astype(int)
 """  
 T_out for Low Temperature
         T-in:   -15 -7  2   7   12
@@ -978,14 +1001,15 @@ Cold Climate    49  44  37  32  28
 Average Climate 55  52  42  36  30
 Warm Climate    55  55  55  46  34                    
 """
-df['P_th']=P_th
-df['P_th']=round(df['P_th'].astype(float),2)
+df['P_th [W]']=P_th
+df['P_th [W]']=((df['P_th [W]'].astype(float))*1000).astype(int)
 df['COP']=COP
 df['COP']=round(df['COP'].astype(float),2)
-df['P_el']=round((df['P_th'] / df['COP']),2)
+df['P_el [W]']=round(df['P_th [W]'] / df['COP'])
+df['P_el [W]']=df['P_el [W]'].fillna(0).astype(int)
 df['PSB [W]']=df['PSB [W]'].where(df['PSB [W]'] > df['Poff [W]'], df['Poff [W]']) #Poff should not be bigger than PSB
 df.drop(columns=['Poff [W]'], inplace=True) #not needed anymore
-filt=df['P_th']<0.05    #P_th too small 
+filt=df['P_th [W]']<50    #P_th too small 
 df.drop(index=df[filt].index , inplace=True) 
-
+print(df)
 df.to_csv(os.path.dirname(__file__)+r'/hplib-database_heating.csv', index=False)
