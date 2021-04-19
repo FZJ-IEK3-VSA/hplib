@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-
+df1=pd.read_csv('hplib-database_heating.csv')
 Modul=[]
 Manufacturer=[]
 Date=[]
@@ -14,7 +14,6 @@ SPLindoor=[]
 SPLoutdoor=[]
 
 Type=[]
-Mode=[]
 Climate=[]
 Guideline=[]
 T_in=[]
@@ -981,10 +980,10 @@ df['Prated [W]']=Prated
 
 df['Guideline']=Guideline
 df['Climate']=Climate
-df['T_in']=T_in
-df['T_in [°C]']=df['T_in'].astype(int)
-df['T_out']=T_out
-df['T_out [°C]']=df['T_out'].astype(int)
+df['T_in [°C]']=T_in
+df['T_in [°C]']=df['T_in [°C]'].astype(int)
+df['T_out [°C]']=T_out
+df['T_out [°C]']=df['T_out [°C]'].astype(int)
 """  
 T_out for Low Temperature
         T-in:   -15 -7  2   7   12
