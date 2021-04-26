@@ -1,9 +1,13 @@
 Manufacturer;Name;model;mode;T_in;T_out;P_el;P_th;COP
-Viessmann;Vitocal 200;on_off;heating;-7,00;34,00;1,664;4,76;2,86
-Viessmann;Vitocal 200;on_off;heating;2,00;30,00;0,693;3;4,33
-Viessmann;Vitocal 200;on_off;heating;7,00;27,00;0,546;3,15;5,77
-Viessmann;Vitocal 200;on_off;heating;12,00;24,00;0,427;3,05;7,14
-Viessmann;Vitocal 200;on_off;heating;-7,00;52,00;2,281;4,63;2,03
-Viessmann;Vitocal 200;on_off;heating;2,00;42,00;1,013;3,11;3,07
-Viessmann;Vitocal 200;on_off;heating;7,00;36,00;0,709;2,97;4,19
-Viessmann;Vitocal 200;on_off;heating;12,00;30,00;0,529;2,91;5,5
+Viessmann;Vitocal 200;on_off;heating;-7;34;1,66;4,76;2,86
+Viessmann;Vitocal 200;on_off;heating;2;30;0,69;3;4,33
+Viessmann;Vitocal 200;on_off;heating;7;27;0,55;3,15;5,77
+Viessmann;Vitocal 200;on_off;heating;12;24;0,43;3,05;7,14
+Viessmann;Vitocal 200;on_off;heating;-7;52;2,28;4,63;2,03
+Viessmann;Vitocal 200;on_off;heating;2;42;1,01;3,11;3,07
+Viessmann;Vitocal 200;on_off;heating;7;36;0,71;2,97;4,19
+Viessmann;Vitocal 200;on_off;heating;12;30;0,53;2,91;5,5
+Viessmann;Vitocal 200;on_off;heating;-15;34;1,66;4,76;2,86
+Viessmann;Vitocal 200;on_off;heating;20;24;0,43;3,05;7,14
+Viessmann;Vitocal 200;on_off;heating;-15;52;2,28;4,63;2,03
+Viessmann;Vitocal 200;on_off;heating;20;30;0,53;2,91;5,5
