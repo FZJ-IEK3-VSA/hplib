@@ -130,3 +130,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-COP.csv
+validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-COP.dig
+validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-P_el.csv
+validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-P_el.dig
+validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-P_th.csv
+validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-P_th.dig
+validation/StiebelEltronWPL13/high.csv
+validation/StiebelEltronWPL13/low.csv
+validation/ViessmannVitocal200/low.csv
