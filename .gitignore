@@ -139,3 +139,7 @@ validation/StiebelEltronWPE-I04(premium)/StiebelEltron_WPE-I04-HK-Premium-P_th.d
 validation/StiebelEltronWPL13/high.csv
 validation/StiebelEltronWPL13/low.csv
 validation/ViessmannVitocal200/low.csv
+validation/AIT_SWCV_122/ait-SWCV-diagramm.dig
+validation/AIT_SWCV_122/ait-SWCV-diagramm_P_th.csv
+validation/AIT_SWCV_122/ait-SWCV-diagramm_pel.csv
+validation/AIT_SWCV_122/ait-SWCV-diagramm_pel.dig
