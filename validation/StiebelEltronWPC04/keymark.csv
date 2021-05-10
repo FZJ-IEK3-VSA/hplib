@@ -1,0 +1,21 @@
+Manufacturer;Model;Date;Climate;T_in;T_out;P_th;COP;P_el
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;average;-7;34;4800;4.55;1055
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;average;2;30;4800;4.87;986
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;average;7;27;4900;5.18;946
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;average;12;24;4900;5.52;888
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;warm;2;35;4800;4.5;1067
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;warm;7;31;4800;4.8;1000
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;warm;12;26;4900;5.29;926
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;cold;-7;30;4900;5.03;974
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;cold;2;27;4900;5.27;930
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;cold;7;25;4900;5.47;896
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;cold;12;24;4900;5.5;891
+STIEBEL ELTRON ;WPC 04, all climates;2016-08-23;cold;-15;32;4000;4.92;813
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;-7;34;4800;4.55;1055
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;-7;52;4300;2.85;1509
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;2;30;4800;4.87;986
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;2;42;4500;3.35;1343
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;7;27;4900;5.18;946
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;7;36;4600;3.73;1233
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;12;24;4900;5.52;888
+STIEBEL ELTRON ;WPC 04, average climates;2016-08-23;average;12;30;4700;4.18;1124
