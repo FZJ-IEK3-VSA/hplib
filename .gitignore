@@ -143,3 +143,10 @@ validation/AIT_SWCV_122/ait-SWCV-diagramm.dig
 validation/AIT_SWCV_122/ait-SWCV-diagramm_P_th.csv
 validation/AIT_SWCV_122/ait-SWCV-diagramm_pel.csv
 validation/AIT_SWCV_122/ait-SWCV-diagramm_pel.dig
+validation/AIT_SWCV_122/P_elmin.csv
+validation/AIT_SWCV_122/P_elmin.dig
+validation/AIT_SWCV_122/P_thmin.csv
+validation/AIT_SWCV_122/P_thmin.dig
+validation/Ochsner_Terra14_hpla/diagramm_Pel.dig
+validation/Ochsner_Terra14_hpla/diagramm_Pth.csv
+validation/Ochsner_Terra14_hpla/diagramm_Pth.dig
