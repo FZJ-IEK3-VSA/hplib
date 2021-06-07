@@ -1,0 +1,23 @@
+Manufacturer;Model;T_in;T_out;P_th;COP;P_el
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);-7;34;10300;4.52;2279
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);-7;52;11100;3.18;3491
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);2;30;6300;5.27;1195
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);2;42;6800;4.12;1650
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);7;27;4100;5.6;732
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);7;36;4400;4.67;942
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);12;24;2700;5.78;467
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);12;30;2600;5.06;514
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);2;35;11500;4.26;2700
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);2;55;12300;2.91;4227
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);7;31;7600;5.12;1484
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);7;46;8100;3.74;2166
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);12;26;3400;5.75;591
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);12;34;3600;4.85;742
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);-7;30;7100;5.26;1350
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);-7;44;7600;3.94;1929
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);2;27;4300;5.62;765
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);2;37;4700;4.58;1026
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);7;25;2800;6.01;466
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);7;32;3000;5.11;587
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);12;24;2700;5.44;496
+ait-deutschland;SWCV 122(H)(K)3 (3~400V);12;28;2600;4.98;522
