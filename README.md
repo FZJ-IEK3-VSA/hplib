@@ -1,30 +1,12 @@
 WORK IN PROGRESS. PLEASE WAIT FOR FIRST RELEASE
 
-# hplib
+# hplib - heat pump library
 Repository with code to 
 - build a **database** with relevant data from public Heatpump Keymark Datasets
 - identify **efficiency parameters** from the database with regression models  
 - **simulate** heat pump efficiency and electrical & thermal power as time series.
 
-## Input-Data
-The European Heat Pump Association (EHPA) hosts a webiste with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
-
-This repository is based on all pdf files that were download for every manufacturer on 2021-03-12.
-
-## Setup & Pre-Processing
-First of all, you are free to download new keymark-files and process them with the following processing steps. The requirements are:
-- clone this repository, e.g. `https://github.com/RE-Lab-Projects/hplib-database.git`
-- change into the new directiory and setup an environment with `conda create --name hplib-database --file requirements.txt`
-- put your pdf files into the folder `input/pdf`
-- unix: *pdftotext* is included in many linux distributions | windows: install xpdf https://www.xpdfreader.com/
-- run the unix bash script `./input/pdf2text.sh` or replace this step with an appropriate tool on windows/mac which converts pdf files to simple textfiles. For windows try 
-
-## Processing
-The main processing uses python / pandas to parse the text files and find the relevant data. It creates a dataframe and saves its content als CSV file.
-- simply run `main.py`
-
-## Result
-The resulting database CSV file is under Attribution 4.0 International licence [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) and contains the following columns
+The following heat pumps are part of this library
 
 | Column | Description | Comment |
 | --- | --- | --- |
@@ -43,3 +25,42 @@ The resulting database CSV file is under Attribution 4.0 International licence [
 | P_th | set point: thermal power | 0 to 84.7 kW |
 | P_el | set point: electrical power | 0 to 29.5 kW |
 | COP | set point: coefficient of performance | 0 to 12.8 |
+
+Further more, based on this library four generic heat pumps with an average efficieny where created
+- air/water | onoff
+- air/water | inverter
+- brine/water | onoff
+- brine/water | inverter
+----------------
+
+## Input-Data
+The European Heat Pump Association (EHPA) hosts a webiste with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
+
+This repository is based on all pdf files that were download for every manufacturer on 2021-03-12.
+
+## Setup & Pre-Processing
+First of all, you are free to download new keymark-files and process them with the following processing steps. The requirements are:
+- clone this repository, e.g. `https://github.com/RE-Lab-Projects/hplib-database.git`
+- change into the new directiory and setup an environment with `conda create --name hplib-database --file requirements.txt`
+- put your pdf files into the folder `input/pdf`
+- unix: *pdftotext* is included in many linux distributions | windows: install xpdf https://www.xpdfreader.com/
+- run the unix bash script `./input/pdf2text.sh` or replace this step with an appropriate tool on windows/mac which converts pdf files to simple textfiles. For windows try 
+
+## Usage of hplib
+[ ] to do
+### create database
+The main processing uses python / pandas to parse the text files and find the relevant data. It creates a dataframe and saves its content als CSV file.
+- simply run `main.py`
+**Result**
+The resulting database CSV file is under Attribution 4.0 International licence [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) and contains the following columns
+
+### fit efficiency parameters
+...
+**Result**
+The resulting database CSV file is under Attribution 4.0 International licence [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) and contains the following columns
+
+### simulate a heat pump
+...
+
+
+
