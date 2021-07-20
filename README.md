@@ -6,7 +6,7 @@ Repository with code to
 - identify **efficiency parameters** from the database with regression models  
 - **simulate** heat pump efficiency and electrical & thermal power as time series.
 
-The following heat pumps are part of this library
+The following columns are available for every heat pump of this library
 
 | Column | Description | Comment |
 | --- | --- | --- |
