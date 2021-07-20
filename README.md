@@ -73,6 +73,4 @@ In those functions effects like a negative electrical value are neglected and a 
  
 ## Result
 
-All resulting database CSV file are under Attribution 4.0 International licence [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/) and contains the following columns
-
-
+All resulting database CSV file are under Attribution 4.0 International licence [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/).
