@@ -24,7 +24,7 @@ The following columns are available for every heat pump of this library
 | Climate | set point: climate definition for set points | average, colder, warmer |
 | P_el_n | set point: electrical power at -7/34 | 0.75 to 17.58 kW |
 | P_th_max | set point thermal power at -7/52 | 2.4 to 70 kW |
-| k1-k3 | parameters to fit thermal power  | with formula: (k1\*T(in)+k2\*T(out)+k3)\*P_el_n |
+| k1-k3 | parameters to fit thermal power  | with formula: (k1\*T(in)+k2\*T(out)+k3)\*P_th_n |
 | k4-k6 | parameters to fit electrical power  | with formula: (k4\*T(in)+k5\*T(out)+k6) \*P_el_n|
 | k7-k9 | parameters to fit COP | with formula: k7\*T(in)+k8\*T(out)+k9 |
 | Group | Groups represent the Modus and Type of heatpump | 1: Air Water-Inverter, 2: Brine/Water-Inverter, 4:Air/Water-On-Off, 5:Brine/Water-On-Off
