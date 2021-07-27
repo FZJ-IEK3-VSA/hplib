@@ -1,6 +1,131 @@
 import os
 import glob
 import pandas as pd
+import scipy
+from scipy.optimize import curve_fit
+
+def get_modus(P_th_minus7_34, P_th_2_30, P_th_7_27, P_th_12_24):
+    if (P_th_minus7_34 <= P_th_2_30):
+        if (P_th_2_30 <= P_th_7_27):
+            if (P_th_7_27 <= P_th_12_24):
+                modus='On-Off'#\\\
+            else:
+                modus='On-Off'#/\\ idk why but its true examples: AQUATOP S08; TTF 35
+        else:
+            if(P_th_7_27 <= P_th_12_24):
+                modus='2-Stages'#\/\
+            else:
+                modus='Inverter'#\//
+    else:
+        modus='Inverter'#/\/
+    if (P_th_minus7_34 == P_th_12_24):
+        modus='delete'
+    return modus    
+def fit_simple(x,y,z):
+    p0=[0.1,0.001,1.] # starting values
+    a=(x,y,z) 
+    para,_ = scipy.optimize.leastsq(func_simple_zero,p0,args=a)
+    return para
+def func_simple_zero(para, x, y, z):
+    k1,k2,k3 = para
+    z_calc = k1*x + k2*y + k3
+    z_diff = z_calc - z
+    return z_diff
+def func_simple(para, x, y):
+    # Function to calculate z using parameters and any x and y:
+    k1,k2,k3 = para
+    z = k1*x + k2*y + k3
+    return z
+
+def AssignGroup(filename):
+    #Every Heatpump gets a modus depending on its modus and Type
+    data_key = pd.read_csv(r'output/'+ filename) #read Dataframe of all models
+    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Modus']=='Inverter')
+    data_key.loc[filt1, 'Group'] = 1
+    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Modus']=='Inverter')
+    data_key.loc[filt1, 'Group'] = 1
+    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Modus']=='Inverter')
+    data_key.loc[filt1, 'Group'] = 2
+    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Modus']=='Inverter')
+    data_key.loc[filt1, 'Group'] = 3
+
+
+    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Modus']=='On-Off')
+    data_key.loc[filt1, 'Group'] = 4
+    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Modus']=='On-Off')
+    data_key.loc[filt1, 'Group'] = 4
+    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Modus']=='On-Off')
+    data_key.loc[filt1, 'Group'] = 5
+    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Modus']=='On-Off')
+    data_key.loc[filt1, 'Group'] = 6
+
+    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Modus']=='2-Stages')
+    data_key.loc[filt1, 'Group'] = 7
+    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Modus']=='2-Stages')
+    data_key.loc[filt1, 'Group'] = 7
+    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Modus']=='2-Stages')
+    data_key.loc[filt1, 'Group'] = 8
+    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Modus']=='2-Stages')
+    data_key.loc[filt1, 'Group'] = 9
+    data_key.to_csv(r'output/'+filename[:-4]+'_group.csv', encoding='utf-8', index=False)
+
+def GetModusforeveryModel(filename):
+    #Get Modus like Inverter or On-Off or Two-Stages by comparing the thermal Power output at different temperature levels:
+    #-7/34 |  2/30  |  7/27  |  12/24
+    #assumptions for On-Off Heatpump: if temperature difference is bigger thermal Power output is smaller
+    #assumptions for 2 stages Heatpump: if temperature difference is bigger thermal Power output is smaller but it has one Jump in between 2/30 and 7/27
+    #assumptions for Inverter: the rest
+
+    data_key = pd.read_csv(r'output/'+filename) #read Dataframe of all models
+    Models=data_key['Model'].values.tolist()
+    Models = list(dict.fromkeys(Models))
+    data_keymark = data_key.rename(columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out'})
+    data_keymark['deltaT']=data_keymark['T_out']-data_keymark['T_in']
+
+    Moduslist=[]
+    for model in Models:
+        try:
+            P_thermal=[]
+            filt1=data_keymark['T_out']==34
+            Tin_minus_seven = data_keymark.loc[filt1]
+            filt2=Tin_minus_seven['Model']==model
+            Model_minus_seven = Tin_minus_seven[filt2]
+            P_th_minus_seven = Model_minus_seven['P_th'].array[0]
+            P_thermal.append(P_th_minus_seven)
+
+
+            filt1=data_keymark['T_out']==30
+            T_in_plus_two = data_keymark.loc[filt1]
+            filt2=T_in_plus_two['Model']==model
+            Model_plus_two = T_in_plus_two[filt2]
+            P_th_plus_two = Model_plus_two['P_th'].array[0]
+            P_thermal.append(P_th_plus_two)
+
+            filt1=data_keymark['T_out']==27
+            Tin_plus_seven = data_keymark.loc[filt1]
+            filt2=Tin_plus_seven['Model']==model
+            Model_plus_seven = Tin_plus_seven[filt2]
+            P_th_plus_seven = Model_plus_seven['P_th'].array[0]
+            P_thermal.append(P_th_plus_seven)
+
+            filt1=data_keymark['T_out']==24
+            Tin_plus_twelfe = data_keymark.loc[filt1]
+            filt2=Tin_plus_twelfe['Model']==model
+            Model_plus_twelfe = Tin_plus_twelfe[filt2]
+            P_th_plus_twelfe = Model_plus_twelfe['P_th'].array[0]
+            P_thermal.append(P_th_plus_twelfe)
+            P_thermal
+            Modus = get_modus(P_thermal[0],P_thermal[1],P_thermal[2],P_thermal[3])
+        except:
+            print(model)
+        Moduslist.append(Modus)
+    Modusdf = pd.DataFrame()
+    Modusdf['Model']=Models
+    Modusdf['Modus']=Moduslist
+    Modusdf
+    data_key = pd.read_csv(r'output/'+filename) #read Dataframe of all models
+    data_key=data_key.merge(Modusdf, how='inner', on='Model')
+    data_key.to_csv(r'output/'+filename[:-4]+'_modus.csv', encoding='utf-8', index=False)
 
 def NormalizeKeymarkData(filename):
     data_key = pd.read_csv(r'output/'+filename) #read Dataframe of all models
@@ -16,7 +141,7 @@ def NormalizeKeymarkData(filename):
         data_key.loc[:,['P_th_n']]= data_key['P_th [W]']/Pth_ref #get normalized Value P_th_n
         data_key.loc[:,['P_el_n']]= data_key['P_el [W]']/Pel_ref #get normalized Value P_el_n
         new_df=pd.concat([new_df,data_key]) #merge new Dataframe with old one
-    new_df.to_csv(r'output/'+filename[:-5]+'_normalized.csv', encoding='utf-8', index=False)
+    new_df.to_csv(r'output/'+filename[:-4]+'_normalized.csv', encoding='utf-8', index=False)
 
 def ReduceKeymarkData(filename, climate):
     # reduce the hplib_database_keymark to a specific climate measurement series (average, warm, cold)
@@ -40,6 +165,86 @@ def ReduceKeymarkData(filename, climate):
     data_key=data_key.loc[data_key['delete']=='keep']
     data_key.drop(columns=['delete'], inplace=True)
     data_key.to_csv(os.getcwd()+r'/output/database_keymark_'+climate+'.csv', index=False)
+
+def GetParameters(filename):
+    #get normalized Parameters 
+    data_key = pd.read_csv(r'output/'+ filename)
+    Models=data_key['Model'].values.tolist()
+    Models = list(dict.fromkeys(Models))#get models
+
+    Group=[]
+    Pel_n=[]
+    Pth_max=[]
+    k1=[]
+    k2=[]
+    k3=[]
+    k4=[]
+    k5=[]
+    k6=[]
+    k7=[]
+    k8=[]
+    k9=[]
+
+    for model in Models:
+        data_key = pd.read_csv(r'output/'+filename)
+        data_key = data_key.rename(columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out'})
+        data_key = data_key.loc[data_key['Model'] == model]#get data of model
+        group = data_key.Group.array[0]#get Group of model
+        Pel_ref=data_key.loc[data_key['P_el_n']==1,['P_el']].values.tolist()[0][0]
+        Pth_52=data_key.loc[data_key['T_out']==52,['P_th']].values.tolist()[0][0]
+        K = 273.15
+        eta_carnot_key = (data_key['T_out']+K) / ((data_key['T_out']+K)-(data_key['T_in']+K))
+        data_key['eta'] = data_key['COP'] / eta_carnot_key
+        data_key.fillna(0, inplace=True)
+        variables=['P_el_n', 'P_th_n', 'COP', 'eta']
+            
+        for var in variables: #get all parameters
+            vars()[var+'_para_key'] = fit_simple(data_key['T_in'],data_key['T_out'],data_key[var])
+            data_key[var+'_fit'] = func_simple(globals()[var+'_para_key'], data_key['T_in'], data_key['T_out'])
+            data_key[var+'_fit_err'] = (data_key[var+'_fit'] - data_key[var]) / data_key[var] * 100
+            d = data_key[var+'_fit_err'].mean(), data_key[var+'_fit_err'].max(), data_key[var+'_fit_err'].min()
+            vars()[var+'_err'] = pd.DataFrame(d, index=['mean', 'max', 'min'])
+        #write Parameters in List
+        k1.append(P_th_n_para_key[0])
+        k2.append(P_th_n_para_key[1])
+        k3.append(P_th_n_para_key[2])
+        k4.append(P_el_n_para_key[0])
+        k5.append(P_el_n_para_key[1])
+        k6.append(P_el_n_para_key[2])
+        k7.append(COP_para_key[0])
+        k8.append(COP_para_key[1])
+        k9.append(COP_para_key[2])
+        Group.append(group)
+        Pel_n.append(Pel_ref)
+        Pth_max.append(Pth_52)
+    #write List  in Dataframe
+
+    paradf=pd.DataFrame()
+    paradf['Model']=Models
+    paradf['k1']=k1 
+    paradf['k2']=k2
+    paradf['k3']=k3
+    paradf['k4']=k4
+    paradf['k5']=k5
+    paradf['k6']=k6
+    paradf['k7']=k7
+    paradf['k8']=k8
+    paradf['k9']=k9
+    paradf['Group']=Group
+    paradf['P_el_n']=Pel_n
+    paradf['P_th_max']=Pth_max
+
+    para = paradf
+    key = pd.read_csv(r'output/'+filename)
+    key=key.loc[key['T_out [°C]']==52]
+    parakey=para.merge(key, how='left', on='Model')
+    parakey = parakey.rename(columns={'Group_x': 'Group','P_el_n_x': 'P_el_n [W]','Prated [W]': 'Prated [kW]','P_th_max':'P_th_max [W]'})
+    table=parakey[['Manufacturer', 'Model', 'Type', 'Modus','Refrigerant','Mass of Refrigerant [kg]','Date','SPL indoor [dBA]','SPL outdoor [dBA]','Prated [kW]','PSB [W]','Guideline','Climate','P_el_n [W]','P_th_max [W]','k1','k2','k3','k4', 'k5','k6','k7','k8','k9', 'Group']]
+
+    filt1 = (table['k4'] > 0) & (table['Group']==2)
+    table.loc[filt1, 'Group'] = 5
+    table.loc[filt1, 'Modus'] = 'On-Off'
+    table.to_csv('hplib.csv', encoding='utf-8', index=False)
 
 def ImportKeymarkData():
     # read in keymark data from *.txt files in /input/txt/
