@@ -1193,8 +1193,8 @@ def CalculateFunctionParameters(filename):
     Models = list(dict.fromkeys(Models))#get models
 
     Group=[]
-    Pel_n=[]
-    Pth_max=[]
+    Pel_ref=[]
+    Pth_ref=[]
     k1=[]
     k2=[]
     k3=[]
@@ -1210,20 +1210,15 @@ def CalculateFunctionParameters(filename):
         data_key = data_key.rename(columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out'})
         data_key = data_key.loc[data_key['Model'] == model]#get data of model
         group = data_key.Group.array[0]#get Group of model
-        Pel_ref=data_key.loc[data_key['P_el_n']==1,['P_el']].values.tolist()[0][0]
-        Pth_52=data_key.loc[data_key['T_out']==52,['P_th']].values.tolist()[0][0]
+        Pel_REF=data_key.loc[data_key['P_el_n']==1,['P_el']].values.tolist()[0][0]
+        Pth_REF=data_key.loc[data_key['P_th_n']==1,['P_th']].values.tolist()[0][0]
         K = 273.15
-        eta_carnot_key = (data_key['T_out']+K) / ((data_key['T_out']+K)-(data_key['T_in']+K))
-        data_key['eta'] = data_key['COP'] / eta_carnot_key
         data_key.fillna(0, inplace=True)
-        variables=['P_el_n', 'P_th_n', 'COP', 'eta']
             
-        for var in variables: #get all parameters
-            vars()[var+'_para_key'] = fit_simple(data_key['T_in'],data_key['T_out'],data_key[var])
-            data_key[var+'_fit'] = func_simple(globals()[var+'_para_key'], data_key['T_in'], data_key['T_out'])
-            data_key[var+'_fit_err'] = (data_key[var+'_fit'] - data_key[var]) / data_key[var] * 100
-            d = data_key[var+'_fit_err'].mean(), data_key[var+'_fit_err'].max(), data_key[var+'_fit_err'].min()
-            vars()[var+'_err'] = pd.DataFrame(d, index=['mean', 'max', 'min'])
+        P_el_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['P_el_n'])
+        P_th_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['P_th_n'])
+        COP_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['COP'])
+
         #write Parameters in List
         k1.append(P_th_n_para_key[0])
         k2.append(P_th_n_para_key[1])
@@ -1235,34 +1230,31 @@ def CalculateFunctionParameters(filename):
         k8.append(COP_para_key[1])
         k9.append(COP_para_key[2])
         Group.append(group)
-        Pel_n.append(Pel_ref)
-        Pth_max.append(Pth_52)
+        Pel_ref.append(Pel_REF)
+        Pth_ref.append(Pth_REF)
     #write List  in Dataframe
 
     paradf=pd.DataFrame()
     paradf['Model']=Models
-    paradf['k1']=k1 
-    paradf['k2']=k2
-    paradf['k3']=k3
-    paradf['k4']=k4
-    paradf['k5']=k5
-    paradf['k6']=k6
-    paradf['k7']=k7
-    paradf['k8']=k8
-    paradf['k9']=k9
+    paradf['p1_P_th [1/°C]']=k1 
+    paradf['p2_P_th [1/°C]']=k2
+    paradf['p3_P_th [-]']=k3
+    paradf['p1_P_el [1/°C]']=k4
+    paradf['p2_P_el [1/°C]']=k5
+    paradf['p3_P_el [-]']=k6
+    paradf['p1_COP [-]']=k7
+    paradf['p2_COP [-]']=k8
+    paradf['p3_COP [-]']=k9
     paradf['Group']=Group
-    paradf['P_el_n']=Pel_n
-    paradf['P_th_max']=Pth_max
+    paradf['P_el_ref']=Pel_ref
+    paradf['P_th_ref']=Pth_ref
 
     para = paradf
     key = pd.read_csv(r'output/'+filename)
     key=key.loc[key['T_out [°C]']==52]
     parakey=para.merge(key, how='left', on='Model')
-    parakey = parakey.rename(columns={'Group_x': 'Group','P_el_n_x': 'P_el_n [W]','Prated [W]': 'Prated [kW]','P_th_max':'P_th_max [W]'})
-    table=parakey[['Manufacturer', 'Model', 'Type', 'Modus','Refrigerant','Mass of Refrigerant [kg]','Date','SPL indoor [dBA]','SPL outdoor [dBA]','Prated [kW]','PSB [W]','Guideline','Climate','P_el_n [W]','P_th_max [W]','k1','k2','k3','k4', 'k5','k6','k7','k8','k9', 'Group']]
+    parakey = parakey.rename(columns={'Group_x': 'Group','P_el_ref': 'P_el_ref [W]','P_th_ref':'P_th_ref [W]'})
+    table=parakey[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','P_el_ref [W]','P_th_ref [W]','p1_P_th [1/°C]','p2_P_th [1/°C]','p3_P_th [-]','p1_P_el [1/°C]', 'p2_P_el [1/°C]','p3_P_el [-]','p1_COP [-]','p2_COP [-]','p3_COP [-]']]
 
-    filt1 = (table['k4'] > 0) & (table['Group']==2)
-    table.loc[filt1, 'Group'] = 5
-    table.loc[filt1, 'Modus'] = 'On-Off'
     table.to_csv('hplib-database.csv', encoding='utf-8', index=False)
 

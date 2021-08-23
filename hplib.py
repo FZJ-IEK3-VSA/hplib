@@ -1,84 +1,65 @@
 import pandas as pd
 
-def getParafast(model,para): #para is the dataframe 'data_key_para.csv' this is a fast method
-    para = para.loc[para['Model'] == model]
+def getParameters(model): #to do: optional keywords
+    df = pd.read_csv('hplib-database.csv', delimiter=',')
+    df = df.loc[df['Model'] == model]
     parameters=[]
-    parameters.append(para['Group'].values.tolist()[0])
-    parameters.append(para['k1'].values.tolist()[0])
-    parameters.append(para['k2'].values.tolist()[0])
-    parameters.append(para['k3'].values.tolist()[0])
-    parameters.append(para['k4'].values.tolist()[0])
-    parameters.append(para['k5'].values.tolist()[0])
-    parameters.append(para['k6'].values.tolist()[0])
-    parameters.append(para['k7'].values.tolist()[0])
-    parameters.append(para['k8'].values.tolist()[0])
-    parameters.append(para['k9'].values.tolist()[0])
-    parameters.append(para['P_el_n [W]'].values.tolist()[0])
-    parameters.append(para['P_th_max [W]'].values.tolist()[0])
+    parameters.append(df['Model'].values.tolist()[0])
+    parameters.append(df['P_th_ref [W]'].values.tolist()[0])
+    parameters.append(df['P_el_ref [W]'].values.tolist()[0])
+    parameters.append(df['Group'].values.tolist()[0])
+    parameters.append(df['p1_P_th [1/°C]'].values.tolist()[0])
+    parameters.append(df['p2_P_th [1/°C]'].values.tolist()[0])
+    parameters.append(df['p3_P_th [-]'].values.tolist()[0])
+    parameters.append(df['p1_P_el [1/°C]'].values.tolist()[0])
+    parameters.append(df['p2_P_el [1/°C]'].values.tolist()[0])
+    parameters.append(df['p3_P_el [-]'].values.tolist()[0])
+    parameters.append(df['p1_COP [-]'].values.tolist()[0])
+    parameters.append(df['p2_COP [-]'].values.tolist()[0])
+    parameters.append(df['p3_COP [-]'].values.tolist()[0])
     return parameters
-def getParaeasy(model): #only with model name you get the data needed for fit. Takes a bit longer
-    para = pd.read_csv('hplib.csv', delimiter=',')
-    para = para.loc[para['Model'] == model]
-    parameters=[]
-    parameters.append(para['Group'].values.tolist()[0])
-    parameters.append(para['k1'].values.tolist()[0])
-    parameters.append(para['k2'].values.tolist()[0])
-    parameters.append(para['k3'].values.tolist()[0])
-    parameters.append(para['k4'].values.tolist()[0])
-    parameters.append(para['k5'].values.tolist()[0])
-    parameters.append(para['k6'].values.tolist()[0])
-    parameters.append(para['k7'].values.tolist()[0])
-    parameters.append(para['k8'].values.tolist()[0])
-    parameters.append(para['k9'].values.tolist()[0])
-    parameters.append(para['P_el_n [W]'].values.tolist()[0])
-    parameters.append(para['P_th_max [W]'].values.tolist()[0])
-    return parameters
-def getPowerHP(x,y,parameter): #input is: x -> input temperature
-                                        # y -> outflow temperature
-                                        #parameter -> list from getpara(easy/fast)
-    Group=parameter[0]
-    k4=parameter[4]
-    k5=parameter[5]
-    k6=parameter[6]
-    k7=parameter[7]
-    k8=parameter[8]
-    k9=parameter[9]
-    Pel_n=parameter[10]
-    Pth_max=parameter[11]
-    PSUP=0
+
+def simulate(x,y,parameters):
+    #input  x -> T_in [°C]
+    #       y -> T_out [°C]
+    #       parameters -> list from function getParameters()
+    Group=parameters[3]
+    k4=parameters[7]
+    k5=parameters[8]
+    k6=parameters[9]
+    k7=parameters[10]
+    k8=parameters[11]
+    k9=parameters[12]
+    Pel_ref=parameters[2]
+    Pth_ref=parameters[1]
+    # for subtype = Inverter
     if Group==(1 or 2 or 3):
+        COP=k7*x+k8*y+k9
         if x>=5: #minimum electrical Power at 5°C
             x=5
-        Pel=(k4*x+k5*y+k6)*Pel_n
-        if((Pel/Pel_n)<(0.15)):
-            Pel=Pel_n*0.15
-        COP=k7*x+k8*y+k9
+        Pel=(k4*x+k5*y+k6)*Pel_ref
         Pth=Pel*COP
         if COP<=1:
             COP=1
-            Pel=0
-            PSUP=Pth_max
-            Pth=Pth_max
+            Pel=Pth_ref
+            Pth=Pth_ref
+    # for subtype = On-Off
     elif Group==(4 or 5 or 6):
-        Pel=(k4*x+k5*y+k6)*Pel_n
-        if((Pel/Pel_n)<(0.15)):
-            Pel=Pel_n*0.15
+        Pel=(k4*x+k5*y+k6)*Pel_ref
         COP=k7*x+k8*y+k9
         Pth=Pel*COP
         if COP<=1:
             COP=1
-            Pel=0
-            PSUP=Pth_max
-            Pth=Pth_max
+            Pel=Pth_ref
+            Pth=Pth_ref
+    # for subtype = Two-stages
     else:
-        Pel=(k4*x+k5*y+k6)*Pel_n
-        if((Pel/Pel_n)<(0.15)):
-            Pel=Pel_n*0.15
-        COP=k7*x+k8*y+k9
-        Pth=Pel*COP
+        Pel=0
+        COP=0
+        Pth=0
         if COP<=1:
             COP=1
-            Pel=0
-            PSUP=Pth_max
-            Pth=Pth_max
-    return Pth,Pel,PSUP,COP
+            Pel=Pth_ref
+            Pth=Pth_ref
+    
+    return Pth,Pel,COP
