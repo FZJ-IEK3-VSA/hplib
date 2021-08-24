@@ -1,37 +1,57 @@
 import pandas as pd
 
-def getParameters(model): #to do: optional keywords
+def getParameters(model, Group=0, Pth=10000): #to do: optional keywords
     df = pd.read_csv('hplib-database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
-    parameters=[]
-    parameters.append(df['Model'].values.tolist()[0])
-    parameters.append(df['P_th_ref [W]'].values.tolist()[0])
-    parameters.append(df['P_el_ref [W]'].values.tolist()[0])
-    parameters.append(df['Group'].values.tolist()[0])
-    parameters.append(df['p1_P_th [1/°C]'].values.tolist()[0])
-    parameters.append(df['p2_P_th [1/°C]'].values.tolist()[0])
-    parameters.append(df['p3_P_th [-]'].values.tolist()[0])
-    parameters.append(df['p1_P_el [1/°C]'].values.tolist()[0])
-    parameters.append(df['p2_P_el [1/°C]'].values.tolist()[0])
-    parameters.append(df['p3_P_el [-]'].values.tolist()[0])
-    parameters.append(df['p1_COP [-]'].values.tolist()[0])
-    parameters.append(df['p2_COP [-]'].values.tolist()[0])
-    parameters.append(df['p3_COP [-]'].values.tolist()[0])
+    parameters=pd.DataFrame()
+    
+    parameters['Model']=(df['Model'].values.tolist())
+    parameters['P_th_ref [W]']=(df['P_th_ref [W]'].values.tolist())
+    parameters['P_el_ref [W]']=(df['P_el_ref [W]'].values.tolist())
+    parameters['Group']=(df['Group'].values.tolist())
+    parameters['p1_P_th [1/°C]']=(df['p1_P_th [1/°C]'].values.tolist())
+    parameters['p2_P_th [1/°C]']=(df['p2_P_th [1/°C]'].values.tolist())
+    parameters['p3_P_th [-]']=(df['p3_P_th [-]'].values.tolist())
+    parameters['p1_P_el [1/°C]']=(df['p1_P_el [1/°C]'].values.tolist())
+    parameters['p2_P_el [1/°C]']=(df['p2_P_el [1/°C]'].values.tolist())
+    parameters['p3_P_el [-]']=(df['p3_P_el [-]'].values.tolist())
+    parameters['p1_COP [-]']=(df['p1_COP [-]'].values.tolist())
+    parameters['p2_COP [-]']=(df['p2_COP [-]'].values.tolist())
+    parameters['p3_COP [-]']=(df['p3_COP [-]'].values.tolist())
+    if model=='Generic':
+        parameters=parameters.iloc[Group-1:Group]
+        parameters.loc[:, 'P_th_ref [W]'] = Pth
+        x=-7
+        y=52
+        k4=parameters['p1_P_el [1/°C]'].array[0]
+        k5=parameters['p2_P_el [1/°C]'].array[0]
+        k6=parameters['p3_P_el [-]'].array[0]
+        k7=parameters['p1_COP [-]'].array[Group-1]
+        k8=parameters['p2_COP [-]'].array[Group-1]
+        k9=parameters['p3_COP [-]'].array[Group-1]
+        COP=k7*x+k8*y+k9
+        if COP<=1:
+            COP=1
+        Pel_ref=Pth/(COP*(k4*x+k5*y+k6))
+        parameters.loc[:, 'P_el_ref [W]'] = Pel_ref
     return parameters
 
-def simulate(x,y,parameters):
+def simulate(T_in,T_out,parameters):
     #input  x -> T_in [°C]
     #       y -> T_out [°C]
     #       parameters -> list from function getParameters()
-    Group=parameters[3]
-    k4=parameters[7]
-    k5=parameters[8]
-    k6=parameters[9]
-    k7=parameters[10]
-    k8=parameters[11]
-    k9=parameters[12]
-    Pel_ref=parameters[2]
-    Pth_ref=parameters[1]
+    
+    x=T_in
+    y=T_out
+    Group=parameters['Group'].array[0]
+    k4=parameters['p1_P_el [1/°C]'].array[0]
+    k5=parameters['p2_P_el [1/°C]'].array[0]
+    k6=parameters['p3_P_el [-]'].array[0]
+    k7=parameters['p1_COP [-]'].array[0]
+    k8=parameters['p2_COP [-]'].array[0]
+    k9=parameters['p3_COP [-]'].array[0]
+    Pel_ref=parameters['P_el_ref [W]'].array[0]
+    Pth_ref=parameters['P_th_ref [W]'].array[0]
     # for subtype = Inverter
     if Group==(1 or 2 or 3):
         COP=k7*x+k8*y+k9
@@ -43,6 +63,7 @@ def simulate(x,y,parameters):
             COP=1
             Pel=Pth_ref
             Pth=Pth_ref
+        
     # for subtype = On-Off
     elif Group==(4 or 5 or 6):
         Pel=(k4*x+k5*y+k6)*Pel_ref
