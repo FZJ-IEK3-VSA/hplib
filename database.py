@@ -1016,7 +1016,8 @@ def ImportKeymarkData():
     df['PSB [W]']=df['PSB [W]'].where(df['PSB [W]'] > df['Poff [W]'], df['Poff [W]']) #Poff should not be bigger than PSB
     df.drop(columns=['Poff [W]'], inplace=True) #not needed anymore
     filt=df['P_th [W]']<50    #P_th too small 
-    df.drop(index=df[filt].index , inplace=True) 
+    df.drop(index=df[filt].index , inplace=True)
+    df.sort_values('Manufacturer')
     os.chdir("..")
     os.chdir("..")
     df.to_csv(os.getcwd()+r'/output/database_keymark.csv', index=False)
@@ -1058,6 +1059,11 @@ def NormalizeKeymarkData(filename):
         data_key.loc[:,['P_th_n']]= data_key['P_th [W]']/Pth_ref #get normalized Value P_th_n
         data_key.loc[:,['P_el_n']]= data_key['P_el [W]']/Pel_ref #get normalized Value P_el_n
         new_df=pd.concat([new_df,data_key]) #merge new Dataframe with old one
+    filt1 = (new_df['P_th_n'] >= 2) & (new_df['T_out [°C]']==34)
+    deletemodels=new_df.loc[filt1, ['Model']].values.tolist()
+    for model in deletemodels:
+        new_df=new_df.loc[new_df['Model']!=model[0]]
+
     new_df.to_csv(r'output/'+filename[:-4]+'_normalized.csv', encoding='utf-8', index=False)
 
 def get_subtype(P_th_minus7_34, P_th_2_30, P_th_7_27, P_th_12_24):
@@ -1134,11 +1140,9 @@ def IdentifySubtypes(filename):
     Subtype_df
     data_key = pd.read_csv(r'output/'+filename) #read Dataframe of all models
     data_key=data_key.merge(Subtype_df, how='inner', on='Model')
-    data_key.to_csv(r'output/'+filename[:-4]+'_subtypes.csv', encoding='utf-8', index=False)
+    
+    ##assign group:
 
-def AssignGroup(filename):
-    #Every heatpump gets a group id depending on its type and subtype
-    data_key = pd.read_csv(r'output/'+ filename) #read Dataframe of all models
     filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype']=='Inverter')
     data_key.loc[filt1, 'Group'] = 1
     filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='Inverter')
@@ -1166,7 +1170,8 @@ def AssignGroup(filename):
     data_key.loc[filt1, 'Group'] = 8
     filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='2-Stages')
     data_key.loc[filt1, 'Group'] = 9
-    data_key.to_csv(r'output/'+filename, encoding='utf-8', index=False)
+    data_key=data_key[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','T_in [°C]','T_out [°C]','P_th [W]','P_el [W]','COP','P_th_n','P_el_n']]
+    data_key.to_csv(r'output/'+filename[:-4]+'_subtypes.csv', encoding='utf-8', index=False)
 
 def fit_simple(x,y,z):
     p0=[0.1,0.001,1.] # starting values
@@ -1254,7 +1259,46 @@ def CalculateFunctionParameters(filename):
     key=key.loc[key['T_out [°C]']==52]
     parakey=para.merge(key, how='left', on='Model')
     parakey = parakey.rename(columns={'Group_x': 'Group','P_el_ref': 'P_el_ref [W]','P_th_ref':'P_th_ref [W]'})
-    table=parakey[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','P_el_ref [W]','P_th_ref [W]','p1_P_th [1/°C]','p2_P_th [1/°C]','p3_P_th [-]','p1_P_el [1/°C]', 'p2_P_el [1/°C]','p3_P_el [-]','p1_COP [-]','p2_COP [-]','p3_COP [-]']]
+    parakey['COP_ref']=parakey['P_th_ref [W]']/parakey['P_el_ref [W]']
+    table=parakey[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','P_el_ref [W]','P_th_ref [W]','COP_ref','p1_P_th [1/°C]','p2_P_th [1/°C]','p3_P_th [-]','p1_P_el [1/°C]', 'p2_P_el [1/°C]','p3_P_el [-]','p1_COP [-]','p2_COP [-]','p3_COP [-]']]
 
     table.to_csv('hplib-database.csv', encoding='utf-8', index=False)
 
+def addGeneric():
+    data_key = pd.read_csv('hplib-database.csv', delimiter=',')
+    Groups=[1,2,3,4,5,6,7,8,9]
+    for group in Groups:
+        if group==1:
+            Type='Outdoor Air/Water'
+            modus='Inverter'
+        elif group==2:
+            Type='Brine/Water'
+            modus='Inverter'
+        elif group==3:
+            Type='Water/Water'
+            modus='Inverter'
+        elif group==4:
+            Type='Outdoor Air/Water'
+            modus='On-Off'
+        elif group==5:
+            Type='Brine/Water'
+            modus='On-Off'
+        elif group==6:
+            Type='Water/Water'
+            modus='On-Off'
+        else:
+            Type=''
+            modus='2-Stages'
+
+        Group1=data_key.loc[data_key['Group']==group]
+        k1_average=Group1['p1_P_th [1/°C]'].mean(0)
+        k2_average=Group1['p2_P_th [1/°C]'].mean(0)
+        k3_average=Group1['p3_P_th [-]'].mean(0)
+        k4_average=Group1['p1_P_el [1/°C]'].mean(0)
+        k5_average=Group1['p2_P_el [1/°C]'].mean(0)
+        k6_average=Group1['p3_P_el [-]'].mean(0)
+        k7_average=Group1['p1_COP [-]'].mean(0)
+        k8_average=Group1['p2_COP [-]'].mean(0)
+        k9_average=Group1['p3_COP [-]'].mean(0)
+        data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average',1,1,1, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
+    data_key.to_csv('hplib-database.csv', encoding='utf-8', index=False)
