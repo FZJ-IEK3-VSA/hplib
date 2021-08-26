@@ -1,5 +1,9 @@
 import pandas as pd
 
+def loadDatabase():
+    df = pd.read_csv('hplib-database.csv')
+    return df
+
 def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
     df = pd.read_csv('hplib-database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]

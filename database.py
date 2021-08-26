@@ -1307,7 +1307,7 @@ def addGeneric():
         k7_average=pd.unique(Group1['p1_COP [-]']).mean(0)
         k8_average=pd.unique(Group1['p2_COP [-]']).mean(0)
         k9_average=pd.unique(Group1['p3_COP [-]']).mean(0)
-        COP_ref=pd.unique(Group1['COP_ref']).mean(0)
+        COP_ref=-7*k7_average + 52*k8_average + k9_average
         data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average','','',COP_ref, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
     data_key['COP_ref']=data_key['COP_ref'].round(2)
     data_key.to_csv('hplib-database.csv', encoding='utf-8', index=False)
