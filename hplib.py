@@ -1,6 +1,6 @@
 import pandas as pd
 
-def getParameters(model, Group=0, Pth=10000): #to do: optional keywords
+def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
     df = pd.read_csv('hplib-database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters=pd.DataFrame()
@@ -8,6 +8,7 @@ def getParameters(model, Group=0, Pth=10000): #to do: optional keywords
     parameters['Model']=(df['Model'].values.tolist())
     parameters['P_th_ref [W]']=(df['P_th_ref [W]'].values.tolist())
     parameters['P_el_ref [W]']=(df['P_el_ref [W]'].values.tolist())
+    parameters['COP_ref']=(df['COP_ref'].values.tolist())
     parameters['Group']=(df['Group'].values.tolist())
     parameters['p1_P_th [1/°C]']=(df['p1_P_th [1/°C]'].values.tolist())
     parameters['p2_P_th [1/°C]']=(df['p2_P_th [1/°C]'].values.tolist())
@@ -20,20 +21,19 @@ def getParameters(model, Group=0, Pth=10000): #to do: optional keywords
     parameters['p3_COP [-]']=(df['p3_COP [-]'].values.tolist())
     if model=='Generic':
         parameters=parameters.iloc[Group-1:Group]
-        parameters.loc[:, 'P_th_ref [W]'] = Pth
+        parameters.loc[:, 'P_th_ref [W]'] = P_th_ref
         x=-7
         y=52
         k4=parameters['p1_P_el [1/°C]'].array[0]
         k5=parameters['p2_P_el [1/°C]'].array[0]
         k6=parameters['p3_P_el [-]'].array[0]
-        k7=parameters['p1_COP [-]'].array[Group-1]
-        k8=parameters['p2_COP [-]'].array[Group-1]
-        k9=parameters['p3_COP [-]'].array[Group-1]
-        COP=k7*x+k8*y+k9
-        if COP<=1:
-            COP=1
-        Pel_ref=Pth/(COP*(k4*x+k5*y+k6))
-        parameters.loc[:, 'P_el_ref [W]'] = Pel_ref
+        k7=parameters['p1_COP [-]'].array[0]
+        k8=parameters['p2_COP [-]'].array[0]
+        k9=parameters['p3_COP [-]'].array[0]
+        COP_ref=k7*x+k8*y+k9
+        P_el_ref=P_th_ref/COP_ref
+        parameters.loc[:, 'P_el_ref [W]'] = P_el_ref
+        parameters.loc[:, 'COP_ref'] = COP_ref
     return parameters
 
 def simulate(T_in,T_out,parameters):
@@ -53,7 +53,7 @@ def simulate(T_in,T_out,parameters):
     Pel_ref=parameters['P_el_ref [W]'].array[0]
     Pth_ref=parameters['P_th_ref [W]'].array[0]
     # for subtype = Inverter
-    if Group==(1 or 2 or 3):
+    if Group==1 or Group==2 or Group==3:
         COP=k7*x+k8*y+k9
         if x>=5: #minimum electrical Power at 5°C
             x=5
@@ -65,7 +65,7 @@ def simulate(T_in,T_out,parameters):
             Pth=Pth_ref
         
     # for subtype = On-Off
-    elif Group==(4 or 5 or 6):
+    elif Group==4 or Group==5 or Group==6:
         Pel=(k4*x+k5*y+k6)*Pel_ref
         COP=k7*x+k8*y+k9
         Pth=Pel*COP

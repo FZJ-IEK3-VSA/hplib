@@ -1286,19 +1286,28 @@ def addGeneric():
         elif group==6:
             Type='Water/Water'
             modus='On-Off'
-        else:
-            Type=''
+        elif group==7:
+            Type='Outdoor Air/Water'
+            modus='2-Stages'
+        elif group==8:
+            Type='Brine/Water'
+            modus='2-Stages'
+        elif group==9:
+            Type='Water/Water'
             modus='2-Stages'
 
+
         Group1=data_key.loc[data_key['Group']==group]
-        k1_average=Group1['p1_P_th [1/°C]'].mean(0)
-        k2_average=Group1['p2_P_th [1/°C]'].mean(0)
-        k3_average=Group1['p3_P_th [-]'].mean(0)
-        k4_average=Group1['p1_P_el [1/°C]'].mean(0)
-        k5_average=Group1['p2_P_el [1/°C]'].mean(0)
-        k6_average=Group1['p3_P_el [-]'].mean(0)
-        k7_average=Group1['p1_COP [-]'].mean(0)
-        k8_average=Group1['p2_COP [-]'].mean(0)
-        k9_average=Group1['p3_COP [-]'].mean(0)
-        data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average',1,1,1, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
+        k1_average=pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
+        k2_average=pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
+        k3_average=pd.unique(Group1['p3_P_th [-]']).mean(0)
+        k4_average=pd.unique(Group1['p1_P_el [1/°C]']).mean(0)
+        k5_average=pd.unique(Group1['p2_P_el [1/°C]']).mean(0)
+        k6_average=pd.unique(Group1['p3_P_el [-]']).mean(0)
+        k7_average=pd.unique(Group1['p1_COP [-]']).mean(0)
+        k8_average=pd.unique(Group1['p2_COP [-]']).mean(0)
+        k9_average=pd.unique(Group1['p3_COP [-]']).mean(0)
+        COP_ref=pd.unique(Group1['COP_ref']).mean(0)
+        data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average','','',COP_ref, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
+    data_key['COP_ref']=data_key['COP_ref'].round(2)
     data_key.to_csv('hplib-database.csv', encoding='utf-8', index=False)
