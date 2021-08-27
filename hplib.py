@@ -1,11 +1,11 @@
 import pandas as pd
 
 def loadDatabase():
-    df = pd.read_csv('hplib-database.csv')
+    df = pd.read_csv('hplib_database.csv')
     return df
 
 def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
-    df = pd.read_csv('hplib-database.csv', delimiter=',')
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters=pd.DataFrame()
     
@@ -40,13 +40,13 @@ def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
         parameters.loc[:, 'COP_ref'] = COP_ref
     return parameters
 
-def simulate(T_in,T_out,parameters):
-    #input  x -> T_in [°C]
-    #       y -> T_out [°C]
+def simulate(T_in_primary,T_in_secondary,parameters):
+    #input  T_in_primary [°C]
+    #       T_in_secondary [°C]
     #       parameters -> list from function getParameters()
     
-    x=T_in
-    y=T_out
+    x=T_in_primary
+    y=T_in_secondary+5 # Inlet temperature is supposed to be heated up by 5 K
     Group=parameters['Group'].array[0]
     k4=parameters['p1_P_el [1/°C]'].array[0]
     k5=parameters['p2_P_el [1/°C]'].array[0]
@@ -89,13 +89,13 @@ def simulate(T_in,T_out,parameters):
     
     return Pth,Pel,COP
 
-def simulate_normalized(T_in,T_out,parameters):
-    #input  x -> T_in [°C]
-    #       y -> T_out [°C]
+def simulate_normalized(T_in_primary,T_in_secondary,parameters):
+    #input  T_in_primary [°C]
+    #       T_in_secondary [°C]
     #       parameters -> list from function getParameters()
     
-    x=T_in
-    y=T_out
+    x=T_in_primary
+    y=T_in_secondary+5 # Inlet temperature is supposed to be heated up by 5 K
     Group=parameters['Group'].array[0]
     k4=parameters['p1_P_el [1/°C]'].array[0]
     k5=parameters['p2_P_el [1/°C]'].array[0]
@@ -110,22 +110,22 @@ def simulate_normalized(T_in,T_out,parameters):
         COP=k7*x+k8*y+k9
         if x>=5: #minimum electrical Power at 5°C
             x=5
-        Pel=(k4*x+k5*y+k6)#*Pel_ref
+        Pel=(k4*x+k5*y+k6)
         Pth=Pel*COP
         if COP<=1:
             COP=1
-            Pel=1#Pth_ref
-            Pth=1#Pth_ref
+            Pel=1
+            Pth=1
         
     # for subtype = On-Off
     elif Group==4 or Group==5 or Group==6:
-        Pel=(k4*x+k5*y+k6)#*Pel_ref
+        Pel=(k4*x+k5*y+k6)
         COP=k7*x+k8*y+k9
         Pth=Pel*COP
         if COP<=1:
             COP=1
-            Pel=1#Pth_ref
-            Pth=1#Pth_ref
+            Pel=1
+            Pth=1
     # for subtype = Two-stages
     else:
         Pel=0
@@ -133,7 +133,7 @@ def simulate_normalized(T_in,T_out,parameters):
         Pth=0
         if COP<=1:
             COP=1
-            Pel=1#Pth_ref
-            Pth=1#Pth_ref
+            Pel=1
+            Pth=1
     
     return Pth,Pel,COP
