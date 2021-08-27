@@ -14,8 +14,6 @@ If you're interested in how the database and parameters were calclulated, have a
 
 There you also find a litte example on how to use the hplib.py for simulation.
 
----
-
 ## Usage
 
 Download or clone repository:
@@ -27,8 +25,6 @@ Create the environment:
 `conda env create --name hplib --file requirements.txt`
 
 Create some code with `import hplib` and use the included functions `loadDatabase`, `getParameters` and `simulate`.
-
----
 
 ## Heat pump models and Group IDs
 The hplib_database.csv contains the following number of heat pump models, sorted by Group ID
@@ -65,8 +61,6 @@ The following columns are available for every heat pump of this library
 | k4-k6 | parameters to fit electrical power  | with formula: (k4\*T(in)+k5\*T(out)+k6) \*P_el_n|
 | k7-k9 | parameters to fit COP | with formula: k7\*T(in)+k8\*T(out)+k9 |
 | Group | Groups represent the Modus and Type of heatpump | 1: Air Water-Inverter, 2: Brine/Water-Inverter, 4:Air/Water-On-Off, 5:Brine/Water-On-Off
-
----
 
 ## Input-Data and further development
 The European Heat Pump Association (EHPA) hosts a webiste with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
