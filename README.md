@@ -31,9 +31,9 @@ The hplib_database.csv contains the following number of heat pump models, sorted
 
 | [Group ID]: Count | Inverter | On-Off | Two-Stage|
 | :---: | :---: | :---: | :---: |
-| Outdoor Air / Water | [1] | [4] |[7] |
-| Brine / Water | [2] | [5] | [8] |
-| Water / Water | [3] | [6] | [9] |
+| Outdoor Air / Water | [1]: 371 | [4]: 23 |[7]: 3 |
+| Brine / Water | [2]: 49 | [5]: 53 | [8]: 4 |
+| Water / Water | [3]: 0 | [6]: 10 | [9]: 0 |
 
 ## Database
 
