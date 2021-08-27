@@ -150,3 +150,9 @@ validation/AIT_SWCV_122/P_thmin.dig
 validation/Ochsner_Terra14_hpla/diagramm_Pel.dig
 validation/Ochsner_Terra14_hpla/diagramm_Pth.csv
 validation/Ochsner_Terra14_hpla/diagramm_Pth.dig
+.idea/vcs.xml
+.idea/hplib.iml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/workspace.xml
+compare.ipynb
