@@ -1,10 +1,43 @@
-WORK IN PROGRESS. PLEASE WAIT FOR FIRST RELEASE
-
 # hplib - heat pump library
-Repository with code to 
+
+Repository with code to
+ 
 - build a **database** with relevant data from public Heatpump Keymark Datasets
-- identify **efficiency parameters** from the database with regression models  
-- **simulate** heat pump efficiency and electrical & thermal power as time series.
+- identify **efficiency parameters** from the database with a least-square regression model  
+- **simulate** heat pump efficiency as well as  electrical & thermal power as time series.
+
+For the simulation, it is possible to calculate outputs of a specific **manufacturer + model or** alternatively for an **9 different types of a generic heat pump** 
+
+## Documentation
+
+If you're interested in how the database and parameters were calclulated, have a look into the Documentation.ipynb
+
+There you also find a litte example on how to use the hplib.py for simulation.
+
+## Usage
+
+Download or clone repository:
+
+`git clone https://github.com/RE-Lab-Projects/hplib.git`
+
+Create the environment:
+
+`conda env create --name hplib --file requirements.txt`
+
+Create some code with `import hplib` and use the included functions `loadDatabase`, `getParameters` and `simulate`.
+
+## Heat pump models and Group IDs
+The hplib_database.csv contains the following number of heat pump models, sorted by Group ID
+
+| [Group ID]: Count | Inverter | On-Off | Two-Stage|
+| :---: | :---: | :---: | :---: |
+| Outdoor Air / Water | [1] | [4] |[7] |
+| Brine / Water | [2] | [5] | [8] |
+| Water / Water | [3] | [6] | [9] |
+
+## Database
+
+All resulting database CSV file are under [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/).
 
 The following columns are available for every heat pump of this library
 
@@ -29,48 +62,15 @@ The following columns are available for every heat pump of this library
 | k7-k9 | parameters to fit COP | with formula: k7\*T(in)+k8\*T(out)+k9 |
 | Group | Groups represent the Modus and Type of heatpump | 1: Air Water-Inverter, 2: Brine/Water-Inverter, 4:Air/Water-On-Off, 5:Brine/Water-On-Off
 
-Further more, based on this library four generic heat pumps with an average efficieny where created
-- air/water | onoff
-- air/water | inverter
-- brine/water | onoff
-- brine/water | inverter
-----------------
-
-## Input-Data
+## Input-Data and further development
 The European Heat Pump Association (EHPA) hosts a webiste with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
 
 This repository is based on all pdf files that were download for every manufacturer on 2021-03-12.
 
-## Setup & Pre-Processing
-First of all, you are free to download new keymark-files and process them with the following processing steps. The requirements are:
-- clone this repository, e.g. `https://github.com/RE-Lab-Projects/hplib-database.git`
-- change into the new directiory and setup an environment with `conda create --name hplib-database --file requirements.txt`
-- put your pdf files into the folder `input/pdf`
-- unix: *pdftotext* is included in many linux distributions | windows: install xpdf https://www.xpdfreader.com/
-- run the unix bash script `./input/pdf2text.sh` or replace this step with an appropriate tool on windows/mac which converts pdf files to simple textfiles. For windows try 
+**Further development**
 
-## Usage of hplib
+- [ ] Extend hplib.py and hplib_database.csv for cooling functionality 
+- [ ] add some validation notebooks
+- [ ] make hplib installable via `pip`
 
-### create database
-The main processing uses python / pandas to parse the text files and find the relevant data. It creates a dataframe and saves its content to `output/data_key.csv´
-- first run `1_create_database.ipynb`
-
-
-
-### fit efficiency parameters
-
-In this database every measurement point has a input temperature, a output temperature and the thermal and electric power. From this data for every heatpump three graphs are fittet with the formula: 
-Pth(Tin,Tout)=k1\*Tin+k2\*Tout+k3 and Pel(Tin,Tout)=k4\*Tin+k5\*Tout+k6 and COP(Tin,Tout)=k7\*Tin+k8\*Tout+k9. The parameters are saved in the `data_key_para.csv`.
-  
--for this run `2_fit_parameters.ipynb`
-
-
-### simulate a heat pump
-
-To use these parameters you need to get the functions from `simulate.ipynb` and give a input temperature, output temperature and the model name. 
-In those functions effects like a negative electrical value are neglected and a suplementary heater is defined. In return you get the Thermal Power, the electrical power, the electrical power of the suplementary heater and the COP as a list.
-- there are some examples in `simulate.ipynb`
- 
-## Result
-
-All resulting database CSV file are under Attribution 4.0 International licence [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/).
+If you find errors or are interested in develop the hplib, please create an ISSUE and/or FORK this repository and create a PULL REQUEST.
