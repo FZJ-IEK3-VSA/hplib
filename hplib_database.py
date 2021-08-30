@@ -1,6 +1,5 @@
 # Import packages
 import os
-import glob
 import pandas as pd
 import scipy
 from scipy.optimize import curve_fit

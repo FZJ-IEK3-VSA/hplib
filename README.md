@@ -6,7 +6,7 @@ Repository with code to
 - identify **efficiency parameters** from the database with a least-square regression model  
 - **simulate** heat pump efficiency as well as  electrical & thermal power as time series.
 
-For the simulation, it is possible to calculate outputs of a specific **manufacturer + model or** alternatively for an **9 different types of a generic heat pump** 
+For the simulation, it is possible to calculate outputs of a specific **manufacturer + model or** alternatively for an **9 different generic types of a heat pump**. 
 
 ## Documentation
 
@@ -30,7 +30,7 @@ Create some code with `import hplib` and use the included functions `loadDatabas
 The hplib_database.csv contains the following number of heat pump models, sorted by Group ID
 
 | [Group ID]: Count | Inverter | On-Off | Two-Stage|
-| :---: | :---: | :---: | :---: |
+| :--- | :--- | :--- | :--- |
 | Outdoor Air / Water | [1]: 371 | [4]: 23 |[7]: 3 |
 | Brine / Water | [2]: 49 | [5]: 53 | [8]: 4 |
 | Water / Water | [3]: 0 | [6]: 10 | [9]: 0 |
@@ -42,25 +42,24 @@ All resulting database CSV file are under [![License: CC BY 4.0](https://img.shi
 The following columns are available for every heat pump of this library
 
 | Column | Description | Comment |
-| --- | --- | --- |
-| manufacturer | Name of the manufacturer | 50 manufacturers |
-| Model | Name of the heat pump model | 3235 models |
-| Date | heat pump certification date | 2016-07-15 to 2021-12-18 |
-| Type | Type of heat pump model | Brine/Water, Air/Water, Water/Water |
-| Modus | conrol of heatpump model | On-Off, Inverter, two-stages|
-| Refrigerant | Refrigerant Type | R123a, R290, R32, R407c, R410a |
-| Mass of Refrigerant | Mass of Refrigerant | 0.15 to 21 kg |
-| SPL indoor/outdoor | Sound emissions | 0 - 84 dBA|
-| Prated | thermal Power output by the manufacturer | 2,86 to 84,67 kW |
-| Psb | Eletrical power consumption, standby mode| 0 to 60 W |
-| Guideline | Values depend on measurements regarding guideline | EN 14825 |
-| Climate | set point: climate definition for set points | average, colder, warmer |
-| P_el_n | set point: electrical power at -7/34 | 0.75 to 17.58 kW |
-| P_th_max | set point thermal power at -7/52 | 2.4 to 70 kW |
-| k1-k3 | parameters to fit thermal power  | with formula: (k1\*T(in)+k2\*T(out)+k3)\*P_th_n |
-| k4-k6 | parameters to fit electrical power  | with formula: (k4\*T(in)+k5\*T(out)+k6) \*P_el_n|
-| k7-k9 | parameters to fit COP | with formula: k7\*T(in)+k8\*T(out)+k9 |
-| Group | Groups represent the Modus and Type of heatpump | 1: Air Water-Inverter, 2: Brine/Water-Inverter, 4:Air/Water-On-Off, 5:Brine/Water-On-Off
+| :--- | :--- | :--- |
+| Manufacturer | Name of the manufacturer | 30 manufacturers |
+| Model | Name of the heat pump model | 513 models |
+| Date | heat pump certification date | 2016-07-27 to 2021-03-10 |
+| Type | Type of heat pump model | Outdoor Air/Water, Brine/Water,  Water/Water |
+| Subtype | Subtype of heat pump model | On-Off, Inverter, 2-Stages|
+| Group ID | ID for combination of type and subtype | 1 - 9|
+| Refrigerant | Refrigerant Type | R134a, R290, R32, R407c, R410a, other |
+| Mass of Refrigerant [kg]| Mass of Refrigerant | 0.15 to 14.5 kg |
+| SPL indoor [dBA]| Sound emissions indoor| 15 - 68 dBA|
+| SPL outdoor [dBA]| Sound emissions outdoor| 33 - 78 dBA|
+| PSB [W] | Eletrical power consumption, standby mode| 3 to 60 W |
+| Climate | Climate definition for set points, which were used for parameter identification | average, colder, warmer |
+| P_el_ref [W]| Electrical power at -7°C / 52°C | 625 to 23293 W |
+| P_th_ref [W]| Thermal power at -7°C / 52°C | 1700 to 69880 W |
+| p1-p3_P_th | Fit-Parameters for thermal power  | P_th = P_th_ref * (p1 * T_in + p2 * T_out + p3) |
+| p1-p3_P_th | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1 * T_in + p2 * T_out + p3) |
+| p1-p3_COP | Fit-Parameters for COP  | COP = p1 * T_in + p2 * T_out + p3 |
 
 ## Input-Data and further development
 The European Heat Pump Association (EHPA) hosts a webiste with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
