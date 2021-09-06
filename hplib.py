@@ -40,14 +40,21 @@ def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
         parameters.loc[:, 'COP_ref'] = COP_ref
     return parameters
 
-def simulate(T_in_primary,T_in_secondary,parameters):
-    #input  T_in_primary [°C]
-    #       T_in_secondary [°C]
-    #       parameters -> list from function getParameters()
+def simulate(T_in_primary, T_in_secondary, parameters):
+    #inputs  
+    # T_amb [°C], ambient temperature, neccesary for inverter heat pumps
+    # T_in_primary [°C], source temperature (air or ground)
+    # T_in_secondary [°C]
+    # parameters -> list from function getParameters()
     
-    x=T_in_primary
-    y=T_in_secondary+5 # Inlet temperature is supposed to be heated up by 5 K
+    delta_T = 5 # Inlet temperature is supposed to be heated up by 5 K
+    cp = 4200 # J/(kg*K), specific heat capacity of water
+    T_in=T_in_primary
+    T_out=T_in_secondary + delta_T
     Group=parameters['Group'].array[0]
+    k1=parameters['p1_P_th [1/°C]'].array[0]
+    k2=parameters['p2_P_th [1/°C]'].array[0]
+    k3=parameters['p3_P_th [-]'].array[0]
     k4=parameters['p1_P_el [1/°C]'].array[0]
     k5=parameters['p2_P_el [1/°C]'].array[0]
     k6=parameters['p3_P_el [-]'].array[0]
@@ -58,20 +65,19 @@ def simulate(T_in_primary,T_in_secondary,parameters):
     Pth_ref=parameters['P_th_ref [W]'].array[0]
     # for subtype = Inverter
     if Group==1 or Group==2 or Group==3:
-        COP=k7*x+k8*y+k9
-        if x>=5: #minimum electrical Power at 5°C
-            x=5
-        Pel=(k4*x+k5*y+k6)*Pel_ref
+        COP=k7*T_in+k8*T_out+k9
+        if T_in>=5: #minimum electrical Power at 5°C
+            T_in=5
+        Pel=(k4*T_in+k5*T_out+k6)*Pel_ref
         Pth=Pel*COP
         if COP<=1:
             COP=1
             Pel=Pth_ref
-            Pth=Pth_ref
-        
+            Pth=Pth_ref   
     # for subtype = On-Off
     elif Group==4 or Group==5 or Group==6:
-        Pel=(k4*x+k5*y+k6)*Pel_ref
-        COP=k7*x+k8*y+k9
+        Pel=(k4*T_in+k5*T_out+k6)*Pel_ref
+        COP=k7*T_in+k8*T_out+k9
         Pth=Pel*COP
         if COP<=1:
             COP=1
@@ -86,5 +92,7 @@ def simulate(T_in_primary,T_in_secondary,parameters):
             COP=1
             Pel=Pth_ref
             Pth=Pth_ref
-    
-    return Pth,Pel,COP
+    # massflow
+    m_dot = Pth / (delta_T * cp)
+
+    return Pth,Pel,COP,T_out,m_dot
