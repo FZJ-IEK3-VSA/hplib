@@ -4,7 +4,7 @@ def loadDatabase():
     df = pd.read_csv('hplib_database.csv')
     return df
 
-def getParameters(model, Group=0, T_primary=0, T_secondary=0, P_th=10000):
+def getParameters(model, Group=0, T_primary=-7, T_secondary=52, P_th=10000):
     df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters=pd.DataFrame()
