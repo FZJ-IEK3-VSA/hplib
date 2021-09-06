@@ -1,10 +1,47 @@
 import pandas as pd
+import scipy
 
 def loadDatabase():
     df = pd.read_csv('hplib_database.csv')
     return df
 
-def getParameters(model, Group=0, T_primary=0, T_secondary=0, P_th=10000):
+def getParameters(model, Group=0, T_in=0, T_out=0, P_th=0):
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
+    df = df.loc[df['Model'] == model]
+    parameters=pd.DataFrame()
+    
+    parameters['Model']=(df['Model'].values.tolist())
+    parameters['P_th_ref [W]']=(df['P_th_ref [W]'].values.tolist())
+    parameters['P_el_ref [W]']=(df['P_el_ref [W]'].values.tolist())
+    parameters['COP_ref']=(df['COP_ref'].values.tolist())
+    parameters['Group']=(df['Group'].values.tolist())
+    parameters['p1_P_th [1/°C]']=(df['p1_P_th [1/°C]'].values.tolist())
+    parameters['p2_P_th [1/°C]']=(df['p2_P_th [1/°C]'].values.tolist())
+    parameters['p3_P_th [-]']=(df['p3_P_th [-]'].values.tolist())
+    parameters['p1_P_el [1/°C]']=(df['p1_P_el [1/°C]'].values.tolist())
+    parameters['p2_P_el [1/°C]']=(df['p2_P_el [1/°C]'].values.tolist())
+    parameters['p3_P_el [-]']=(df['p3_P_el [-]'].values.tolist())
+    parameters['p1_COP [-]']=(df['p1_COP [-]'].values.tolist())
+    parameters['p2_COP [-]']=(df['p2_COP [-]'].values.tolist())
+    parameters['p3_COP [-]']=(df['p3_COP [-]'].values.tolist())
+    if model=='Generic':
+        parameters=parameters.iloc[Group-1:Group]
+        parameters.loc[:, 'P_th_ref [W]'] = fit_P_th_ref(T_in, T_out, Group, P_th)
+        x=-7
+        y=52
+        k4=parameters['p1_P_el [1/°C]'].array[0]
+        k5=parameters['p2_P_el [1/°C]'].array[0]
+        k6=parameters['p3_P_el [-]'].array[0]
+        k7=parameters['p1_COP [-]'].array[0]
+        k8=parameters['p2_COP [-]'].array[0]
+        k9=parameters['p3_COP [-]'].array[0]
+        COP_ref=k7*x+k8*y+k9
+        P_el_ref=fit_P_th_ref(T_in, T_out, Group, P_th) / COP_ref
+        parameters.loc[:, 'P_el_ref [W]'] = P_el_ref
+        parameters.loc[:, 'COP_ref'] = COP_ref
+    return parameters
+
+def getParameters_fit(model, Group=0, P_th=0):
     df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters=pd.DataFrame()
@@ -39,6 +76,18 @@ def getParameters(model, Group=0, T_primary=0, T_secondary=0, P_th=10000):
         parameters.loc[:, 'P_el_ref [W]'] = P_el_ref
         parameters.loc[:, 'COP_ref'] = COP_ref
     return parameters
+
+def fit_P_th_ref(T_in, T_out, Group, P_th_vorgabe):
+    p0=[1000] # starting values
+    a=(T_in, T_out, Group, P_th_vorgabe) 
+    P_th,_ = scipy.optimize.leastsq(fitfunc_P_th_ref,p0,args=a)
+    return P_th
+
+def fitfunc_P_th_ref(P_th, T_in, T_out, Group, P_th_vorgabe):
+    parameters = getParameters_fit('Generic',Group=Group, P_th=P_th)
+    P_th_calc,_,_,_,_ = simulate(T_in,T_out-5,parameters)
+    P_th_diff = P_th_calc - P_th_vorgabe
+    return P_th_diff
 
 def simulate(T_in_primary, T_in_secondary, parameters):
     #inputs  
