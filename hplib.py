@@ -26,8 +26,8 @@ def getParameters(model, Group=0, T_primary=0, T_secondary=0, P_th=10000):
     if model=='Generic':
         parameters=parameters.iloc[Group-1:Group]
         parameters.loc[:, 'P_th_ref [W]'] = P_th
-        x=-7
-        y=52
+        x=T_primary
+        y=T_secondary
         k4=parameters['p1_P_el [1/°C]'].array[0]
         k5=parameters['p2_P_el [1/°C]'].array[0]
         k6=parameters['p3_P_el [-]'].array[0]
@@ -35,9 +35,12 @@ def getParameters(model, Group=0, T_primary=0, T_secondary=0, P_th=10000):
         k8=parameters['p2_COP [-]'].array[0]
         k9=parameters['p3_COP [-]'].array[0]
         COP_ref=k7*x+k8*y+k9
-        P_el_ref=P_th/COP_ref
-        parameters.loc[:, 'P_el_ref [W]'] = P_el_ref
+        P_el_para=k4*x+k5*y+k6
+        P_el_ref=P_th/(P_el_para*COP_ref)
+        parameters.loc[:, 'P_el_ref [W]'] = P_el_ref*P_el_para
         parameters.loc[:, 'COP_ref'] = COP_ref
+        parameters.loc[:, 'T_primary'] = T_primary
+        parameters.loc[:, 'T_secondary'] = T_secondary
     return parameters
 
 def simulate(T_in_primary, T_in_secondary, parameters):
@@ -51,6 +54,7 @@ def simulate(T_in_primary, T_in_secondary, parameters):
     cp = 4200 # J/(kg*K), specific heat capacity of water
     T_in=T_in_primary
     T_out=T_in_secondary + delta_T
+    Model=parameters['Model'].array[0]
     Group=parameters['Group'].array[0]
     k1=parameters['p1_P_th [1/°C]'].array[0]
     k2=parameters['p2_P_th [1/°C]'].array[0]
@@ -62,6 +66,11 @@ def simulate(T_in_primary, T_in_secondary, parameters):
     k8=parameters['p2_COP [-]'].array[0]
     k9=parameters['p3_COP [-]'].array[0]
     Pel_ref=parameters['P_el_ref [W]'].array[0]
+    if Model=='Generic':
+        x=parameters['T_primary'].array[0]
+        y=parameters['T_secondary'].array[0]
+        P_el_para=k4*x+k5*y+k6
+        Pel_ref=Pel_ref/P_el_para
     Pth_ref=parameters['P_th_ref [W]'].array[0]
     # for subtype = Inverter
     if Group==1 or Group==2 or Group==3:
