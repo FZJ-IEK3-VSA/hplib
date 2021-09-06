@@ -4,7 +4,7 @@ def loadDatabase():
     df = pd.read_csv('hplib_database.csv')
     return df
 
-def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
+def getParameters(model, Group=0, T_primary=0, T_secondary=0, P_th=10000):
     df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters=pd.DataFrame()
@@ -25,7 +25,7 @@ def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
     parameters['p3_COP [-]']=(df['p3_COP [-]'].values.tolist())
     if model=='Generic':
         parameters=parameters.iloc[Group-1:Group]
-        parameters.loc[:, 'P_th_ref [W]'] = P_th_ref
+        parameters.loc[:, 'P_th_ref [W]'] = P_th
         x=-7
         y=52
         k4=parameters['p1_P_el [1/°C]'].array[0]
@@ -35,7 +35,7 @@ def getParameters(model, Group=0, P_th_ref=10000): #to do: optional keywords
         k8=parameters['p2_COP [-]'].array[0]
         k9=parameters['p3_COP [-]'].array[0]
         COP_ref=k7*x+k8*y+k9
-        P_el_ref=P_th_ref/COP_ref
+        P_el_ref=P_th/COP_ref
         parameters.loc[:, 'P_el_ref [W]'] = P_el_ref
         parameters.loc[:, 'COP_ref'] = COP_ref
     return parameters
