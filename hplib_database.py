@@ -1390,7 +1390,7 @@ def IdentifySubtypes(filename):
     filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype']=='Inverter')
     data_key.loc[filt1, 'Group'] = 1
     filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='Inverter')
-    data_key.loc[filt1, 'Group'] = 1
+    data_key.loc[filt1, 'Group'] = 7
     filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype']=='Inverter')
     data_key.loc[filt1, 'Group'] = 2
     filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='Inverter')
@@ -1400,7 +1400,7 @@ def IdentifySubtypes(filename):
     filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype']=='On-Off')
     data_key.loc[filt1, 'Group'] = 4
     filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='On-Off')
-    data_key.loc[filt1, 'Group'] = 4
+    data_key.loc[filt1, 'Group'] = 7
     filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype']=='On-Off')
     data_key.loc[filt1, 'Group'] = 5
     filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='On-Off')
@@ -1411,10 +1411,12 @@ def IdentifySubtypes(filename):
     filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='2-Stages')
     data_key.loc[filt1, 'Group'] = 7
     filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype']=='2-Stages')
-    data_key.loc[filt1, 'Group'] = 8
+    data_key.loc[filt1, 'Group'] = 7
     filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='2-Stages')
-    data_key.loc[filt1, 'Group'] = 9
+    data_key.loc[filt1, 'Group'] = 7
     data_key=data_key[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','T_in [°C]','T_out [°C]','P_th [W]','P_el [W]','COP','P_th_n','P_el_n']]
+    filt1=data_key['Group']!=7
+    data_key=data_key.loc[filt1]
     data_key.to_csv(r'output/'+filename[:-4]+'_subtypes.csv', encoding='utf-8', index=False)
 
 def fit_simple(x,y,z):
