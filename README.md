@@ -29,11 +29,11 @@ Create some code with `import hplib` and use the included functions `loadDatabas
 ## Heat pump models and Group IDs
 The hplib_database.csv contains the following number of heat pump models, sorted by Group ID
 
-| [Group ID]: Count | Inverter | On-Off | Two-Stage|
+| [Group ID]: Count | Inverter | On-Off |
 | :--- | :--- | :--- | :--- |
-| Outdoor Air / Water | [1]: 371 | [4]: 23 |[7]: 3 |
-| Brine / Water | [2]: 49 | [5]: 53 | [8]: 4 |
-| Water / Water | [3]: 0 | [6]: 10 | [9]: 0 |
+| Outdoor Air / Water | [1]: 371 | [4]: 23 |
+| Brine / Water | [2]: 49 | [5]: 53 |
+| Water / Water | [3]: 0 | [6]: 10 |
 
 ## Database
 
