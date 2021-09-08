@@ -58,7 +58,7 @@ The following columns are available for every heat pump of this library
 | P_el_ref [W]| Electrical power at -7°C / 52°C | 625 to 23293 W |
 | P_th_ref [W]| Thermal power at -7°C / 52°C | 1700 to 69880 W |
 | p1-p3_P_th | Fit-Parameters for thermal power  | P_th = P_th_ref * (p1 * T_in + p2 * T_out + p3) |
-| p1-p3_P_th | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1 * T_in + p2 * T_out + p3) |
+| p1-p3_P_el | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1 * T_in + p2 * T_out + p3) |
 | p1-p3_COP | Fit-Parameters for COP  | COP = p1 * T_in + p2 * T_out + p3 |
 
 ## Input-Data and further development
