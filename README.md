@@ -30,7 +30,7 @@ Create some code with `import hplib` and use the included functions `loadDatabas
 The hplib_database.csv contains the following number of heat pump models, sorted by Group ID
 
 | [Group ID]: Count | Inverter | On-Off |
-| :--- | :--- | :--- | :--- |
+| :--- | :--- | :--- |
 | Outdoor Air / Water | [1]: 371 | [4]: 23 |
 | Brine / Water | [2]: 49 | [5]: 53 |
 | Water / Water | [3]: 0 | [6]: 10 |
