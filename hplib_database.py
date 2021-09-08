@@ -1264,7 +1264,7 @@ def ImportCoolingData():
     df.drop(index=df[filt].index , inplace=True)
     filt=df['EER']=='Pdc Tj = 30°C'    #P_th too small 
     df.drop(index=df[filt].index , inplace=True)
-    df.to_csv(os.path.dirname(__file__)+r'/hplib_database_cooling.csv', index=False)
+    df.to_csv(os.path.dirname(__file__)+r'/output/hplib_database_cooling.csv', index=False)
 
 def ReduceKeymarkData(filename, climate):
     # reduce the hplib_database_keymark to a specific climate measurement series (average, warm, cold)
