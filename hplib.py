@@ -91,15 +91,15 @@ def fitfunc_P_th_ref(P_th, T_in, T_out, Group, P_th_vorgabe):
 
 def simulate(T_in_primary, T_in_secondary, parameters):
     #inputs  
-    # T_amb [°C], ambient temperature, neccesary for inverter heat pumps
     # T_in_primary [°C], source temperature (air or ground)
-    # T_in_secondary [°C]
+    # T_in_secondary [°C], source temperature from heating storage or system
     # parameters -> list from function getParameters()
     
     delta_T = 5 # Inlet temperature is supposed to be heated up by 5 K
     cp = 4200 # J/(kg*K), specific heat capacity of water
     T_in=T_in_primary
     T_out=T_in_secondary + delta_T
+    Model=parameters['Model'].array[0]
     Group=parameters['Group'].array[0]
     k1=parameters['p1_P_th [1/°C]'].array[0]
     k2=parameters['p2_P_th [1/°C]'].array[0]
