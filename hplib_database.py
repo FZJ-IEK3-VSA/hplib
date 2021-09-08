@@ -1316,24 +1316,18 @@ def get_subtype(P_th_minus7_34, P_th_2_30, P_th_7_27, P_th_12_24):
             if (P_th_7_27 <= P_th_12_24):
                 modus='On-Off'
             else:
-                modus='Inverter'
+                modus='Regulated' # Inverter, 2-Stages, etc.
         else:
-            if(P_th_7_27 <= P_th_12_24):
-                modus='2-Stages'
-            else:
-                modus='Inverter'
+            modus='Regulated' # Inverter, 2-Stages, etc.
     else:
-        modus='Inverter'
-    if (P_th_minus7_34 == P_th_12_24):
-        modus='Inverter'
+        modus='Regulated' # Inverter, 2-Stages, etc.
     return modus 
 
 def IdentifySubtypes(filename):
-    #Identify Subtype like Inverter or On-Off or Two-Stages by comparing the thermal Power output at different temperature levels:
+    #Identify Subtype like On-Off or Regulated by comparing the thermal Power output at different temperature levels:
     #-7/34 |  2/30  |  7/27  |  12/24
     #assumptions for On-Off Heatpump: if temperature difference is bigger, thermal Power output is smaller
-    #assumptions for 2 stages Heatpump: if temperature difference is bigger, thermal Power output is smaller but it has one drop in between 2/30 and 7/27
-    #assumptions for Inverter: the rest
+    #assumptions for Regulated: everythin else
 
     data_key = pd.read_csv(r'output/'+filename) #read Dataframe of all models
     Models=data_key['Model'].values.tolist()
@@ -1387,13 +1381,13 @@ def IdentifySubtypes(filename):
     
     ##assign group:
 
-    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype']=='Inverter')
+    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype']=='Regulated')
     data_key.loc[filt1, 'Group'] = 1
-    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='Inverter')
+    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='Regulated')
     data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype']=='Inverter')
+    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype']=='Regulated')
     data_key.loc[filt1, 'Group'] = 2
-    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='Inverter')
+    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='Regulated')
     data_key.loc[filt1, 'Group'] = 3
 
 
@@ -1406,14 +1400,6 @@ def IdentifySubtypes(filename):
     filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='On-Off')
     data_key.loc[filt1, 'Group'] = 6
 
-    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype']=='2-Stages')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype']=='2-Stages')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype']=='2-Stages')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='2-Stages')
-    data_key.loc[filt1, 'Group'] = 7
     data_key=data_key[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','T_in [°C]','T_out [°C]','P_th [W]','P_el [W]','COP','P_th_n','P_el_n']]
     filt1=data_key['Group']!=7
     data_key=data_key.loc[filt1]
@@ -1512,17 +1498,17 @@ def CalculateFunctionParameters(filename):
 
 def addGeneric():
     data_key = pd.read_csv('hplib_database.csv', delimiter=',')
-    Groups=[1,2,3,4,5,6,7,8,9]
+    Groups=[1,2,3,4,5,6]
     for group in Groups:
         if group==1:
             Type='Outdoor Air/Water'
-            modus='Inverter'
+            modus='Regulated'
         elif group==2:
             Type='Brine/Water'
-            modus='Inverter'
+            modus='Regulated'
         elif group==3:
             Type='Water/Water'
-            modus='Inverter'
+            modus='Regulated'
         elif group==4:
             Type='Outdoor Air/Water'
             modus='On-Off'
@@ -1532,16 +1518,6 @@ def addGeneric():
         elif group==6:
             Type='Water/Water'
             modus='On-Off'
-        elif group==7:
-            Type='Outdoor Air/Water'
-            modus='2-Stages'
-        elif group==8:
-            Type='Brine/Water'
-            modus='2-Stages'
-        elif group==9:
-            Type='Water/Water'
-            modus='2-Stages'
-
 
         Group1=data_key.loc[data_key['Group']==group]
         k1_average=pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
