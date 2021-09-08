@@ -1034,7 +1034,8 @@ def ImportCoolingData():
     PDC=[]
     EER=[]
     df=pd.DataFrame()
-    Scanordner=(os.path.dirname(__file__)+r'\input\txt')
+    root=os.getcwd()
+    Scanordner=(root+'/input/txt')
     os.chdir(Scanordner)
     Scan = os.scandir(os.getcwd())
     with Scan as dir1:
@@ -1264,7 +1265,9 @@ def ImportCoolingData():
     df.drop(index=df[filt].index , inplace=True)
     filt=df['EER']=='Pdc Tj = 30°C'    #P_th too small 
     df.drop(index=df[filt].index , inplace=True)
-    df.to_csv(os.path.dirname(__file__)+r'/output/hplib_database_cooling.csv', index=False)
+    os.chdir("..")
+    os.chdir("..")
+    df.to_csv(os.getcwd()+r'/output/hplib_database_cooling.csv', index=False)
 
 def ReduceKeymarkData(filename, climate):
     # reduce the hplib_database_keymark to a specific climate measurement series (average, warm, cold)
