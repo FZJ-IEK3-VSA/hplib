@@ -1016,6 +1016,13 @@ def ImportKeymarkData():
     df.drop(columns=['Poff [W]'], inplace=True) #not needed anymore
     filt=df['P_th [W]']<50    #P_th too small 
     df.drop(index=df[filt].index , inplace=True)
+    #add T_amb and change T_in to right values
+    df['T_amb [°C]']=df['T_in [°C]']
+    filt=df['Type']=='Brine/Water'
+    df.loc[filt, 'T_in [°C]'] = 0
+    filt=df['Type']=='Water/Water'
+    df.loc[filt, 'T_in [°C]'] = 10
+    df=df[['Manufacturer','Model','Date','Type','Refrigerant','Mass of Refrigerant [kg]', 'PSB [W]' ,'Prated [W]','SPL indoor [dBA]','SPL outdoor [dBA]','Climate','T_amb [°C]','T_in [°C]','T_out [°C]','P_th [W]','P_el [W]','COP']]
     df.sort_values('Manufacturer')
     os.chdir("..")
     os.chdir("..")
@@ -1403,7 +1410,7 @@ def IdentifySubtypes(filename):
     filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype']=='On-Off')
     data_key.loc[filt1, 'Group'] = 6
 
-    data_key=data_key[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','T_in [°C]','T_out [°C]','P_th [W]','P_el [W]','COP','P_th_n','P_el_n']]
+    data_key=data_key[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','T_amb [°C]','T_in [°C]','T_out [°C]','P_th [W]','P_el [W]','COP','P_th_n','P_el_n']]
     filt1=data_key['Group']!=7
     data_key=data_key.loc[filt1]
     data_key.to_csv(r'output/'+filename[:-4]+'_subtypes.csv', encoding='utf-8', index=False)
@@ -1533,7 +1540,10 @@ def addGeneric():
         k8_average=pd.unique(Group1['p2_COP [-]']).mean(0)
         k9_average=pd.unique(Group1['p3_COP [-]']).mean(0)
         COP_ref=-7*k7_average + 52*k8_average + k9_average
-        data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average','','',COP_ref, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
+        try:
+            data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average','','',COP_ref, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
+        except:
+            continue
     data_key['COP_ref']=data_key['COP_ref'].round(2)
     data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
