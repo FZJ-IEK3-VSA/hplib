@@ -1415,22 +1415,22 @@ def IdentifySubtypes(filename):
     data_key=data_key.loc[filt1]
     data_key.to_csv(r'output/'+filename[:-4]+'_subtypes.csv', encoding='utf-8', index=False)
 
-def fit_simple(x,y,z):
-    p0=[0.1,0.001,1.] # starting values
-    a=(x,y,z) 
+def fit_simple(w,x,y,z):
+    p0=[0.1,0.001,0.1,1.] # starting values
+    a=(w,x,y,z) 
     para,_ = scipy.optimize.leastsq(func_simple_zero,p0,args=a)
     return para
 
-def func_simple_zero(para, x, y, z):
-    k1,k2,k3 = para
-    z_calc = k1*x + k2*y + k3
+def func_simple_zero(para,w, x, y, z):
+    k1,k2,k3,k4 = para
+    z_calc = k1*w + k2*x + k3 + k4*y
     z_diff = z_calc - z
     return z_diff
 
-def func_simple(para, x, y):
+def func_simple(para, w, x, y):
     # Function to calculate z using parameters and any x and y:
-    k1,k2,k3 = para
-    z = k1*x + k2*y + k3
+    k1,k2,k3,k4 = para
+    z = k1*w + k2*x + k3 + k4*y
     return z
 
 def CalculateFunctionParameters(filename):
@@ -1442,40 +1442,51 @@ def CalculateFunctionParameters(filename):
     Group=[]
     Pel_ref=[]
     Pth_ref=[]
-    k1=[]
-    k2=[]
-    k3=[]
-    k4=[]
-    k5=[]
-    k6=[]
-    k7=[]
-    k8=[]
-    k9=[]
+    p1_P_th=[]
+    p2_P_th=[]
+    p3_P_th=[]
+    p4_P_th=[]
+    p1_P_el=[]
+    p2_P_el=[]
+    p3_P_el=[]
+    p4_P_el=[]
+    p1_COP=[]
+    p2_COP=[]
+    p3_COP=[]
+    p4_COP=[]
+    
 
     for model in Models:
         data_key = pd.read_csv(r'output/'+filename)
-        data_key = data_key.rename(columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out'})
+        data_key = data_key.rename(columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out','T_amb [°C]': 'T_amb'})
         data_key = data_key.loc[data_key['Model'] == model]#get data of model
         group = data_key.Group.array[0]#get Group of model
+        if group>1 and group != 4:#give another point at
+            data_key1=data_key.loc[data_key['Model'] == model]
+            data_key1['T_in']=data_key1['T_in']+1
+            data_key1['T_out']=data_key1['T_out']+1
+            data_key=pd.concat([data_key,data_key1])
         Pel_REF=data_key.loc[data_key['P_el_n']==1,['P_el']].values.tolist()[0][0]
         Pth_REF=data_key.loc[data_key['P_th_n']==1,['P_th']].values.tolist()[0][0]
-        K = 273.15
         data_key.fillna(0, inplace=True)
             
-        P_el_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['P_el_n'])
-        P_th_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['P_th_n'])
-        COP_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['COP'])
+        P_el_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_el_n'])
+        P_th_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_th_n'])
+        COP_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['COP'])
 
         #write Parameters in List
-        k1.append(P_th_n_para_key[0])
-        k2.append(P_th_n_para_key[1])
-        k3.append(P_th_n_para_key[2])
-        k4.append(P_el_n_para_key[0])
-        k5.append(P_el_n_para_key[1])
-        k6.append(P_el_n_para_key[2])
-        k7.append(COP_para_key[0])
-        k8.append(COP_para_key[1])
-        k9.append(COP_para_key[2])
+        p1_P_th.append(P_th_n_para_key[0])
+        p2_P_th.append(P_th_n_para_key[1])
+        p3_P_th.append(P_th_n_para_key[2])
+        p4_P_th.append(P_th_n_para_key[3])
+        p1_P_el.append(P_el_n_para_key[0])
+        p2_P_el.append(P_el_n_para_key[1])
+        p3_P_el.append(P_el_n_para_key[2])
+        p4_P_el.append(P_el_n_para_key[3])
+        p1_COP.append(COP_para_key[0])
+        p2_COP.append(COP_para_key[1])
+        p3_COP.append(COP_para_key[2])
+        p4_COP.append(COP_para_key[3])
         Group.append(group)
         Pel_ref.append(Pel_REF)
         Pth_ref.append(Pth_REF)
@@ -1483,15 +1494,18 @@ def CalculateFunctionParameters(filename):
 
     paradf=pd.DataFrame()
     paradf['Model']=Models
-    paradf['p1_P_th [1/°C]']=k1 
-    paradf['p2_P_th [1/°C]']=k2
-    paradf['p3_P_th [-]']=k3
-    paradf['p1_P_el [1/°C]']=k4
-    paradf['p2_P_el [1/°C]']=k5
-    paradf['p3_P_el [-]']=k6
-    paradf['p1_COP [-]']=k7
-    paradf['p2_COP [-]']=k8
-    paradf['p3_COP [-]']=k9
+    paradf['p1_P_th [1/°C]']=p1_P_th 
+    paradf['p2_P_th [1/°C]']=p2_P_th
+    paradf['p3_P_th [-]']=p3_P_th
+    paradf['p4_P_th [1/°C]']=p4_P_th
+    paradf['p1_P_el [1/°C]']=p1_P_el
+    paradf['p2_P_el [1/°C]']=p2_P_el
+    paradf['p3_P_el [-]']=p3_P_el
+    paradf['p4_P_el [1/°C]']=p4_P_el
+    paradf['p1_COP [-]']=p1_COP
+    paradf['p2_COP [-]']=p2_COP
+    paradf['p3_COP [-]']=p3_COP
+    paradf['p4_COP [-]']=p4_COP
     paradf['Group']=Group
     paradf['P_el_ref']=Pel_ref
     paradf['P_th_ref']=Pth_ref
@@ -1502,12 +1516,13 @@ def CalculateFunctionParameters(filename):
     parakey=para.merge(key, how='left', on='Model')
     parakey = parakey.rename(columns={'Group_x': 'Group','P_el_ref': 'P_el_ref [W]','P_th_ref':'P_th_ref [W]'})
     parakey['COP_ref']=parakey['P_th_ref [W]']/parakey['P_el_ref [W]']
-    table=parakey[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','P_el_ref [W]','P_th_ref [W]','COP_ref','p1_P_th [1/°C]','p2_P_th [1/°C]','p3_P_th [-]','p1_P_el [1/°C]', 'p2_P_el [1/°C]','p3_P_el [-]','p1_COP [-]','p2_COP [-]','p3_COP [-]']]
+    table=parakey[['Manufacturer','Model','Date','Type','Subtype','Group','Refrigerant','Mass of Refrigerant [kg]','SPL indoor [dBA]','SPL outdoor [dBA]','PSB [W]','Climate','P_el_ref [W]','P_th_ref [W]','COP_ref','p1_P_th [1/°C]','p2_P_th [1/°C]','p3_P_th [-]','p4_P_th [1/°C]','p1_P_el [1/°C]', 'p2_P_el [1/°C]','p3_P_el [-]','p4_P_el [1/°C]','p1_COP [-]','p2_COP [-]','p3_COP [-]','p4_COP [-]']]
 
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 def addGeneric():
     data_key = pd.read_csv('hplib_database.csv', delimiter=',')
+    data_key=data_key.loc[data_key['Model']!='Generic']
     Groups=[1,2,3,4,5,6]
     for group in Groups:
         if group==1:
@@ -1530,18 +1545,21 @@ def addGeneric():
             modus='On-Off'
 
         Group1=data_key.loc[data_key['Group']==group]
-        k1_average=pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
-        k2_average=pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
-        k3_average=pd.unique(Group1['p3_P_th [-]']).mean(0)
-        k4_average=pd.unique(Group1['p1_P_el [1/°C]']).mean(0)
-        k5_average=pd.unique(Group1['p2_P_el [1/°C]']).mean(0)
-        k6_average=pd.unique(Group1['p3_P_el [-]']).mean(0)
-        k7_average=pd.unique(Group1['p1_COP [-]']).mean(0)
-        k8_average=pd.unique(Group1['p2_COP [-]']).mean(0)
-        k9_average=pd.unique(Group1['p3_COP [-]']).mean(0)
-        COP_ref=-7*k7_average + 52*k8_average + k9_average
+        p1_P_th_average=pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
+        p2_P_th_average=pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
+        p3_P_th_average=pd.unique(Group1['p3_P_th [-]']).mean(0)
+        p4_P_th_average=pd.unique(Group1['p4_P_th [1/°C]']).mean(0)
+        p1_P_el_average=pd.unique(Group1['p1_P_el [1/°C]']).mean(0)
+        p2_P_el_average=pd.unique(Group1['p2_P_el [1/°C]']).mean(0)
+        p3_P_el_average=pd.unique(Group1['p3_P_el [-]']).mean(0)
+        p4_P_el_average=pd.unique(Group1['p4_P_el [1/°C]']).mean(0)
+        p1_COP_average=pd.unique(Group1['p1_COP [-]']).mean(0)
+        p2_COP_average=pd.unique(Group1['p2_COP [-]']).mean(0)
+        p3_COP_average=pd.unique(Group1['p3_COP [-]']).mean(0)
+        p4_COP_average=pd.unique(Group1['p4_COP [-]']).mean(0)
+        COP_ref=-7*p1_COP_average + 52*p2_COP_average + p3_COP_average-7*p4_COP_average
         try:
-            data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average','','',COP_ref, k1_average,k2_average,k3_average,k4_average,k5_average,k6_average,k7_average,k8_average,k9_average]
+            data_key.loc[len(data_key.index)]=['Generic', 'Generic','',Type,modus,group,'','','','','','average','','',COP_ref, p1_P_th_average,p2_P_th_average,p3_P_th_average,p4_P_th_average,p1_P_el_average,p2_P_el_average,p3_P_el_average,p4_P_el_average,p1_COP_average,p2_COP_average,p3_COP_average,p4_COP_average]
         except:
             continue
     data_key['COP_ref']=data_key['COP_ref'].round(2)
