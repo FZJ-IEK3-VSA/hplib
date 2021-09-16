@@ -133,11 +133,9 @@ def simulate(T_in_primary, T_in_secondary, parameters, T_amb=0):
 
     if Group==1 or Group==2 or Group==3:
         COP=p1_COP*T_in+p2_COP*T_out+p3_COP+p4_COP*T_amb
-        if T_amb>=5: #minimum electrical Power at 5°C
-            T_amb=5
-            if Group==1:
-                T_in=5
         Pel=(p1_P_el*T_in+p2_P_el*T_out+p3_P_el+p4_P_el*T_amb)*Pel_ref
+        if Pel < 0.15*Pel_ref: # alternatively 15% of Pel @ -7°C and T_in
+            Pel = 0.15*Pel_ref
         Pth=Pel*COP
         if COP<=1:
             COP=1
