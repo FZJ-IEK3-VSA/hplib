@@ -134,8 +134,13 @@ def simulate(T_in_primary, T_in_secondary, parameters, T_amb=0):
     if Group==1 or Group==2 or Group==3:
         COP=p1_COP*T_in+p2_COP*T_out+p3_COP+p4_COP*T_amb
         Pel=(p1_P_el*T_in+p2_P_el*T_out+p3_P_el+p4_P_el*T_amb)*Pel_ref
-        if Pel < 0.15*Pel_ref: # alternatively 15% of Pel @ -7°C and T_in
-            Pel = 0.15*Pel_ref
+        if Group==1:
+            T_in=-7
+            T_amb=T_in
+        if Group==2:
+            T_amb=-7
+        if Pel < 0.25*Pel_ref*(p1_P_el*T_in+p2_P_el*T_out+p3_P_el+p4_P_el*T_amb): # 25% of Pel @ -7°C T_amb = T_in
+            Pel = 0.25*Pel_ref*(p1_P_el*T_in+p2_P_el*T_out+p3_P_el+p4_P_el*T_amb)
         Pth=Pel*COP
         if COP<=1:
             COP=1
