@@ -1470,9 +1470,15 @@ def CalculateFunctionParameters(filename):
         Pth_REF=data_key.loc[data_key['P_th_n']==1,['P_th']].values.tolist()[0][0]
         data_key.fillna(0, inplace=True)
             
-        P_el_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_el_n'])
-        P_th_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_th_n'])
-        COP_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['COP'])
+        if group==1 or group==2 or group==3:
+            data = data_key.loc[((data_key['T_amb'] != 12) & (data_key['T_amb'] != 7))]
+            P_el_n_para_key = fit_simple(data['T_in'],data['T_out'],data['T_amb'],data['P_el_n'])
+            P_th_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_th_n'])
+            COP_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['COP'])
+        else:
+            P_el_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_el_n'])
+            P_th_n_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['P_th_n'])
+            COP_para_key = fit_simple(data_key['T_in'],data_key['T_out'],data_key['T_amb'],data_key['COP'])
 
         #write Parameters in List
         p1_P_th.append(P_th_n_para_key[0])
