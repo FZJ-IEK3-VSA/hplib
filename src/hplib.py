@@ -6,7 +6,7 @@ import scipy
 from typing import Any, Tuple
 
 
-def load_database() -> pd.DataFrame:
+def load_database(filepath: str) -> pd.DataFrame:
     """
     Loads data from hplib_database.
 
@@ -15,17 +15,20 @@ def load_database() -> pd.DataFrame:
     df : pd.DataFrame
         Content of the database
     """
-    df = pd.read_csv('../hplib_database.csv')
+    df = pd.read_csv(filepath)
     return df
 
 
-def get_parameters(model: str, group_id: int = 0, t_in: int = 0, t_out: int = 0, p_th: int = 0) -> pd.DataFrame:
+def get_parameters(filepath: str, model: str, group_id: int = 0,
+                   t_in: int = 0, t_out: int = 0, p_th: int = 0) -> pd.DataFrame:
     """
     Loads the content of the database for a specific heat pump model
     and returns a pandas ``DataFrame`` containing the heat pump parameters.
 
     Parameters
     ----------
+    filepath : str
+        Filepath to the database file.
     model : str
         Name of the heat pump model.
     group_id : numeric, default 0
@@ -42,7 +45,7 @@ def get_parameters(model: str, group_id: int = 0, t_in: int = 0, t_out: int = 0,
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv('../hplib_database.csv', delimiter=',')
+    df = pd.read_csv(filepath, delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
 
@@ -83,13 +86,15 @@ def get_parameters(model: str, group_id: int = 0, t_in: int = 0, t_out: int = 0,
     return parameters
 
 
-def get_parameters_fit(model, group_id=0, p_th=0) -> pd.DataFrame:
+def get_parameters_fit(filepath: str, model: str, group_id=0, p_th=0) -> pd.DataFrame:
     """
     Loads the content of the database for a specific heat pump model
     and returns a pandas ``DataFrame`` containing the heat pump parameters.
 
     Parameters
     ----------
+    filepath : str
+        Filepath to the database.
     model : str
         Name of the heat pump model.
     group_id : numeric, default 0
@@ -102,7 +107,7 @@ def get_parameters_fit(model, group_id=0, p_th=0) -> pd.DataFrame:
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv('../hplib_database.csv', delimiter=',')
+    df = pd.read_csv(filepath, delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
 
