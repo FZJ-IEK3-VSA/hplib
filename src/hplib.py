@@ -199,7 +199,7 @@ def fit_func_p_th_ref(p_th, t_in, t_out, group_id, p_th_ref) -> int:
     p_th_diff : numeric
         Thermal output power. [W]
     """
-    parameters = get_parameters_fit('Generic', group_id=group_id, p_th=p_th)
+    parameters = get_parameters_fit(model='Generic', group_id=group_id, p_th=p_th)
     p_th_calc, _, _, _, _ = simulate(t_in, t_out - 5, parameters, t_in)
     p_th_diff = p_th_calc - p_th_ref
     return p_th_diff
