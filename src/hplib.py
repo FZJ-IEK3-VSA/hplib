@@ -68,8 +68,8 @@ def get_parameters(model: str, group_id: int = 0,
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
         parameters.loc[:, 'P_th_ref [W]'] = fit_p_th_ref(t_in, t_out, group_id, p_th)
-        x = -7
-        y = 52
+        X = -7
+        Y = 52
         p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
         p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
         p3_p_el = parameters['p3_P_el [-]'].array[0]
@@ -77,7 +77,7 @@ def get_parameters(model: str, group_id: int = 0,
         p2_cop = parameters['p2_COP [-]'].array[0]
         p3_cop = parameters['p3_COP [-]'].array[0]
         p4_cop = parameters['p4_COP [-]'].array[0]
-        cop_ref = p1_cop * x + p2_cop * y + p3_cop + p4_cop * x
+        cop_ref = p1_cop * X + p2_cop * Y + p3_cop + p4_cop * X
         p_el_ref = fit_p_th_ref(t_in, t_out, group_id, p_th) / cop_ref
         parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
         parameters.loc[:, 'COP_ref'] = cop_ref
@@ -127,8 +127,8 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
         parameters.loc[:, 'P_th_ref [W]'] = p_th
-        x = -7
-        y = 52
+        X = -7
+        Y = 52
         p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
         p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
         p3_p_el = parameters['p3_P_el [-]'].array[0]
@@ -136,14 +136,14 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
         p2_cop = parameters['p2_COP [-]'].array[0]
         p3_cop = parameters['p3_COP [-]'].array[0]
         p4_cop = parameters['p4_COP [-]'].array[0]
-        cop_ref = p1_cop * x + p2_cop * y + p3_cop + p4_cop * x
+        cop_ref = p1_cop * X + p2_cop * Y + p3_cop + p4_cop * X
         p_el_ref = p_th / cop_ref
         parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
         parameters.loc[:, 'COP_ref'] = cop_ref
     return parameters
 
 
-def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_ref: int) -> Any:
+def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> Any:
     """
     Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
     the least-square method to fit the curve data with a given function.
@@ -157,7 +157,7 @@ def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_ref: int) -> Any:
         Output temperature :math:`T` at secondary side of the heat pump. [°C]
     group_id : numeric
         Group ID for a parameter set which represents an average heat pump of its group.
-    p_th_ref : numeric
+    p_th_set_point : numeric
         Thermal output power. [W]
 
     Returns
@@ -165,13 +165,13 @@ def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_ref: int) -> Any:
     p_th : Any
         Thermal output power. [W]
     """
-    p0 = [1000]  # starting values
-    a = (t_in, t_out, group_id, p_th_ref)
-    p_th, _ = scipy.optimize.leastsq(fit_func_p_th_ref, p0, args=a)
+    P_0 = [1000]  # starting values
+    a = (t_in, t_out, group_id, p_th_set_point)
+    p_th, _ = scipy.optimize.leastsq(fit_func_p_th_ref, P_0, args=a)
     return p_th
 
 
-def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_ref: int) -> int:
+def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> int:
     """
     Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
     the least-square method to fit the curve data with a given function.
@@ -187,7 +187,7 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_ref
         Output temperature :math:`T` at secondary side of the heat pump. [°C]
     group_id : numeric
         Group ID for a parameter set which represents an average heat pump of its group.
-    p_th_ref : numeric
+    p_th_set_point : numeric
         Thermal output power. [W]
 
     Returns
@@ -197,7 +197,7 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_ref
     """
     parameters = get_parameters_fit(model='Generic', group_id=group_id, p_th=p_th)
     p_th_calc, _, _, _, _ = simulate(t_in, t_out - 5, parameters, t_in)
-    p_th_diff = p_th_calc - p_th_ref
+    p_th_diff = p_th_calc - p_th_set_point
     return p_th_diff
 
 
