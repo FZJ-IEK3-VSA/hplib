@@ -124,6 +124,7 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
     parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
     parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
+
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
         parameters.loc[:, 'P_th_ref [W]'] = p_th
@@ -173,9 +174,7 @@ def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> A
 
 def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> int:
     """
-    Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
-    the least-square method to fit the curve data with a given function.
-    The ``leastsq()`` function applies the least-square minimization to fit the data.
+    Determine the thermal output power in [W] using the difference of a calculated and a simulated thermal power.
 
     Parameters
     ----------
@@ -204,9 +203,7 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
 def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
              t_amb: int = 0) -> Tuple[int, int, int, int, int]:
     """
-    Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
-    the least-square method to fit the curve data with a given function.
-    The ``leastsq()`` function applies the least-square minimization to fit the data.
+    Performs the simulation of the heat pump model.
 
     Parameters
     ----------
