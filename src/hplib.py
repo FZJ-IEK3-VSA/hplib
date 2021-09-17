@@ -27,8 +27,6 @@ def get_parameters(model: str, group_id: int = 0,
 
     Parameters
     ----------
-    filepath : str
-        Filepath to the database file.
     model : str
         Name of the heat pump model.
     group_id : numeric, default 0
@@ -86,15 +84,13 @@ def get_parameters(model: str, group_id: int = 0,
     return parameters
 
 
-def get_parameters_fit(model: str, group_id=0, p_th=0) -> pd.DataFrame:
+def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataFrame:
     """
     Loads the content of the database for a specific heat pump model
     and returns a pandas ``DataFrame`` containing the heat pump parameters.
 
     Parameters
     ----------
-    filepath : str
-        Filepath to the database.
     model : str
         Name of the heat pump model.
     group_id : numeric, default 0
@@ -147,7 +143,7 @@ def get_parameters_fit(model: str, group_id=0, p_th=0) -> pd.DataFrame:
     return parameters
 
 
-def fit_p_th_ref(t_in, t_out, group_id, p_th_ref) -> Any:
+def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_ref: int) -> Any:
     """
     Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
     the least-square method to fit the curve data with a given function.
@@ -175,7 +171,7 @@ def fit_p_th_ref(t_in, t_out, group_id, p_th_ref) -> Any:
     return p_th
 
 
-def fit_func_p_th_ref(p_th, t_in, t_out, group_id, p_th_ref) -> int:
+def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_ref: int) -> int:
     """
     Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
     the least-square method to fit the curve data with a given function.
@@ -205,7 +201,8 @@ def fit_func_p_th_ref(p_th, t_in, t_out, group_id, p_th_ref) -> int:
     return p_th_diff
 
 
-def simulate(t_in_primary, t_in_secondary, parameters, t_amb=0) -> Tuple[int, int, int, int, int]:
+def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
+             t_amb: int = 0) -> Tuple[int, int, int, int, int]:
     """
     Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
     the least-square method to fit the curve data with a given function.
@@ -219,7 +216,7 @@ def simulate(t_in_primary, t_in_secondary, parameters, t_amb=0) -> Tuple[int, in
         Source temperature :math:`T` from heating storage or system. [°C]
     parameters : pd.DataFrame
         Data frame containng the heat pump parameters.
-    t_amb : numeric
+    t_amb : numeric, default 0
         Ambient temperature :math:'T' of the air. [°C]
 
     Returns
