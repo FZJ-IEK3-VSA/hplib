@@ -215,7 +215,7 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     t_in_secondary : numeric
         Source temperature :math:`T` from heating storage or system. [°C]
     parameters : pd.DataFrame
-        Data frame containng the heat pump parameters.
+        Data frame containing the heat pump parameters.
     t_amb : numeric, default 0
         Ambient temperature :math:'T' of the air. [°C]
 
