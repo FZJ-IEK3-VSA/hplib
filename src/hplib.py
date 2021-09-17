@@ -6,7 +6,7 @@ import scipy
 from typing import Any, Tuple
 
 
-def load_database(filepath: str) -> pd.DataFrame:
+def load_database() -> pd.DataFrame:
     """
     Loads data from hplib_database.
 
@@ -15,11 +15,11 @@ def load_database(filepath: str) -> pd.DataFrame:
     df : pd.DataFrame
         Content of the database
     """
-    df = pd.read_csv(filepath)
+    df = pd.read_csv('hplib_database.csv')
     return df
 
 
-def get_parameters(filepath: str, model: str, group_id: int = 0,
+def get_parameters(model: str, group_id: int = 0,
                    t_in: int = 0, t_out: int = 0, p_th: int = 0) -> pd.DataFrame:
     """
     Loads the content of the database for a specific heat pump model
@@ -45,7 +45,7 @@ def get_parameters(filepath: str, model: str, group_id: int = 0,
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv(filepath, delimiter=',')
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
 
@@ -86,7 +86,7 @@ def get_parameters(filepath: str, model: str, group_id: int = 0,
     return parameters
 
 
-def get_parameters_fit(filepath: str, model: str, group_id=0, p_th=0) -> pd.DataFrame:
+def get_parameters_fit(model: str, group_id=0, p_th=0) -> pd.DataFrame:
     """
     Loads the content of the database for a specific heat pump model
     and returns a pandas ``DataFrame`` containing the heat pump parameters.
@@ -107,7 +107,7 @@ def get_parameters_fit(filepath: str, model: str, group_id=0, p_th=0) -> pd.Data
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv(filepath, delimiter=',')
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
 
@@ -175,7 +175,7 @@ def fit_p_th_ref(t_in, t_out, group_id, p_th_ref) -> Any:
     return p_th
 
 
-def fit_func_p_th_ref(filepath, p_th, t_in, t_out, group_id, p_th_ref) -> int:
+def fit_func_p_th_ref(p_th, t_in, t_out, group_id, p_th_ref) -> int:
     """
     Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
     the least-square method to fit the curve data with a given function.
@@ -199,7 +199,7 @@ def fit_func_p_th_ref(filepath, p_th, t_in, t_out, group_id, p_th_ref) -> int:
     p_th_diff : numeric
         Thermal output power. [W]
     """
-    parameters = get_parameters_fit(filepath=filepath, model='Generic', group_id=group_id, p_th=p_th)
+    parameters = get_parameters_fit(model='Generic', group_id=group_id, p_th=p_th)
     p_th_calc, _, _, _, _ = simulate(t_in, t_out - 5, parameters, t_in)
     p_th_diff = p_th_calc - p_th_ref
     return p_th_diff
