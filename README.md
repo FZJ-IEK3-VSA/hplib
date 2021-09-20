@@ -10,7 +10,7 @@ For the simulation, it is possible to calculate outputs of a **specific manufact
 
 ## Documentation
 
-If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](https://github.com/RE-Lab-Projects/hplib/blob/main/Documentation.html) or [Jupyter-Notebook](https://github.com/RE-Lab-Projects/hplib/blob/main/Documentation.ipynb). There you also find a **simulation examples** and a **validation**.
+If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](http://htmlpreview.github.io/?https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.html) or [Jupyter-Notebook](https://github.com/RE-Lab-Projects/hplib/blob/main/src/documentation.ipynb). There you also find a **simulation examples** and a **validation**.
 
 ## Usage
 
@@ -42,7 +42,7 @@ The following columns are available for every heat pump of this library
 | Column | Description | Comment |
 | :--- | :--- | :--- |
 | Manufacturer | Name of the manufacturer | 30 manufacturers |
-| Model | Name of the heat pump model | 505 models |
+| Model | Name of the heat pump model | 506 models |
 | Date | heat pump certification date | 2016-07-27 to 2021-03-10 |
 | Type | Type of heat pump model | Outdoor Air/Water, Brine/Water,  Water/Water |
 | Subtype | Subtype of heat pump model | On-Off, Reglulated|
@@ -55,7 +55,7 @@ The following columns are available for every heat pump of this library
 | Climate | Climate definition for set points, which were used for parameter identification | average, colder, warmer |
 | P_el_ref [W]| Electrical power at -7°C / 52°C | 881 to 23293 W |
 | P_th_ref [W]| Thermal power at -7°C / 52°C | 2400 to 69880 W |
-| p1-p4_P_th | Fit-Parameters for thermal power  | P_th = P_th_ref * (p1*T_in + p2*T_out + p3 + p4*T_amb) |
+| p1-p4_P_th | Fit-Parameters for thermal power  | - |
 | p1-p4_P_el | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1*T_in + p2*T_out + p3 + p4*T_amb) |
 | p1-p4_COP | Fit-Parameters for COP  | COP = p1*T_in + p2*T_out + p3 + p4*T_amb|
 
