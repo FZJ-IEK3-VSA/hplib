@@ -29,7 +29,7 @@ def import_keymark_data():
     COP = []
     df = pd.DataFrame()
     root = os.getcwd()
-    Scanordner = (root + '/input/txt')
+    Scanordner = (root[:-3] + '/input/txt')
     os.chdir(Scanordner)
     Scan = os.scandir(os.getcwd())
     with Scan as dir1:
@@ -1022,8 +1022,7 @@ def import_keymark_data():
         ['Manufacturer', 'Model', 'Date', 'Type', 'Refrigerant', 'Mass of Refrigerant [kg]', 'PSB [W]', 'Prated [W]',
          'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'Climate', 'T_amb [°C]', 'T_in [°C]', 'T_out [°C]', 'P_th [W]',
          'P_el [W]', 'COP']]
-    df.sort_values('Manufacturer')
-    os.chdir("../..")
+    df.sort_values(by=['Manufacturer', 'Model'], inplace=True)
     os.chdir("../..")
     df.to_csv(os.getcwd() + r'/output/database_keymark.csv', index=False)
 
@@ -1446,7 +1445,7 @@ def func_simple(para, w, x, y):
 
 def calculate_function_parameters(filename):
     # Calculate function parameters from normalized values
-    data_key = pd.read_csv(r'output/' + filename)
+    data_key = pd.read_csv('../output/' + filename)
     Models = data_key['Model'].values.tolist()
     Models = list(dict.fromkeys(Models))  # get models
 
@@ -1467,7 +1466,7 @@ def calculate_function_parameters(filename):
     p4_COP = []
 
     for model in Models:
-        data_key = pd.read_csv(r'output/' + filename)
+        data_key = pd.read_csv('../output/' + filename)
         data_key = data_key.rename(
             columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out',
                      'T_amb [°C]': 'T_amb'})
@@ -1529,7 +1528,7 @@ def calculate_function_parameters(filename):
     paradf['P_th_ref'] = Pth_ref
 
     para = paradf
-    key = pd.read_csv(r'output/' + filename)
+    key = pd.read_csv('../output/' + filename)
     key = key.loc[key['T_out [°C]'] == 52]
     parakey = para.merge(key, how='left', on='Model')
     parakey = parakey.rename(columns={'Group_x': 'Group', 'P_el_ref': 'P_el_ref [W]', 'P_th_ref': 'P_th_ref [W]'})
@@ -1544,7 +1543,7 @@ def calculate_function_parameters(filename):
 
 
 def add_generic():
-    data_key = pd.read_csv('../hplib_database.csv', delimiter=',')
+    data_key = pd.read_csv('hplib_database.csv', delimiter=',')
     data_key = data_key.loc[data_key['Model'] != 'Generic']
     Groups = [1, 2, 3, 4, 5, 6]
     for group in Groups:
@@ -1580,7 +1579,12 @@ def add_generic():
         p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
         p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
         p4_COP_average = pd.unique(Group1['p4_COP [-]']).mean(0)
-        COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
+        if group == 1 or group == 4:
+            COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
+        elif group == 2 or group == 5:
+            COP_ref = 0 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
+        elif group == 3 or group == 6:
+            COP_ref = 10 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
         try:
             data_key.loc[len(data_key.index)] = ['Generic', 'Generic', '', Type, modus, group, '', '', '', '', '',
                                                  'average', '', '', COP_ref, p1_P_th_average, p2_P_th_average,
@@ -1594,7 +1598,7 @@ def add_generic():
 
 
 def reduce_to_unique():
-    df = pd.read_csv('../hplib_database.csv', delimiter=',')
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
     Models = []
     unique_values = pd.unique(df['p3_P_el [-]']).tolist()
     for values in unique_values:
