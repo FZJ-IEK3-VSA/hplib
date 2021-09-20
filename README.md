@@ -22,7 +22,7 @@ Create the environment:
 
 `conda env create --name hplib --file requirements.txt`
 
-Create some code with `import hplib` and use the included functions `loadDatabase`, `getParameters` and `simulate`.
+Create some code with `import hplib` and use the included functions `load_database`, `get_parameters` and `simulate`.
 
 ## Heat pump models and Group IDs
 The hplib_database.csv contains the following number of heat pump models, sorted by Group ID

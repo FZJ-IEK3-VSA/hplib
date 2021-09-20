@@ -2,6 +2,5 @@
 # $ conda create --name <env> --file <this file>
 pandas
 pip
-python
 matplotlib
 scipy
