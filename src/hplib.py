@@ -28,15 +28,15 @@ def get_parameters(model: str, group_id: int = 0,
     Parameters
     ----------
     model : str
-        Name of the heat pump model.
+        Name of the heat pump model or "Generic".
     group_id : numeric, default 0
-        Group ID for a parameter set which represents an average heat pump of its group.
+        only for model "Generic": Group ID for subtype of heat pump. [1-6].
     t_in : numeric, default 0
-        Input temperature :math:`T` at primary side of the heat pump. [°C]
+        only for model "Generic": Input temperature :math:`T` at primary side of the heat pump. [°C]
     t_out : numeric, default 0
-        Output temperature :math:`T` at secondary side of the heat pump. [°C]
+        only for model "Generic": Output temperature :math:`T` at secondary side of the heat pump. [°C]
     p_th : numeric, default 0
-        Thermal output power. [W]
+        only for model "Generic": Thermal output power at setpoint t_in, t_out. [W]
 
     Returns
     -------
@@ -67,18 +67,23 @@ def get_parameters(model: str, group_id: int = 0,
 
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
-        parameters.loc[:, 'P_th_ref [W]'] = fit_p_th_ref(t_in, t_out, group_id, p_th)
-        X = -7
-        Y = 52
-        p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
-        p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
-        p3_p_el = parameters['p3_P_el [-]'].array[0]
+        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
+        parameters.loc[:, 'P_th_ref [W]'] = p_th_ref
+        t_in_hp = [-7,0,10] # air/water, brine/water, water/water
+        t_out_fix = 52
+        t_amb_fix = -7
         p1_cop = parameters['p1_COP [-]'].array[0]
         p2_cop = parameters['p2_COP [-]'].array[0]
         p3_cop = parameters['p3_COP [-]'].array[0]
         p4_cop = parameters['p4_COP [-]'].array[0]
-        cop_ref = p1_cop * X + p2_cop * Y + p3_cop + p4_cop * X
-        p_el_ref = fit_p_th_ref(t_in, t_out, group_id, p_th) / cop_ref
+        if group_id == 1 or group_id == 4:
+            t_in_fix = t_in_hp[0]
+        if group_id == 2 or group_id == 5:
+            t_in_fix = t_in_hp[1]
+        if group_id == 3 or group_id == 6:
+            t_in_fix = t_in_hp[2]    
+        cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
+        p_el_ref = p_th_ref / cop_ref
         parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
         parameters.loc[:, 'COP_ref'] = cop_ref
     return parameters
@@ -86,8 +91,7 @@ def get_parameters(model: str, group_id: int = 0,
 
 def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataFrame:
     """
-    Loads the content of the database for a specific heat pump model
-    and returns a pandas ``DataFrame`` containing the heat pump parameters.
+    Helper function for leastsquare fit of thermal output power at reference set point.
 
     Parameters
     ----------
@@ -128,16 +132,20 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
         parameters.loc[:, 'P_th_ref [W]'] = p_th
-        X = -7
-        Y = 52
-        p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
-        p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
-        p3_p_el = parameters['p3_P_el [-]'].array[0]
+        t_in_hp = [-7,0,10] # air/water, brine/water, water/water
+        t_out_fix = 52
+        t_amb_fix = -7
         p1_cop = parameters['p1_COP [-]'].array[0]
         p2_cop = parameters['p2_COP [-]'].array[0]
         p3_cop = parameters['p3_COP [-]'].array[0]
         p4_cop = parameters['p4_COP [-]'].array[0]
-        cop_ref = p1_cop * X + p2_cop * Y + p3_cop + p4_cop * X
+        if group_id == 1 or group_id == 4:
+            t_in_fix = t_in_hp[0]
+        if group_id == 2 or group_id == 5:
+            t_in_fix = t_in_hp[1]
+        if group_id == 3 or group_id == 6:
+            t_in_fix = t_in_hp[2]  
+        cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
         p_el_ref = p_th / cop_ref
         parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
         parameters.loc[:, 'COP_ref'] = cop_ref
@@ -146,9 +154,8 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
 
 def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> Any:
     """
-    Determine the thermal output power in [W] using the optimization library ``scipy`` module to implement
-    the least-square method to fit the curve data with a given function.
-    The ``leastsq()`` function applies the least-square minimization to fit the data.
+    Determine the thermal output power in [W] at reference conditions (T_in = [-7, 0, 10] , 
+    T_out=52, T_amb=-7) for a given set point for a generic heat pump, using a least-square method.
 
     Parameters
     ----------
@@ -174,7 +181,8 @@ def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> A
 
 def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> int:
     """
-    Determine the thermal output power in [W] using the difference of a calculated and a simulated thermal power.
+    Helper function to determine difference between given and calculated 
+    thermal output power in [W].
 
     Parameters
     ----------
@@ -194,23 +202,27 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
     p_th_diff : numeric
         Thermal output power. [W]
     """
+    if group_id == 1 or group_id == 4:
+        t_amb = t_in
+    else:
+        t_amb = -7
     parameters = get_parameters_fit(model='Generic', group_id=group_id, p_th=p_th)
-    p_th_calc, _, _, _, _ = simulate(t_in, t_out - 5, parameters, t_in)
+    p_th_calc, _, _, _, _ = simulate(t_in, t_out - 5, parameters, t_amb)
     p_th_diff = p_th_calc - p_th_set_point
     return p_th_diff
 
 
 def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
-             t_amb: int = 0) -> Tuple[int, int, int, int, int]:
+             t_amb: int) -> Tuple[int, int, int, int, int]:
     """
     Performs the simulation of the heat pump model.
 
     Parameters
     ----------
     t_in_primary : numeric
-        Source temperature :math:`T` (air or ground). [°C]
+        Input temperature on primry side :math:`T` (air, brine, water). [°C]
     t_in_secondary : numeric
-        Source temperature :math:`T` from heating storage or system. [°C]
+        Input temperature on secondary side :math:`T` from heating storage or system. [°C]
     parameters : pd.DataFrame
         Data frame containing the heat pump parameters.
     t_amb : numeric, default 0
@@ -227,7 +239,7 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     t_out : numeric
         Output temperature :math:`T` at secondary side of the heat pump. [°C]
     m_dot : numeric
-        Mass flow. [kg/s]
+        Mass flow at secondary side of the heat pump. [kg/s]
     """
 
     DELTA_T = 5  # Inlet temperature is supposed to be heated up by 5 K
@@ -235,12 +247,7 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
 
     t_in = t_in_primary
     t_out = t_in_secondary + DELTA_T
-    model = parameters['Model'].array[0]
     group_id = parameters['Group'].array[0]
-    p1_p_th = parameters['p1_P_th [1/°C]'].array[0]
-    p2_p_th = parameters['p2_P_th [1/°C]'].array[0]
-    p3_p_th = parameters['p3_P_th [-]'].array[0]
-    p4_p_th = parameters['p4_P_th [1/°C]'].array[0]
     p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
     p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
     p3_p_el = parameters['p3_P_el [-]'].array[0]
@@ -251,12 +258,13 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     p4_cop = parameters['p4_COP [-]'].array[0]
     p_el_ref = parameters['P_el_ref [W]'].array[0]
     p_th_ref = parameters['P_th_ref [W]'].array[0]
-    # for subtype = Inverter
+    # for subtype = air/water heat pump
     if group_id == 1 or group_id == 4:
         t_amb = t_in
     else:
         pass
-
+    
+    # for regulated heat pumps
     if group_id == 1 or group_id == 2 or group_id == 3:
         cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
         p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
@@ -273,20 +281,11 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
             cop = 1
             p_el = p_th_ref
             p_th = p_th_ref
-            # for subtype = On-Off
+    # for subtype = On-Off
     elif group_id == 4 or group_id == 5 or group_id == 6:
         p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
         cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
         p_th = p_el * cop
-        if cop <= 1:
-            cop = 1
-            p_el = p_th_ref
-            p_th = p_th_ref
-    # for subtype = Two-stages
-    else:
-        p_el = 0
-        cop = 0
-        p_th = 0
         if cop <= 1:
             cop = 1
             p_el = p_th_ref
