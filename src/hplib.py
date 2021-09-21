@@ -46,7 +46,7 @@ def get_parameters(model: str, group_id: int = 0,
     df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
-
+    parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
     parameters['Model'] = (df['Model'].values.tolist())
     parameters['P_th_ref [W]'] = (df['P_th_ref [W]'].values.tolist())
     parameters['P_el_ref [W]'] = (df['P_el_ref [W]'].values.tolist())
@@ -67,6 +67,7 @@ def get_parameters(model: str, group_id: int = 0,
 
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
+        
         p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
         parameters.loc[:, 'P_th_ref [W]'] = p_th_ref
         t_in_hp = [-7,0,10] # air/water, brine/water, water/water
@@ -76,6 +77,8 @@ def get_parameters(model: str, group_id: int = 0,
         p2_cop = parameters['p2_COP [-]'].array[0]
         p3_cop = parameters['p3_COP [-]'].array[0]
         p4_cop = parameters['p4_COP [-]'].array[0]
+        if (p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb_fix)<=1.0:
+            raise ValueError('COP too low! Increase t_in or decrease t_out.')
         if group_id == 1 or group_id == 4:
             t_in_fix = t_in_hp[0]
         if group_id == 2 or group_id == 5:
