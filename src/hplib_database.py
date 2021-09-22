@@ -1588,9 +1588,9 @@ def validation_mape():
         mape_pth.append((((df_model['P_th [W]']-df_model['P_th_sim']).abs())/df_model['P_th [W]']*100).mean())
         mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
         mape_cop.append((((df_model['COP']-df_model['COP_sim']).abs())/df_model['COP']*100).mean())
-    para['mape_P_el']=mape_pel
-    para['mape_COP']=mape_cop
-    para['mape_P_th']=mape_pth
+    para['MAPE_P_el']=mape_pel
+    para['MAPE_COP']=mape_cop
+    para['MAPE_P_th']=mape_pth
     para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
@@ -1631,23 +1631,17 @@ def add_generic():
         p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
         p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
         p4_COP_average = pd.unique(Group1['p4_COP [-]']).mean(0)
-        mape_p_el_average = pd.unique(Group1['mape_P_el']).mean(0)
-        mape_cop_average = pd.unique(Group1['mape_COP']).mean(0)
-        mape_p_th_average = pd.unique(Group1['mape_P_th']).mean(0)
         if group == 1 or group == 4:
             COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
         elif group == 2 or group == 5:
             COP_ref = 0 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
         elif group == 3 or group == 6:
             COP_ref = 10 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        try:
-            data_key.loc[len(data_key.index)] = ['Generic', 'Generic', '', Type, modus, group, '', '', '', '', '',
+        data_key.loc[len(data_key.index)] = ['Generic', 'Generic', '', Type, modus, group, '', '', '', '', '',
                                                  'average', '', '', COP_ref, p1_P_th_average, p2_P_th_average,
                                                  p3_P_th_average, p4_P_th_average, p1_P_el_average, p2_P_el_average,
                                                  p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
-                                                 p3_COP_average, p4_COP_average,mape_p_el_average,mape_cop_average,mape_p_th_average]
-        except:
-            continue
+                                                 p3_COP_average, p4_COP_average,'','','']
     data_key['COP_ref'] = data_key['COP_ref'].round(2)
     data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
