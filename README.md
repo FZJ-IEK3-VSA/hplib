@@ -6,7 +6,11 @@ Repository with code to
 - identify **efficiency parameters** from the database with a least-square regression model  
 - **simulate** heat pump efficiency (COP) as well as electrical (P_el) & thermal power (P_th) and massflow (m_dot) as time series.
 
-For the simulation, it is possible to calculate outputs of a **specific manufacturer + model** or alternatively for one of **6 different generic heat pump types**. 
+For the simulation, it is possible to calculate outputs of a **specific manufacturer + model** or alternatively for one of **6 different generic heat pump types**.
+
+**For reference purposes:**
+- DOI:  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5521598.svg)](https://doi.org/10.5281/zenodo.5521598) 
+- Citation: Tjarko Tjaden, Hauke Hoops. (2021). RE-Lab-Projects/hplib: heat pump library (v1.1). Zenodo. https://doi.org/10.5281/zenodo.5521598
 
 ## Documentation
 
