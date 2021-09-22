@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
-
+import hplib as hpl
 
 # Functions
 
@@ -1542,6 +1542,58 @@ def calculate_function_parameters(filename):
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
+def validation_relative_error():
+    # Simulate every set point for every heatpump and save csv file
+    df=pd.read_csv('../output/database_keymark_average_normalized_subtypes.csv')
+    i=0
+    prev_model='first Model'
+    while i<len(df): 
+        Model=df.iloc[i,1]
+        T_amb=df.iloc[i,12]
+        T_in=df.iloc[i,13]
+        T_out=df.iloc[i,14]
+        P_th=df.iloc[i,15]
+        P_el=df.iloc[i,16]
+        COP=df.iloc[i,17] 
+        try:
+            if prev_model!=Model:
+                para=hpl.get_parameters(Model)
+            P_th_sim,P_el_sim,COP_sim,_,_=hpl.simulate(T_in,T_out-5,para,T_amb)
+            df.loc[i,'P_th_sim']=P_th_sim
+            df.loc[i,'P_el_sim']=P_el_sim
+            df.loc[i,'COP_sim']=COP_sim
+            prev_model=Model
+            i=i+1
+        except:
+            i=i+1
+            pass
+
+    # Relative error (RE) for every set point
+    df['RE_P_th']=(df['P_th_sim']/df['P_th [W]']-1)*100
+    df['RE_P_el']=(df['P_el_sim']/df['P_el [W]']-1)*100
+    df['RE_COP']=(df['COP_sim']/df['COP']-1)*100
+    df.to_csv('../output/database_keymark_average_normalized_subtypes_validation.csv', encoding='utf-8', index=False)
+
+def validation_mape():
+    df=pd.read_csv('../output/database_keymark_average_normalized_subtypes_validation.csv')
+    para=pd.read_csv('hplib_database.csv', delimiter=',')
+    para=para.loc[para['Model']!='Generic']
+    Models = para['Model'].values.tolist()
+    Models = list(dict.fromkeys(Models))
+    mape_cop=[]
+    mape_pel=[]
+    mape_pth=[]
+    for model in Models:
+        df_model=df.loc[df['Model']==model]
+        mape_pth.append((((df_model['P_th [W]']-df_model['P_th_sim']).abs())/df_model['P_th [W]']*100).mean())
+        mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
+        mape_cop.append((((df_model['COP']-df_model['COP_sim']).abs())/df_model['COP']*100).mean())
+    para['mape_P_el']=mape_pel
+    para['mape_COP']=mape_cop
+    para['mape_P_th']=mape_pth
+    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+
+
 def add_generic():
     data_key = pd.read_csv('hplib_database.csv', delimiter=',')
     data_key = data_key.loc[data_key['Model'] != 'Generic']
@@ -1566,7 +1618,7 @@ def add_generic():
             Type = 'Water/Water'
             modus = 'On-Off'
 
-        Group1 = data_key.loc[data_key['Group'] == group]
+        Group1 = data_key.loc[(data_key['Group'] == group) & (data_key['mape_P_el']<=25)]
         p1_P_th_average = pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
         p2_P_th_average = pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
         p3_P_th_average = pd.unique(Group1['p3_P_th [-]']).mean(0)
@@ -1579,6 +1631,9 @@ def add_generic():
         p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
         p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
         p4_COP_average = pd.unique(Group1['p4_COP [-]']).mean(0)
+        mape_p_el_average = pd.unique(Group1['mape_P_el']).mean(0)
+        mape_cop_average = pd.unique(Group1['mape_COP']).mean(0)
+        mape_p_th_average = pd.unique(Group1['mape_P_th']).mean(0)
         if group == 1 or group == 4:
             COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
         elif group == 2 or group == 5:
@@ -1590,7 +1645,7 @@ def add_generic():
                                                  'average', '', '', COP_ref, p1_P_th_average, p2_P_th_average,
                                                  p3_P_th_average, p4_P_th_average, p1_P_el_average, p2_P_el_average,
                                                  p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
-                                                 p3_COP_average, p4_COP_average]
+                                                 p3_COP_average, p4_COP_average,mape_p_el_average,mape_cop_average,mape_p_th_average]
         except:
             continue
     data_key['COP_ref'] = data_key['COP_ref'].round(2)
