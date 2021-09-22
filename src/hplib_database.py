@@ -1028,6 +1028,8 @@ def import_keymark_data():
 
 
 def import_cooling_data():
+    # read in keymark data from *.txt files in /input/txt/
+    # save a dataframe to database_keymark.csv in folder /output/
     Modul = []
     Manufacturer = []
     Date = []
@@ -1545,7 +1547,7 @@ def calculate_function_parameters(filename):
 
 
 def validation_relative_error():
-    # Simulate every set point for every heatpump and save csv file
+    # Simulate every set point for every heat pump and save csv file
     df=pd.read_csv('../output/database_keymark_average_normalized_subtypes.csv')
     i=0
     prev_model='first Model'
@@ -1576,7 +1578,9 @@ def validation_relative_error():
     df['RE_COP']=(df['COP_sim']/df['COP']-1)*100
     df.to_csv('../output/database_keymark_average_normalized_subtypes_validation.csv', encoding='utf-8', index=False)
 
+
 def validation_mape():
+    #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
     df=pd.read_csv('../output/database_keymark_average_normalized_subtypes_validation.csv')
     para=pd.read_csv('hplib_database.csv', delimiter=',')
     para=para.loc[para['Model']!='Generic']
@@ -1650,6 +1654,9 @@ def add_generic():
 
 
 def reduce_to_unique():
+    # Many heat pump models have several entries 
+    # because of different controller or storage configurations. 
+    # Reduce to unique heat pump models.
     df = pd.read_csv('hplib_database.csv', delimiter=',')
     Models = []
     unique_values = pd.unique(df['p3_P_el [-]']).tolist()

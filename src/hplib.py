@@ -233,7 +233,7 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     t_in_secondary : numeric
         Input temperature on secondary side :math:`T` from heating storage or system. [°C]
     parameters : pd.DataFrame
-        Data frame containing the heat pump parameters.
+        Data frame containing the heat pump parameters from hplib.getParameters().
     t_amb : numeric, default 0
         Ambient temperature :math:'T' of the air. [°C]
 
@@ -284,7 +284,8 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         if group_id == 2:
             t_amb = -7
         
-        if p_el < 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
+        if p_el < 0.25 * p_el_ref * (
+            p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
             p_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
         p_th = p_el * cop
         if cop <= 1:
