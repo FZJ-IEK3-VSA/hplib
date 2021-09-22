@@ -48,9 +48,12 @@ def get_parameters(model: str, group_id: int = 0,
     parameters = pd.DataFrame()
     parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
     parameters['Model'] = (df['Model'].values.tolist())
-    parameters['MAPE_COP']=df['MAPE_COP'].values.tolist()
-    parameters['MAPE_P_el']=df['MAPE_P_el'].values.tolist()
-    parameters['MAPE_P_th']=df['MAPE_P_th'].values.tolist()
+    try:
+        parameters['MAPE_COP']=df['MAPE_COP'].values.tolist()
+        parameters['MAPE_P_el']=df['MAPE_P_el'].values.tolist()
+        parameters['MAPE_P_th']=df['MAPE_P_th'].values.tolist()
+    except:
+        pass
     parameters['P_th_ref [W]'] = (df['P_th_ref [W]'].values.tolist())
     parameters['P_el_ref [W]'] = (df['P_el_ref [W]'].values.tolist())
     parameters['COP_ref'] = (df['COP_ref'].values.tolist())
@@ -134,7 +137,7 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
     parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
     parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
-
+    
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
         parameters.loc[:, 'P_th_ref [W]'] = p_th
@@ -264,6 +267,7 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     p4_cop = parameters['p4_COP [-]'].array[0]
     p_el_ref = parameters['P_el_ref [W]'].array[0]
     p_th_ref = parameters['P_th_ref [W]'].array[0]
+
     # for subtype = air/water heat pump
     if group_id == 1 or group_id == 4:
         t_amb = t_in
@@ -279,8 +283,8 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
             t_amb = t_in
         if group_id == 2:
             t_amb = -7
-        if p_el < 0.25 * p_el_ref * (
-                p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
+        
+        if p_el < 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
             p_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
         p_th = p_el * cop
         if cop <= 1:

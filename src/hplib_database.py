@@ -1507,6 +1507,7 @@ def calculate_function_parameters(filename):
         Group.append(group)
         Pel_ref.append(Pel_REF)
         Pth_ref.append(Pth_REF)
+
     # write List  in Dataframe
 
     paradf = pd.DataFrame()
@@ -1526,6 +1527,7 @@ def calculate_function_parameters(filename):
     paradf['Group'] = Group
     paradf['P_el_ref'] = Pel_ref
     paradf['P_th_ref'] = Pth_ref
+
 
     para = paradf
     key = pd.read_csv('../output/' + filename)
@@ -1618,7 +1620,8 @@ def add_generic():
             Type = 'Water/Water'
             modus = 'On-Off'
 
-        Group1 = data_key.loc[(data_key['Group'] == group) & (data_key['mape_P_el']<=25)]
+        Group1 = data_key.loc[data_key['Group'] == group] 
+        Group1=Group1.loc[Group1['MAPE_P_el']<=25]
         p1_P_th_average = pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
         p2_P_th_average = pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
         p3_P_th_average = pd.unique(Group1['p3_P_th [-]']).mean(0)
@@ -1638,10 +1641,10 @@ def add_generic():
         elif group == 3 or group == 6:
             COP_ref = 10 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
         data_key.loc[len(data_key.index)] = ['Generic', 'Generic', '', Type, modus, group, '', '', '', '', '',
-                                                 'average', '', '', COP_ref, p1_P_th_average, p2_P_th_average,
+                                                'average', '', '', COP_ref, p1_P_th_average, p2_P_th_average,
                                                  p3_P_th_average, p4_P_th_average, p1_P_el_average, p2_P_el_average,
                                                  p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
-                                                 p3_COP_average, p4_COP_average,'','','']
+                                                 p3_COP_average, p4_COP_average, '', '', '']
     data_key['COP_ref'] = data_key['COP_ref'].round(2)
     data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
