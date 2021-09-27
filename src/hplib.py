@@ -293,25 +293,24 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
                 df1['t_out']=t_out
         if group_id == 1 or group_id == 2 or group_id == 3:
             df1['cop'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-            df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value
-            if group_id == 1:
+            df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for p_el
+            if group_id == 1:#with regulated heatpumps the electrical power can get too low. We defined a minimum value at 25% from the point at -7/output temperature.
                 df1.loc[:,'t_in'] = -7
                 df1.loc[:,'t_amb'] = -7
             if group_id == 2:
                 df1.loc[:,'t_amb'] = -7
             df1.loc[df1['p_el'] < 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb']),'p_el'] = 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb'])
             df1['p_th'] = (df1['p_el'] * df1['cop'])
-            df1.loc[df1['cop'] < 1,'p_el']=p_th_ref
+            df1.loc[df1['cop'] < 1,'p_el']=p_th_ref#if cop is too low the electeric heating element is used in simulation
             df1.loc[df1['cop'] < 1,'p_th']=p_th_ref
             df1.loc[df1['cop'] < 1,'cop']=1
             df1['m_dot']=df1['p_th']/(DELTA_T * CP)
         elif group_id == 4 or group_id == 5 or group_id == 6:
             df1['cop'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
             df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
-            df1.loc[df1['p_el'] < 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb']),'p_el'] = 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb'])
             df1['p_th'] = df1['p_el'] * df1['cop']
             df1.loc[df1['cop'] < 1,'p_el']=p_th_ref
-            df1.loc[df1['cop'] < 1,'p_th']=p_th_ref
+            df1.loc[df1['cop'] < 1,'p_th']=p_th_ref#if cop is too low the electeric heating element is used in simulation
             df1.loc[df1['cop'] < 1,'cop']=1
             df1['m_dot']=df1['p_th']/(DELTA_T * CP)
         df1['p_th']=df1['p_th'].round(0)
