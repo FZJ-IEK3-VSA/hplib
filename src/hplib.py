@@ -274,41 +274,89 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         t_amb = t_in
     else:
         pass
-    
-    # for regulated heat pumps
-    if group_id == 1 or group_id == 2 or group_id == 3:
-        cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-        p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
-        if group_id == 1:
-            t_in = -7
-            t_amb = t_in
-        if group_id == 2:
-            t_amb = -7
-        
-        if p_el < 0.25 * p_el_ref * (
-            p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
-            p_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
-        p_th = p_el * cop
-        if cop <= 1:
-            cop = 1
-            p_el = p_th_ref
-            p_th = p_th_ref
-    # for subtype = On-Off
-    elif group_id == 4 or group_id == 5 or group_id == 6:
-        p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
-        cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-        p_th = p_el * cop
-        if cop <= 1:
-            cop = 1
-            p_el = p_th_ref
-            p_th = p_th_ref
-    # massflow
-    m_dot = p_th / (DELTA_T * CP)
-    
-    #round
-    p_th=round(p_th)
-    p_el=round(p_el)
-    cop=round(cop,2)
-    t_out=round(t_out,1)
-    m_dot=round(m_dot,3)
+    if(type(t_in)==pd.core.series.Series or type(t_out)==pd.core.series.Series or type(t_amb)==pd.core.series.Series):# for handling pandas.Series
+        try:
+            df1=t_in.to_frame()
+            df1.rename(columns = {t_in.name:'t_in'}, inplace = True)
+            df1['t_out']=t_out
+            df1['t_amb']=t_amb
+        except:
+            try:
+                df1=t_out.to_frame()
+                df1.rename(columns = {t_out.name:'t_out'}, inplace = True)
+                df1['t_in']=t_out
+                df1['t_amb']=t_amb
+            except:
+                df1=t_amb.to_frame()
+                df1.rename(columns = {t_amb.name:'t_amb'}, inplace = True)
+                df1['t_in']=t_out
+                df1['t_out']=t_amb
+        if group_id == 1 or group_id == 2 or group_id == 3:
+            df1['cop'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            if group_id == 1:
+                df1.loc[:,'Tin'] = -7
+                df1.loc[:,'t_amb'] = -7
+            if group_id == 2:
+                df1.loc[:,'t_amb'] = -7
+            df1.loc[df1['p_el'] < 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb']),'p_el'] = 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb'])
+            df1['p_th'] = (df1['p_el'] * df1['cop'])
+            df1.loc[df1['cop'] < 1,'p_el']=p_th_ref
+            df1.loc[df1['cop'] < 1,'p_th']=p_th_ref
+            df1.loc[df1['cop'] < 1,'cop']=1
+            df1['m_dot']=df1['p_th']/(DELTA_T * CP)
+        elif group_id == 4 or group_id == 5 or group_id == 6:
+            df1['cop'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            df1.loc[df1['p_el'] < 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb']),'p_el'] = 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['t_out'] + p3_p_el + p4_p_el * df1['t_amb'])
+            df1['p_th'] = df1['p_el'] * df1['cop']
+            df1.loc[df1['cop'] < 1,'p_el']=p_th_ref
+            df1.loc[df1['cop'] < 1,'p_th']=p_th_ref
+            df1.loc[df1['cop'] < 1,'cop']=1
+            df1['m_dot']=df1['p_th']/(DELTA_T * CP)
+        df1['p_th']=df1['p_th'].round(0)
+        df1['p_el']=df1['p_el'].round(0)
+        df1['cop']=df1['cop'].round(2)
+        df1['m_dot']=df1['m_dot'].round(3)
+        p_th = df1['p_th'].values
+        p_el = df1['p_el'].values
+        cop = df1['cop'].values
+        t_out = df1['t_out'].values
+        m_dot = df1['m_dot'].values
+    else:
+        # for regulated heat pumps
+        if group_id == 1 or group_id == 2 or group_id == 3:
+            cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            if group_id == 1:
+                t_in = -7
+                t_amb = t_in
+            if group_id == 2:
+                t_amb = -7
+            
+            if p_el < 0.25 * p_el_ref * (
+                p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
+                p_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
+            p_th = p_el * cop
+            if cop <= 1:
+                cop = 1
+                p_el = p_th_ref
+                p_th = p_th_ref
+        # for subtype = On-Off
+        elif group_id == 4 or group_id == 5 or group_id == 6:
+            p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            p_th = p_el * cop
+            if cop <= 1:
+                cop = 1
+                p_el = p_th_ref
+                p_th = p_th_ref
+        # massflow
+        m_dot = p_th / (DELTA_T * CP)
+        #round
+        p_th=round(p_th)
+        p_el=round(p_el)
+        cop=round(cop,2)
+        t_out=round(t_out,1)
+        m_dot=round(m_dot,3)
     return p_th, p_el, cop, t_out, m_dot
