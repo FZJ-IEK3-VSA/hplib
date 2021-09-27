@@ -3,6 +3,7 @@ The ``hplib`` module provides a set of functions for simulating the performance 
 """
 import pandas as pd
 import scipy
+from scipy.optimize import curve_fit
 from typing import Any, Tuple
 
 
@@ -303,5 +304,11 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
             p_th = p_th_ref
     # massflow
     m_dot = p_th / (DELTA_T * CP)
-
+    
+    #round
+    p_th=round(p_th)
+    p_el=round(p_el)
+    cop=round(cop,2)
+    t_out=round(t_out,1)
+    m_dot=round(m_dot,3)
     return p_th, p_el, cop, t_out, m_dot
