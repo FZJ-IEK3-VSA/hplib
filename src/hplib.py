@@ -284,18 +284,18 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
             try:
                 df1=t_out.to_frame()
                 df1.rename(columns = {t_out.name:'t_out'}, inplace = True)
-                df1['t_in']=t_out
+                df1['t_in']=t_in
                 df1['t_amb']=t_amb
             except:
                 df1=t_amb.to_frame()
                 df1.rename(columns = {t_amb.name:'t_amb'}, inplace = True)
-                df1['t_in']=t_out
-                df1['t_out']=t_amb
+                df1['t_in']=t_in
+                df1['t_out']=t_out
         if group_id == 1 or group_id == 2 or group_id == 3:
             df1['cop'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-            df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            df1['p_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value
             if group_id == 1:
-                df1.loc[:,'Tin'] = -7
+                df1.loc[:,'t_in'] = -7
                 df1.loc[:,'t_amb'] = -7
             if group_id == 2:
                 df1.loc[:,'t_amb'] = -7
