@@ -306,7 +306,7 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     m_dot = p_th / (DELTA_T * CP)
     
     #round
-    p_th=round(p_th)
+    #p_th=round(p_th,3)
     p_el=round(p_el)
     cop=round(cop,2)
     t_out=round(t_out,1)
