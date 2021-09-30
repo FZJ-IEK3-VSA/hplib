@@ -256,7 +256,8 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     DELTA_T = 5  # Inlet temperature is supposed to be heated up by 5 K
     CP = 4200  # J/(kg*K), specific heat capacity of water
 
-    t_in = t_in_primary
+    t_in = t_in_primary#info value for dataframe
+    T_amb = t_amb #info value for dataframe
     t_out = t_in_secondary + DELTA_T
     group_id = parameters['Group'].array[0]
     p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
@@ -355,9 +356,12 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         m_dot = P_th / (DELTA_T * CP)
         #round
         df1=pd.DataFrame()
-        df1['P_th']=[P_th]
-        df1['P_el']=[round(P_el)]
-        df1['COP']=[round(COP,2)]
+        
+        df1['T_in']=[t_in_primary]
         df1['T_out']=[round(t_out,1)]
+        df1['T_amb']=[T_amb]
+        df1['COP']=[round(COP,2)]
+        df1['P_el']=[round(P_el)]
+        df1['P_th']=[P_th]
         df1['m_dot']=[round(m_dot,3)]
     return df1
