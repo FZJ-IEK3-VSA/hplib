@@ -323,7 +323,6 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         df1['COP']=df1['COP'].round(2)
         df1['m_dot']=df1['m_dot'].round(3)
         
-    
     else:
         # for regulated heat pumps
         if group_id == 1 or group_id == 2 or group_id == 3:
@@ -365,3 +364,4 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         df1['P_th']=[P_th]
         df1['m_dot']=[round(m_dot,3)]
     return df1
+
