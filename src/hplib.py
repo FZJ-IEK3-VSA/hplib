@@ -217,7 +217,8 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
     else:
         t_amb = -7
     parameters = get_parameters_fit(model='Generic', group_id=group_id, p_th=p_th)
-    p_th_calc, _, _, _, _ = simulate(t_in, t_out - 5, parameters, t_amb)
+    df = simulate(t_in, t_out - 5, parameters, t_amb)
+    p_th_calc=df.P_th.values[0]
     p_th_diff = p_th_calc - p_th_set_point
     return p_th_diff
 
@@ -255,7 +256,8 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
     DELTA_T = 5  # Inlet temperature is supposed to be heated up by 5 K
     CP = 4200  # J/(kg*K), specific heat capacity of water
 
-    t_in = t_in_primary
+    t_in = t_in_primary#info value for dataframe
+    T_amb = t_amb #info value for dataframe
     t_out = t_in_secondary + DELTA_T
     group_id = parameters['Group'].array[0]
     p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
@@ -274,41 +276,92 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         t_amb = t_in
     else:
         pass
-    
-    # for regulated heat pumps
-    if group_id == 1 or group_id == 2 or group_id == 3:
-        cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-        p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
-        if group_id == 1:
-            t_in = -7
-            t_amb = t_in
-        if group_id == 2:
-            t_amb = -7
+    if(type(t_in)==pd.core.series.Series or type(t_out)==pd.core.series.Series or type(t_amb)==pd.core.series.Series):# for handling pandas.Series
+        try:
+            df1=t_in.to_frame()
+            df1.rename(columns = {t_in.name:'T_in'}, inplace = True)
+            df1['T_out']=t_out
+            df1['T_amb']=t_amb
+        except:
+            try:
+                df1=t_out.to_frame()
+                df1.rename(columns = {t_out.name:'T_out'}, inplace = True)
+                df1['T_in']=t_in
+                df1['T_amb']=t_amb
+            except:
+                df1=t_amb.to_frame()
+                df1.rename(columns = {t_amb.name:'T_amb'}, inplace = True)
+                df1['T_in']=t_in
+                df1['T_out']=t_out
+        if group_id == 1 or group_id == 2 or group_id == 3:
+            df1['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            df1['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for P_el
+            if group_id == 1:#with regulated heatpumps the electrical power can get too low. We defined a minimum value at 25% from the point at -7/output temperature.
+                df1.loc[:,'t_in'] = -7
+                df1.loc[:,'t_amb'] = -7
+            if group_id == 2:
+                df1['t_in']=df1['T_in']
+                df1.loc[:,'t_amb'] = -7
+            df1.loc[df1['P_el'] < 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['T_out'] + p3_p_el + p4_p_el * df1['t_amb']),'P_el'] = 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['T_out'] + p3_p_el + p4_p_el * df1['t_amb'])
+            df1['P_th'] = (df1['P_el'] * df1['COP'])
+            df1.loc[df1['COP'] < 1,'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
+            df1.loc[df1['COP'] < 1,'P_th']=p_th_ref
+            df1.loc[df1['COP'] < 1,'COP']=1
+            df1['m_dot']=df1['P_th']/(DELTA_T * CP)
+            del df1['t_in']
+            del df1['t_amb']
+        elif group_id == 4 or group_id == 5 or group_id == 6:
+            df1['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            df1['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            df1['P_th'] = df1['P_el'] * df1['COP']
+            df1.loc[df1['COP'] < 1,'P_el']=p_th_ref
+            df1.loc[df1['COP'] < 1,'P_th']=p_th_ref#if COP is too low the electeric heating element is used in simulation
+            df1.loc[df1['COP'] < 1,'COP']=1
+            df1['m_dot']=df1['P_th']/(DELTA_T * CP)
+        #df1['P_th']=df1['P_th'].round(0)
+        df1['P_el']=df1['P_el'].round(0)
+        df1['COP']=df1['COP'].round(2)
+        df1['m_dot']=df1['m_dot'].round(3)
         
-        if p_el < 0.25 * p_el_ref * (
-            p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
-            p_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
-        p_th = p_el * cop
-        if cop <= 1:
-            cop = 1
-            p_el = p_th_ref
-            p_th = p_th_ref
-    # for subtype = On-Off
-    elif group_id == 4 or group_id == 5 or group_id == 6:
-        p_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
-        cop = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-        p_th = p_el * cop
-        if cop <= 1:
-            cop = 1
-            p_el = p_th_ref
-            p_th = p_th_ref
-    # massflow
-    m_dot = p_th / (DELTA_T * CP)
-    
-    #round
-    #p_th=round(p_th,3)
-    p_el=round(p_el)
-    cop=round(cop,2)
-    t_out=round(t_out,1)
-    m_dot=round(m_dot,3)
-    return p_th, p_el, cop, t_out, m_dot
+    else:
+        # for regulated heat pumps
+        if group_id == 1 or group_id == 2 or group_id == 3:
+            COP = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            P_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            if group_id == 1:
+                t_in = -7
+                t_amb = t_in
+            if group_id == 2:
+                t_amb = -7
+            
+            if P_el < 0.25 * p_el_ref * (
+                p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
+                P_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
+            P_th = P_el * COP
+            if COP <= 1:
+                COP = 1
+                P_el = p_th_ref
+                P_th = p_th_ref
+        # for subtype = On-Off
+        elif group_id == 4 or group_id == 5 or group_id == 6:
+            P_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            COP = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            P_th = P_el * COP
+            if COP <= 1:
+                COP = 1
+                P_el = p_th_ref
+                P_th = p_th_ref
+        # massflow
+        m_dot = P_th / (DELTA_T * CP)
+        #round
+        df1=pd.DataFrame()
+        
+        df1['T_in']=[t_in_primary]
+        df1['T_out']=[round(t_out,1)]
+        df1['T_amb']=[T_amb]
+        df1['COP']=[round(COP,2)]
+        df1['P_el']=[round(P_el)]
+        df1['P_th']=[P_th]
+        df1['m_dot']=[round(m_dot,3)]
+    return df1
+
