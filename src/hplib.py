@@ -356,11 +356,11 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         #round
         df1=pd.DataFrame()
         
-        df1['T_in']=[t_in_primary]
+        df1['T_in']=[round(t_in_primary,1)]
         df1['T_out']=[round(t_out,1)]
-        df1['T_amb']=[T_amb]
+        df1['T_amb']=[round(T_amb,1)]
         df1['COP']=[round(COP,2)]
-        df1['P_el']=[round(P_el)]
+        df1['P_el']=[round(P_el,1)]
         df1['P_th']=[P_th]
         df1['m_dot']=[round(m_dot,3)]
     return df1
