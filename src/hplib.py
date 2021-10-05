@@ -223,34 +223,33 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
     return p_th_diff
 
 
-def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
-             t_amb: int) -> Tuple[int, int, int, int, int]:
+def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
+             t_amb: any) -> pd.DataFrame:
     """
     Performs the simulation of the heat pump model.
 
     Parameters
     ----------
-    t_in_primary : numeric
+    t_in_primary : numeric or iterable (e.g. pd.Series)
         Input temperature on primry side :math:`T` (air, brine, water). [°C]
-    t_in_secondary : numeric
+    t_in_secondary : numeric or iterable (e.g. pd.Series)
         Input temperature on secondary side :math:`T` from heating storage or system. [°C]
     parameters : pd.DataFrame
         Data frame containing the heat pump parameters from hplib.getParameters().
-    t_amb : numeric, default 0
+    t_amb : numeric or iterable (e.g. pd.Series)
         Ambient temperature :math:'T' of the air. [°C]
 
     Returns
     -------
-    p_th :  numeric
-        Thermal output power. [W]
-    p_el : numeric
-        Electrical input Power. [W]
-    cop : numeric
-        Coefficient of performance.
-    t_out : numeric
-        Output temperature :math:`T` at secondary side of the heat pump. [°C]
-    m_dot : numeric
-        Mass flow at secondary side of the heat pump. [kg/s]
+    df : pd.DataFrame
+        with the following columns
+        T_in = Input temperature :math:`T` at primary side of the heat pump. [°C]
+        T_out = Output temperature :math:`T` at secondary side of the heat pump. [°C]
+        T_amb = Ambient / Outdoor temperature :math:`T`. [°C]
+        COP = Coefficient of performance.
+        P_el = Electrical input Power. [W]
+        P_th = Thermal output power. [W]
+        m_dot = Mass flow at secondary side of the heat pump. [kg/s]        
     """
 
     DELTA_T = 5  # Inlet temperature is supposed to be heated up by 5 K
@@ -278,50 +277,49 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         pass
     if(type(t_in)==pd.core.series.Series or type(t_out)==pd.core.series.Series or type(t_amb)==pd.core.series.Series):# for handling pandas.Series
         try:
-            df1=t_in.to_frame()
-            df1.rename(columns = {t_in.name:'T_in'}, inplace = True)
-            df1['T_out']=t_out
-            df1['T_amb']=t_amb
+            df=t_in.to_frame()
+            df.rename(columns = {t_in.name:'T_in'}, inplace = True)
+            df['T_out']=t_out
+            df['T_amb']=t_amb
         except:
             try:
-                df1=t_out.to_frame()
-                df1.rename(columns = {t_out.name:'T_out'}, inplace = True)
-                df1['T_in']=t_in
-                df1['T_amb']=t_amb
+                df=t_out.to_frame()
+                df.rename(columns = {t_out.name:'T_out'}, inplace = True)
+                df['T_in']=t_in
+                df['T_amb']=t_amb
             except:
-                df1=t_amb.to_frame()
-                df1.rename(columns = {t_amb.name:'T_amb'}, inplace = True)
-                df1['T_in']=t_in
-                df1['T_out']=t_out
+                df=t_amb.to_frame()
+                df.rename(columns = {t_amb.name:'T_amb'}, inplace = True)
+                df['T_in']=t_in
+                df['T_out']=t_out
         if group_id == 1 or group_id == 2 or group_id == 3:
-            df1['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-            df1['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for P_el
+            df['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            df['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for P_el
             if group_id == 1:#with regulated heatpumps the electrical power can get too low. We defined a minimum value at 25% from the point at -7/output temperature.
-                df1.loc[:,'t_in'] = -7
-                df1.loc[:,'t_amb'] = -7
+                df.loc[:,'t_in'] = -7
+                df.loc[:,'t_amb'] = -7
             if group_id == 2:
-                df1['t_in']=df1['T_in']
-                df1.loc[:,'t_amb'] = -7
-            df1.loc[df1['P_el'] < 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['T_out'] + p3_p_el + p4_p_el * df1['t_amb']),'P_el'] = 0.25 * p_el_ref * (p1_p_el * df1['t_in'] + p2_p_el * df1['T_out'] + p3_p_el + p4_p_el * df1['t_amb'])
-            df1['P_th'] = (df1['P_el'] * df1['COP'])
-            df1.loc[df1['COP'] < 1,'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
-            df1.loc[df1['COP'] < 1,'P_th']=p_th_ref
-            df1.loc[df1['COP'] < 1,'COP']=1
-            df1['m_dot']=df1['P_th']/(DELTA_T * CP)
-            del df1['t_in']
-            del df1['t_amb']
+                df['t_in']=df['T_in']
+                df.loc[:,'t_amb'] = -7
+            df.loc[df['P_el'] < 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb']),'P_el'] = 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])
+            df['P_th'] = (df['P_el'] * df['COP'])
+            df.loc[df['COP'] < 1,'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
+            df.loc[df['COP'] < 1,'P_th']=p_th_ref
+            df.loc[df['COP'] < 1,'COP']=1
+            df['m_dot']=df['P_th']/(DELTA_T * CP)
+            del df['t_in']
+            del df['t_amb']
         elif group_id == 4 or group_id == 5 or group_id == 6:
-            df1['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-            df1['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
-            df1['P_th'] = df1['P_el'] * df1['COP']
-            df1.loc[df1['COP'] < 1,'P_el']=p_th_ref
-            df1.loc[df1['COP'] < 1,'P_th']=p_th_ref#if COP is too low the electeric heating element is used in simulation
-            df1.loc[df1['COP'] < 1,'COP']=1
-            df1['m_dot']=df1['P_th']/(DELTA_T * CP)
-        #df1['P_th']=df1['P_th'].round(0)
-        df1['P_el']=df1['P_el'].round(0)
-        df1['COP']=df1['COP'].round(2)
-        df1['m_dot']=df1['m_dot'].round(3)
+            df['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+            df['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            df['P_th'] = df['P_el'] * df['COP']
+            df.loc[df['COP'] < 1,'P_el']=p_th_ref
+            df.loc[df['COP'] < 1,'P_th']=p_th_ref#if COP is too low the electeric heating element is used in simulation
+            df.loc[df['COP'] < 1,'COP']=1
+            df['m_dot']=df['P_th']/(DELTA_T * CP)
+        df['P_el']=df['P_el'].round(0)
+        df['COP']=df['COP'].round(2)
+        df['m_dot']=df['m_dot'].round(3)
         
     else:
         # for regulated heat pumps
@@ -354,14 +352,14 @@ def simulate(t_in_primary: int, t_in_secondary: int, parameters: pd.DataFrame,
         # massflow
         m_dot = P_th / (DELTA_T * CP)
         #round
-        df1=pd.DataFrame()
+        df=pd.DataFrame()
         
-        df1['T_in']=[round(t_in_primary,1)]
-        df1['T_out']=[round(t_out,1)]
-        df1['T_amb']=[round(T_amb,1)]
-        df1['COP']=[round(COP,2)]
-        df1['P_el']=[round(P_el,1)]
-        df1['P_th']=[P_th]
-        df1['m_dot']=[round(m_dot,3)]
-    return df1
+        df['T_in']=[round(t_in_primary,1)]
+        df['T_out']=[round(t_out,1)]
+        df['T_amb']=[round(T_amb,1)]
+        df['COP']=[round(COP,2)]
+        df['P_el']=[round(P_el,1)]
+        df['P_th']=[P_th]
+        df['m_dot']=[round(m_dot,3)]
+    return df
 
