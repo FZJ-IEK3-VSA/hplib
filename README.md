@@ -26,7 +26,13 @@ Create the environment:
 
 `conda env create --name hplib --file requirements.txt`
 
-Create some code with `import hplib` and use the included functions `load_database`, `get_parameters` and `simulate`.
+Create some code with `import hplib` and use the included functions `hplib.load_database()`, `hplib.get_parameters` and `hplib.simulate`.
+
+---
+
+**Hint:** The csv files in the `output` folder are for documentation and validation purpose. The code and database files, which are meant to be used for simulations, are located in the `src` folder. 
+
+---
 
 ## Heat pump models and Group IDs
 The hplib_database.csv contains the following number of heat pump models, sorted by Group ID
@@ -49,7 +55,7 @@ The following columns are available for every heat pump of this library
 | Model | Name of the heat pump model | 506 models |
 | Date | heat pump certification date | 2016-07-27 to 2021-03-10 |
 | Type | Type of heat pump model | Outdoor Air/Water, Brine/Water,  Water/Water |
-| Subtype | Subtype of heat pump model | On-Off, Reglulated|
+| Subtype | Subtype of heat pump model | On-Off, Regulated|
 | Group ID | ID for combination of type and subtype | 1 - 6|
 | Refrigerant | Refrigerant Type | R134a, R290, R32, R407c, R410a, other |
 | Mass of Refrigerant [kg]| Mass of Refrigerant | 0.15 to 14.5 kg |
@@ -60,20 +66,20 @@ The following columns are available for every heat pump of this library
 | P_el_ref [W]| Electrical power at -7°C / 52°C | 881 to 23293 W |
 | P_th_ref [W]| Thermal power at -7°C / 52°C | 2400 to 69880 W |
 | p1-p4_P_th | Fit-Parameters for thermal power  | - |
-| p1-p4_P_el | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1*T_in + p2*T_out + p3 + p4*T_amb) |
-| p1-p4_COP | Fit-Parameters for COP  | COP = p1*T_in + p2*T_out + p3 + p4*T_amb|
-| MAPE_P_el | mean absolute percentage error for electrical input power (simulation vs. measurement) | average = 16,3 % |
-| MAPE_COP | mean absolute percentage error for thermal input power (simulation vs. measurement) | average = 9,8 % |
-| MAPE_P_th | mean absolute percentage error for coefficient of performance (simulation vs. measurement) | average = 19,7 % |
+| p1-p4_P_el | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1 * T_in + p2 * T_out + p3 + p4 * T_amb) |
+| p1-p4_COP | Fit-Parameters for COP  | COP = p1 * T_in + p2 * T_out + p3 + p4 * T_amb|
+| MAPE_P_el | mean absolute percentage error for electrical input power (simulation vs. measurement) | average over all heat pump models = 16,3 % |
+| MAPE_COP | mean absolute percentage error for thermal input power (simulation vs. measurement) | average over all heat pump models = 9,8 % |
+| MAPE_P_th | mean absolute percentage error for coefficient of performance (simulation vs. measurement) | average over all heat pump models = 19,7 % |
 
-## Input-Data and further development
+## Input-Data
 The European Heat Pump Association (EHPA) hosts a website with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
 
 This repository is based on all pdf files that were download for every manufacturer on 2021-03-12.
 
-**Further development | Possibilities to collaborate**
+## Further development & possibilities to collaborate
 
 - Extend hplib.py and hplib_database.csv for cooling functionality 
 - Make hplib installable via `pip`
 
-If you find errors or are interested in develop the hplib, please create an ISSUE and/or FORK this repository and create a PULL REQUEST.
+If you find errors or are interested in developing together on the heat pump library, please create an ISSUE and/or FORK this repository and create a PULL REQUEST.
