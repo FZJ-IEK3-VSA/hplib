@@ -37,7 +37,8 @@ def get_parameters(model: str, group_id: int = 0,
     t_out : numeric, default 0
         only for model "Generic": Output temperature :math:`T` at secondary side of the heat pump. [°C]
     p_th : numeric, default 0
-        only for model "Generic": Thermal output power at setpoint t_in, t_out. [W]
+        only for model "Generic": Thermal output power at setpoint t_in, t_out (and for 
+        water/water, brine/water heat pumps t_amb = -7°C). [W]
 
     Returns
     -------
