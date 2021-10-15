@@ -284,10 +284,6 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
     CP = 4200  # J/(kg*K), specific heat capacity of water
     t_in = t_in_primary#info value for dataframe
     T_amb = t_amb #info value for dataframe
-    if modus==1:
-        t_out = t_in_secondary + DELTA_T #Inlet temperature is supposed to be heated up by 5 K
-    if modus==2: # Inlet temperature is supposed to be cooled down by 5 K
-        t_out = t_in_secondary - DELTA_T
     group_id = parameters['Group'].array[0]
     p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
     p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
@@ -321,43 +317,54 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         t_amb = t_in
     else:
         pass
-    if(type(t_in)==pd.core.series.Series or type(t_out)==pd.core.series.Series or type(t_amb)==pd.core.series.Series):# for handling pandas.Series
+    if(type(t_in)==pd.core.series.Series or type(t_in_secondary)==pd.core.series.Series or type(t_amb)==pd.core.series.Series):# for handling pandas.Series
         try:
             df=t_in.to_frame()
             df.rename(columns = {t_in.name:'T_in'}, inplace = True)
-            df['T_out']=t_out
+            df['Modus']=modus
+            df.loc[df['Modus']==1,'T_out']=t_in_secondary + DELTA_T
+            df.loc[df['Modus']==2,'T_out']=t_in_secondary - DELTA_T
             df['T_amb']=t_amb
+            
         except:
             try:
-                df=t_out.to_frame()
-                df.rename(columns = {t_out.name:'T_out'}, inplace = True)
+                df=t_in_secondary.to_frame()
+                df.rename(columns = {t_in_secondary.name:'T_out'}, inplace = True)
+                df['Modus']=modus
+                df.loc[df['Modus']==1,'T_out']=df['T_out']+ DELTA_T
+                df.loc[df['Modus']==2,'T_out']=df['T_out'] - DELTA_T
                 df['T_in']=t_in
                 df['T_amb']=t_amb
             except:
                 df=t_amb.to_frame()
                 df.rename(columns = {t_amb.name:'T_amb'}, inplace = True)
                 df['T_in']=t_in
-                df['T_out']=t_out
+                df['Modus']=modus
+                df.loc[df['Modus']==1,'T_out']=t_in_secondary + DELTA_T
+                df.loc[df['Modus']==2,'T_out']=t_in_secondary - DELTA_T
         if group_id == 1 or group_id == 2 or group_id == 3:
-            df['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-            df['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for P_el
+            df.loc[df['Modus']==1,'COP'] = p1_cop * t_in + p2_cop * df['T_out'] + p3_cop + p4_cop * t_amb
+            df.loc[df['Modus']==1,'P_el'] = (p1_p_el * t_in + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for P_el
             if group_id == 1:#with regulated heatpumps the electrical power can get too low. We defined a minimum value at 25% from the point at -7/output temperature.
-                df.loc[:,'t_in'] = -7
-                df.loc[:,'t_amb'] = -7
+                df.loc[df['Modus']==2,'EER'] = p1_eer * t_in + p2_eer * df['T_out'] + p3_eer + p4_eer * t_amb
+                df.loc[df['Modus']==2,'Pdc'] = (p1_pdc * t_in + p2_pdc * df['T_out'] + p3_pdc + p4_pdc * t_amb)*pdc_ref
+                df.loc[df['Modus']==2,'P_el_cool'] = df['Pdc'] / df['EER']
+                df.loc[df['Modus']==1,'t_in'] = -7
+                df.loc[df['Modus']==1,'t_amb'] = -7
             if group_id == 2:
                 df['t_in']=df['T_in']
                 df.loc[:,'t_amb'] = -7
-            df.loc[df['P_el'] < 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb']),'P_el'] = 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])
+            df.loc[(df['Modus']==1) & (df['P_el'] < 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])),'P_el'] = 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])
             df['P_th'] = (df['P_el'] * df['COP'])
-            df.loc[df['COP'] < 1,'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
-            df.loc[df['COP'] < 1,'P_th']=p_th_ref
-            df.loc[df['COP'] < 1,'COP']=1
+            df.loc[(df['Modus']==1) & (df['COP'] < 1),'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
+            df.loc[(df['Modus']==1) & (df['COP'] < 1),'P_th']=p_th_ref
+            df.loc[(df['Modus']==1) & (df['COP'] < 1),'COP']=1
             df['m_dot']=df['P_th']/(DELTA_T * CP)
             del df['t_in']
             del df['t_amb']
         elif group_id == 4 or group_id == 5 or group_id == 6:
-            df['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-            df['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            df['COP'] = p1_cop * t_in + p2_cop * df['T_out'] + p3_cop + p4_cop * t_amb
+            df['P_el'] = (p1_p_el * t_in + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * t_amb) * p_el_ref
             df['P_th'] = df['P_el'] * df['COP']
             df.loc[df['COP'] < 1,'P_el']=p_th_ref
             df.loc[df['COP'] < 1,'P_th']=p_th_ref#if COP is too low the electeric heating element is used in simulation
@@ -368,6 +375,10 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         df['m_dot']=df['m_dot'].round(3)
         
     else:
+        if modus==1:
+            t_out = t_in_secondary + DELTA_T #Inlet temperature is supposed to be heated up by 5 K
+        if modus==2: # Inlet temperature is supposed to be cooled down by 5 K
+            t_out = t_in_secondary - DELTA_T
         # for regulated heat pumps
         if group_id == 1 or group_id == 2 or group_id == 3:
             if modus==1:
