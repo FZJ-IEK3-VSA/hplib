@@ -5,6 +5,7 @@ import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
 from typing import Any, Tuple
+import os
 
 
 def load_database() -> pd.DataFrame:
@@ -16,7 +17,7 @@ def load_database() -> pd.DataFrame:
     df : pd.DataFrame
         Content of the database
     """
-    df = pd.read_csv('hplib_database.csv')
+    df = pd.read_csv(cwd()+r'/hplib_database.csv')
     return df
 
 
@@ -45,7 +46,7 @@ def get_parameters(model: str, group_id: int = 0,
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv('hplib_database.csv', delimiter=',')
+    df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
     parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
@@ -133,7 +134,7 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv('hplib_database.csv', delimiter=',')
+    df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] == model]
     parameters = pd.DataFrame()
 
@@ -377,6 +378,8 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
                     P_th = p_th_ref
             elif modus==2:
                 P_el = (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb) * p_el_col_ref
+                if P_el < 0.25 * p_el_col_ref * (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
+                    P_el = 0.25 * p_el_col_ref * (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb)
                 COP = p1_eer * t_in + p2_eer * t_out + p3_eer + p4_eer * t_amb
                 P_th = (p1_pdc * t_in + p2_pdc * t_out + p3_pdc + p4_pdc * t_amb)*pdc_ref
         # for subtype = On-Off
@@ -402,3 +405,7 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         df['m_dot']=[round(m_dot,3)]
     return df
 
+def cwd():
+    real_path = os.path.realpath(__file__)
+    dir_path = os.path.dirname(real_path)
+    return dir_path
