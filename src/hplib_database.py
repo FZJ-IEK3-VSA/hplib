@@ -1585,7 +1585,7 @@ def validation_relative_error():
 def validation_mape():
     #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
     df=pd.read_csv('../output/database_keymark_average_normalized_subtypes_validation.csv')
-    para=pd.read_csv('hplib_database.csv', delimiter=',')
+    para=pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
     para=para.loc[para['Model']!='Generic']
     Models = para['Model'].values.tolist()
     Models = list(dict.fromkeys(Models))
@@ -1600,11 +1600,11 @@ def validation_mape():
     para['MAPE_P_el']=mape_pel
     para['MAPE_COP']=mape_cop
     para['MAPE_P_th']=mape_pth
-    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+    para.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
 
 
 def add_generic():
-    data_key = pd.read_csv('hplib_database.csv', delimiter=',')
+    data_key = pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
     data_key = data_key.loc[data_key['Model'] != 'Generic']
     Groups = [1, 2, 3, 4, 5, 6]
     for group in Groups:
@@ -1653,14 +1653,14 @@ def add_generic():
                                                  p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
                                                  p3_COP_average, p4_COP_average, '', '', '']
     data_key['COP_ref'] = data_key['COP_ref'].round(2)
-    data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+    data_key.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
 
 
 def reduce_to_unique():
     # Many heat pump models have several entries 
     # because of different controller or storage configurations. 
     # Reduce to unique heat pump models.
-    df = pd.read_csv('hplib_database.csv', delimiter=',')
+    df = pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
     df_cool=pd.read_csv('../output/database_cooling_keymark.csv')
     cooling_Models=df_cool['Model'].unique()
     Models = []
@@ -1677,12 +1677,12 @@ def reduce_to_unique():
     for model in Models:
         new_df1 = df.loc[df['Model'] == model]
         new_df = pd.concat([new_df, new_df1])
-    new_df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+    new_df.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
 
 
 def reduce_cooling_data():
     df_cool=pd.read_csv('../output/database_cooling_keymark.csv')
-    df_heat=pd.read_csv('hplib_database.csv')
+    df_heat=pd.read_csv('../output/hplib_database_heating.csv')
     df = df_cool.merge(df_heat, on='Model', how='left')#merge with the ones from heating to get Group Number
     df=df.iloc[:,:16]
     df['Pdc [W]']=df['Pdc [kW]']*1000#get W
@@ -1744,7 +1744,8 @@ def calculate_cooling_parameters(filename):
         Pdc_REF = data_key.loc[data_key['Pdc_n'] == 1, ['Pdc']].values.tolist()[0][0]
         data_key.fillna(0, inplace=True)
         data_key['T_amb']=data_key['T_in']
-        P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
+        data = data_key.loc[data_key['T_in'] < 32] #& (data_key['T_in'] != ))]
+        P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
         Pdc_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['Pdc_n'])
         EER_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['EER'])
 
@@ -1783,7 +1784,7 @@ def calculate_cooling_parameters(filename):
     paradf['p4_EER [-]'] = p4_EER
     paradf['P_el_cooling_ref'] = Pel_ref
     paradf['Pdc_ref'] = Pdc_ref
-    hplib=pd.read_csv('hplib_database.csv')       
+    hplib=pd.read_csv('../output/hplib_database_heating.csv')       
     para = hplib.merge(paradf, how='left', on='Model')
     para.to_csv(filename + '.csv', encoding='utf-8', index=False)
 
