@@ -1760,8 +1760,9 @@ def calculate_cooling_parameters(filename):
         Pdc_REF = data_key.loc[data_key['Pdc_n'] == 1, ['Pdc']].values.tolist()[0][0]
         data_key.fillna(0, inplace=True)
         data_key['T_amb']=data_key['T_in']
-        data = data_key.loc[data_key['T_in'] < 32] #& (data_key['T_in'] != ))]
-        P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
+        #data = data_key.loc[data_key['T_in'] < 32] #& (data_key['T_in'] != ))]
+        #P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
+        P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
         Pdc_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['Pdc_n'])
         EER_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['EER'])
 
