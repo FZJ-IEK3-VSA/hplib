@@ -1604,7 +1604,7 @@ def validation_mape():
 
 
 def add_generic():
-    data_key = pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
+    data_key = pd.read_csv('hplib_database.csv', delimiter=',')
     data_key = data_key.loc[data_key['Model'] != 'Generic']
     Groups = [1, 2, 3, 4, 5, 6]
     for group in Groups:
@@ -1641,6 +1641,18 @@ def add_generic():
         p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
         p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
         p4_COP_average = pd.unique(Group1['p4_COP [-]']).mean(0)
+        p1_Pdc_average = Group1['p1_Pdc [1/°C]'].mean(0)
+        p2_Pdc_average = Group1['p2_Pdc [1/°C]'].mean(0)
+        p3_Pdc_average = Group1['p3_Pdc [-]'].mean(0)
+        p4_Pdc_average = Group1['p4_Pdc [1/°C]'].mean(0)
+        p5_P_el_average = Group1['p5_P_el [1/°C]'].mean(0)
+        p6_P_el_average = Group1['p6_P_el [1/°C]'].mean(0)
+        p7_P_el_average = Group1['p7_P_el [-]'].mean(0)
+        p8_P_el_average = Group1['p8_P_el [1/°C]'].mean(0)
+        p1_EER_average = Group1['p1_EER [-]'].mean(0)
+        p2_EER_average = Group1['p2_EER [-]'].mean(0)
+        p3_EER_average = Group1['p3_EER [-]'].mean(0)
+        p4_EER_average = Group1['p4_EER [-]'].mean(0)
         if group == 1 or group == 4:
             COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
         elif group == 2 or group == 5:
@@ -1651,9 +1663,13 @@ def add_generic():
                                                 'average', '', '', COP_ref, p1_P_th_average, p2_P_th_average,
                                                  p3_P_th_average, p4_P_th_average, p1_P_el_average, p2_P_el_average,
                                                  p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
-                                                 p3_COP_average, p4_COP_average, '', '', '']
+                                                 p3_COP_average, p4_COP_average, '', '', '',
+                                                 p1_Pdc_average, p2_Pdc_average, p3_Pdc_average, p4_Pdc_average,
+                                                 p5_P_el_average,p6_P_el_average ,p7_P_el_average ,p8_P_el_average ,
+                                                 p1_EER_average,p2_EER_average ,p3_EER_average ,p4_EER_average, 
+                                                 '', '', '', '', '']
     data_key['COP_ref'] = data_key['COP_ref'].round(2)
-    data_key.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
+    data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
 def reduce_to_unique():
