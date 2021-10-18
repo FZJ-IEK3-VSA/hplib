@@ -1760,9 +1760,9 @@ def calculate_cooling_parameters(filename):
         Pdc_REF = data_key.loc[data_key['Pdc_n'] == 1, ['Pdc']].values.tolist()[0][0]
         data_key.fillna(0, inplace=True)
         data_key['T_amb']=data_key['T_in']
-        #data = data_key.loc[data_key['T_in'] < 32] #& (data_key['T_in'] != ))]
-        #P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
-        P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
+        data = data_key.loc[data_key['T_in'] > 24] #& (data_key['T_in'] != ))]
+        P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
+        #P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
         Pdc_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['Pdc_n'])
         EER_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['EER'])
 
@@ -1823,9 +1823,9 @@ def validation_relative_error_cooling():
             if prev_model!=Model:
                 para=hpl.get_parameters(Model)
             results=hpl.simulate(T_in,T_out+5,para,T_amb,2)
-            df.loc[i,'Pdc_sim']=results.P_th[0]
+            df.loc[i,'Pdc_sim']=-results.P_th[0]
             df.loc[i,'P_el_sim']=results.P_el[0]
-            df.loc[i,'EER_sim']=results.COP[0]
+            df.loc[i,'EER_sim']=-results.COP[0]
             prev_model=Model
             i=i+1
         except:
