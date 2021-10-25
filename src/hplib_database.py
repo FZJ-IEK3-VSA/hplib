@@ -1715,12 +1715,28 @@ def normalize_cooling_data():
     Models = list(dict.fromkeys(Models))
     new_df = pd.DataFrame()
     for model in Models:
-        df_model=df.loc[df['Model']==model]
-        df_ref_pdc=df_model.loc[(df_model['T_outside [°C]']==35) & (df_model['T_out [°C]']==7),'Pdc [W]'].values[0]
-        df_model['Pdc_n']=df_model['Pdc [W]']/df_ref_pdc
-        df_ref_p_el=df_model.loc[(df_model['T_outside [°C]']==35) & (df_model['T_out [°C]']==7),'P_el [W]'].values[0]
-        df_model['P_el_n']=df_model['P_el [W]']/df_ref_p_el
-        new_df = pd.concat([new_df, df_model])  # merge new Dataframe with old one
+        
+        data_key = pd.read_csv(r'../output/database_cooling_keymark_reduced.csv')
+        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
+        group = data_key.Group.array[0]  # get Group of model
+        if len(data_key)==4:  
+            data_key1 = data_key.loc[data_key['Model'] == model]
+            data_key1['T_out [°C]'] = data_key1['T_out [°C]'] + 11#the following values are based on 3 heatpumps, which have those values in the keymark
+            data_key1.loc[data_key1['T_outside [°C]']==35,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==35,'P_el [W]'] * 0.85
+            data_key1.loc[data_key1['T_outside [°C]']==30,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==30,'P_el [W]'] * 0.82
+            data_key1.loc[data_key1['T_outside [°C]']==25,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==25,'P_el [W]'] * 0.77
+            data_key1.loc[data_key1['T_outside [°C]']==20,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==20,'P_el [W]'] * 0.63
+            data_key1.loc[data_key1['T_outside [°C]']==35,'EER']=data_key1.loc[data_key1['T_outside [°C]']==35,'EER'] * 1.21
+            data_key1.loc[data_key1['T_outside [°C]']==30,'EER']=data_key1.loc[data_key1['T_outside [°C]']==30,'EER'] * 1.21
+            data_key1.loc[data_key1['T_outside [°C]']==25,'EER']=data_key1.loc[data_key1['T_outside [°C]']==25,'EER'] * 1.20
+            data_key1.loc[data_key1['T_outside [°C]']==20,'EER']=data_key1.loc[data_key1['T_outside [°C]']==20,'EER'] * 0.95
+            data_key1['Pdc [W]']=data_key1['P_el [W]']*data_key1['EER']
+            data_key = pd.concat([data_key, data_key1])
+        df_ref_pdc=data_key.loc[(data_key['T_outside [°C]']==35) & (data_key['T_out [°C]']==7),'Pdc [W]'].values[0]
+        data_key['Pdc_n']=data_key['Pdc [W]']/df_ref_pdc
+        df_ref_p_el=data_key.loc[(data_key['T_outside [°C]']==35) & (data_key['T_out [°C]']==7),'P_el [W]'].values[0]
+        data_key['P_el_n']=data_key['P_el [W]']/df_ref_p_el
+        new_df = pd.concat([new_df, data_key])  # merge new Dataframe with old one
     new_df.to_csv('../output/database_cooling_keymark_reduced_normalized.csv',encoding='utf-8', index=False)
 
 
@@ -1751,11 +1767,7 @@ def calculate_cooling_parameters(filename):
         data_key = data_key.rename(
             columns={'P_el [W]': 'P_el', 'Pdc [W]': 'Pdc', 'T_outside [°C]': 'T_in', 'T_out [°C]': 'T_out'})
         data_key = data_key.loc[data_key['Model'] == model]  # get data of model
-        group = data_key.Group.array[0]  # get Group of model  
-        data_key1 = data_key.loc[data_key['Model'] == model]
-        data_key1['T_in'] = data_key1['T_in'] + 1
-        data_key1['T_out'] = data_key1['T_out'] + 1
-        data_key = pd.concat([data_key, data_key1])
+        group = data_key.Group.array[0]  # get Group of model
         Pel_REF = data_key.loc[data_key['P_el_n'] == 1, ['P_el']].values.tolist()[0][0]
         Pdc_REF = data_key.loc[data_key['Pdc_n'] == 1, ['Pdc']].values.tolist()[0][0]
         data_key.fillna(0, inplace=True)
