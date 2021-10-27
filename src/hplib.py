@@ -364,3 +364,175 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         df['m_dot']=[round(m_dot,3)]
     return df
 
+
+class HeatPump:
+    def __init__(self, parameters: pd.DataFrame):
+        self.DELTA_T = 5  # Inlet temperature is supposed to be heated up by 5 K
+        self.CP = 4200  # J/(kg*K), specific heat capacity of water
+
+        self.group_id = float(parameters['Group'].array[0])
+        self.p1_p_el = float(parameters['p1_P_el [1/°C]'].array[0])
+        self.p2_p_el = float(parameters['p2_P_el [1/°C]'].array[0])
+        self.p3_p_el = float(parameters['p3_P_el [-]'].array[0])
+        self.p4_p_el = float(parameters['p4_P_el [1/°C]'].array[0])
+        self.p1_cop = float(parameters['p1_COP [-]'].array[0])
+        self.p2_cop = float(parameters['p2_COP [-]'].array[0])
+        self.p3_cop = float(parameters['p3_COP [-]'].array[0])
+        self.p4_cop = float(parameters['p4_COP [-]'].array[0])
+        self.p_el_ref = float(parameters['P_el_ref [W]'].array[0])
+        self.p_th_ref = float(parameters['P_th_ref [W]'].array[0])
+
+    def simulate(self, t_in_primary: Any, t_in_secondary: Any, t_amb) -> pd.DataFrame:
+        """
+        Performs the simulation of the heat pump model.
+
+        Parameters
+        ----------
+        t_in_primary : numeric or iterable (e.g. pd.Series)
+            Input temperature on primry side :math:`T` (air, brine, water). [°C]
+        t_in_secondary : numeric or iterable (e.g. pd.Series)
+            Input temperature on secondary side :math:`T` from heating storage or system. [°C]
+        parameters : pd.DataFrame
+            Data frame containing the heat pump parameters from hplib.getParameters().
+        t_amb : numeric or iterable (e.g. pd.Series)
+            Ambient temperature :math:'T' of the air. [°C]
+
+        Returns
+        -------
+        df : pd.DataFrame
+            with the following columns
+            T_in = Input temperature :math:`T` at primary side of the heat pump. [°C]
+            T_out = Output temperature :math:`T` at secondary side of the heat pump. [°C]
+            T_amb = Ambient / Outdoor temperature :math:`T`. [°C]
+            COP = Coefficient of performance.
+            P_el = Electrical input Power. [W]
+            P_th = Thermal output power. [W]
+            m_dot = Mass flow at secondary side of the heat pump. [kg/s]
+        """
+        t_in = t_in_primary  # info value for dataframe
+        T_amb = t_amb  # info value for dataframe
+        t_out = t_in_secondary + self.DELTA_T
+        
+        
+        # for subtype = air/water heat pump
+        if self.group_id in (1, 4):
+            t_amb = t_in
+        
+        if (type(t_in) == pd.core.series.Series or type(t_out) == pd.core.series.Series or type(
+                t_amb) == pd.core.series.Series):  # for handling pandas.Series
+            try:
+                df = t_in.to_frame()
+                df.rename(columns={t_in.name: 'T_in'}, inplace=True)
+                df['T_out'] = t_out
+                df['T_amb'] = t_amb
+            except:
+                try:
+                    df = t_out.to_frame()
+                    df.rename(columns={t_out.name: 'T_out'}, inplace=True)
+                    df['T_in'] = t_in
+                    df['T_amb'] = t_amb
+                except:
+                    df = t_amb.to_frame()
+                    df.rename(columns={t_amb.name: 'T_amb'}, inplace=True)
+                    df['T_in'] = t_in
+                    df['T_out'] = t_out
+            if group_id == 1 or group_id == 2 or group_id == 3:
+                df['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+                df['P_el'] = (
+                                         p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref  # this is the first calculated value for P_el
+                if group_id == 1:  # with regulated heatpumps the electrical power can get too low. We defined a minimum value at 25% from the point at -7/output temperature.
+                    df.loc[:, 't_in'] = -7
+                    df.loc[:, 't_amb'] = -7
+                if group_id == 2:
+                    df['t_in'] = df['T_in']
+                    df.loc[:, 't_amb'] = -7
+                df.loc[df['P_el'] < 0.25 * p_el_ref * (
+                            p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df[
+                        't_amb']), 'P_el'] = 0.25 * p_el_ref * (
+                            p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])
+                df['P_th'] = (df['P_el'] * df['COP'])
+                df.loc[df[
+                           'COP'] < 1, 'P_el'] = p_th_ref  # if COP is too low the electeric heating element is used in simulation
+                df.loc[df['COP'] < 1, 'P_th'] = p_th_ref
+                df.loc[df['COP'] < 1, 'COP'] = 1
+                df['m_dot'] = df['P_th'] / (DELTA_T * CP)
+                del df['t_in']
+                del df['t_amb']
+            elif group_id == 4 or group_id == 5 or group_id == 6:
+                df['COP'] = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
+                df['P_el'] = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+                df['P_th'] = df['P_el'] * df['COP']
+                df.loc[df['COP'] < 1, 'P_el'] = p_th_ref
+                df.loc[df[
+                           'COP'] < 1, 'P_th'] = p_th_ref  # if COP is too low the electeric heating element is used in simulation
+                df.loc[df['COP'] < 1, 'COP'] = 1
+                df['m_dot'] = df['P_th'] / (DELTA_T * CP)
+            df['P_el'] = df['P_el'].round(0)
+            df['COP'] = df['COP'].round(2)
+            df['m_dot'] = df['m_dot'].round(3)
+
+        else:
+            # for regulated heat pumps
+            if self.group_id in (1, 2, 3):
+                COP = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
+                
+                P_el = (self.p1_p_el * t_in 
+                        + self.p2_p_el * t_out 
+                        + self.p3_p_el 
+                        + self.p4_p_el * t_amb) * self.p_el_ref
+                
+                if self.group_id == 1:
+                    t_in = -7
+                    t_amb = t_in
+                elif self.group_id == 2:
+                    t_amb = -7
+
+                # 25% of Pel @ -7°C T_amb = T_in
+                if P_el < 0.25 * self.p_el_ref * (self.p1_p_el * t_in 
+                                                  + self.p2_p_el * t_out 
+                                                  + self.p3_p_el 
+                                                  + self.p4_p_el * t_amb):
+                      
+                    P_el = 0.25 * self.p_el_ref * (self.p1_p_el * t_in 
+                                                   + self.p2_p_el * t_out 
+                                                   + self.p3_p_el 
+                                                   + self.p4_p_el * t_amb)
+                
+                P_th = P_el * COP
+                
+                if COP <= 1:
+                    COP = 1
+                    P_el = self.p_th_ref
+                    P_th = self.p_th_ref
+            
+            # for subtype = On-Off
+            elif self.group_id in (4, 5, 6):
+                P_el = (self.p1_p_el * t_in 
+                        + self.p2_p_el * t_out 
+                        + self.p3_p_el 
+                        + self.p4_p_el * t_amb) * self.p_el_ref
+                
+                COP = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
+                
+                P_th = P_el * COP
+                
+                if COP <= 1:
+                    COP = 1
+                    P_el = self.p_th_ref
+                    P_th = self.p_th_ref
+                    
+            # massflow
+            m_dot = P_th / (self.DELTA_T * self.CP)
+            # round
+            result = dict()
+
+            result['T_in'] = [round(t_in_primary, 1)]
+            result['T_out'] = [round(t_out, 1)]
+            result['T_amb'] = [round(T_amb, 1)]
+            result['COP'] = [round(COP, 2)]
+            result['P_el'] = [round(P_el, 1)]
+            result['P_th'] = [P_th]
+            result['m_dot'] = [round(m_dot, 3)]
+        
+        return result
+
