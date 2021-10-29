@@ -1,7 +1,9 @@
 """
 The ``hplib`` module provides a set of functions for simulating the performance of heat pumps.
 """
-from typing import Any
+from typing import Any, Dict, Union
+import numpy.typing as npt
+import numpy as np
 import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
@@ -350,23 +352,25 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
 
 
 class HeatPump:
-    def __init__(self, parameters: pd.DataFrame):
-        self.group_id = float(parameters['Group'].array[0])
-        self.p1_p_el = float(parameters['p1_P_el [1/°C]'].array[0])
-        self.p2_p_el = float(parameters['p2_P_el [1/°C]'].array[0])
-        self.p3_p_el = float(parameters['p3_P_el [-]'].array[0])
-        self.p4_p_el = float(parameters['p4_P_el [1/°C]'].array[0])
-        self.p1_cop = float(parameters['p1_COP [-]'].array[0])
-        self.p2_cop = float(parameters['p2_COP [-]'].array[0])
-        self.p3_cop = float(parameters['p3_COP [-]'].array[0])
-        self.p4_cop = float(parameters['p4_COP [-]'].array[0])
-        self.p_el_ref = float(parameters['P_el_ref [W]'].array[0])
-        self.p_th_ref = float(parameters['P_th_ref [W]'].array[0])
+    def __init__(self, parameters: Dict):
+        self.group_id = parameters['Group']
+        self.p1_p_el = parameters['p1_P_el [1/°C]']
+        self.p2_p_el = parameters['p2_P_el [1/°C]']
+        self.p3_p_el = parameters['p3_P_el [-]']
+        self.p4_p_el = parameters['p4_P_el [1/°C]']
+        self.p1_cop = parameters['p1_COP [-]']
+        self.p2_cop = parameters['p2_COP [-]']
+        self.p3_cop = parameters['p3_COP [-]']
+        self.p4_cop = parameters['p4_COP [-]']
+        self.p_el_ref = parameters['P_el_ref [W]']
+        self.p_th_ref = parameters['P_th_ref [W]']
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
 
-    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float) -> dict:
+    def simulate(self, t_in_primary: Union[float, npt.ArrayLike],
+                 t_in_secondary: Union[float, npt.ArrayLike],
+                 t_amb: Union[float, npt.ArrayLike]) -> Dict:
         """
         Performs the simulation of the heat pump model.
 
@@ -397,55 +401,50 @@ class HeatPump:
         t_in = t_in_primary  # info value for dataframe
         t_out = t_in_secondary + self.delta_t
 
-        # for subtype = air/water heat pump
+        # for subtype air/water heat pump
         if self.group_id in (1, 4):
             t_amb = t_in
 
+        if self.group_id in range(6):
+            p_el = (self.p1_p_el * t_in
+                    + self.p2_p_el * t_out
+                    + self.p3_p_el
+                    + self.p4_p_el * t_amb) * self.p_el_ref
+
         # for regulated heat pumps
         if self.group_id in (1, 2, 3):
-            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
-
-            p_el = (self.p1_p_el * t_in
-                    + self.p2_p_el * t_out
-                    + self.p3_p_el
-                    + self.p4_p_el * t_amb) * self.p_el_ref
 
             if self.group_id == 1:
-                t_in = -7
+                if isinstance(t_in, np.ndarray):
+                    t_in = np.full_like(t_in, -7)
+                else:
+                    t_in = -7
                 t_amb = t_in
+
             elif self.group_id == 2:
-                t_amb = -7
+                if isinstance(t_amb, np.ndarray):
+                    t_amb = np.full_like(t_amb, -7)
+                else:
+                    t_amb = -7
 
             # 25% of Pel @ -7°C T_amb = T_in
-            if p_el < 0.25 * self.p_el_ref * (self.p1_p_el * t_in
+            p_el_25 = 0.25 * self.p_el_ref * (self.p1_p_el * t_in
                                               + self.p2_p_el * t_out
                                               + self.p3_p_el
-                                              + self.p4_p_el * t_amb):
+                                              + self.p4_p_el * t_amb)
+            if isinstance(p_el, np.ndarray):
+                p_el = np.where(p_el < p_el_25, p_el_25, p_el)
+            elif p_el < p_el_25:
+                p_el = p_el_25
 
-                p_el = 0.25 * self.p_el_ref * (self.p1_p_el * t_in
-                                               + self.p2_p_el * t_out
-                                               + self.p3_p_el
-                                               + self.p4_p_el * t_amb)
-
+        if self.group_id in range(6):
+            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
             p_th = p_el * cop
-
-            if cop <= 1:
-                cop = 1
+            if isinstance(cop, np.ndarray):
+                cop = np.where(cop <= 1, 1, cop)
                 p_el = self.p_th_ref
                 p_th = self.p_th_ref
-
-        # for subtype = On-Off
-        elif self.group_id in (4, 5, 6):
-            p_el = (self.p1_p_el * t_in
-                    + self.p2_p_el * t_out
-                    + self.p3_p_el
-                    + self.p4_p_el * t_amb) * self.p_el_ref
-
-            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
-
-            p_th = p_el * cop
-
-            if cop <= 1:
+            elif cop <= 1:
                 cop = 1
                 p_el = self.p_th_ref
                 p_th = self.p_th_ref
