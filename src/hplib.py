@@ -58,11 +58,9 @@ def get_parameters(model: str, group_id: int = 0,
         parameters['MAPE_P_th']=df['MAPE_P_th'].values.tolist()
     except:
         pass
-    parameters['P_th_ref [W]'] = (df['P_th_ref [W]'].values.tolist())
-    parameters['P_el_ref [W]'] = (df['P_el_ref [W]'].values.tolist())
+    parameters['P_th_h_ref [W]'] = (df['P_th_h_ref [W]'].values.tolist())
+    parameters['P_el_h_ref [W]'] = (df['P_el_h_ref [W]'].values.tolist())
     parameters['COP_ref'] = (df['COP_ref'].values.tolist())
-    parameters['Pdc_ref'] = (df['Pdc_ref'].values.tolist())
-    parameters['P_el_cooling_ref'] = (df['P_el_cooling_ref'].values.tolist())
     parameters['Group'] = (df['Group'].values.tolist())
     parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
     parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
@@ -76,24 +74,29 @@ def get_parameters(model: str, group_id: int = 0,
     parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
     parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
     parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
-    parameters['p1_Pdc [1/°C]'] = (df['p1_Pdc [1/°C]'].values.tolist())
-    parameters['p2_Pdc [1/°C]'] = (df['p2_Pdc [1/°C]'].values.tolist())
-    parameters['p3_Pdc [-]'] = (df['p3_Pdc [-]'].values.tolist())
-    parameters['p4_Pdc [1/°C]'] = (df['p4_Pdc [1/°C]'].values.tolist())
-    parameters['p5_P_el [1/°C]'] = (df['p5_P_el [1/°C]'].values.tolist())
-    parameters['p6_P_el [1/°C]'] = (df['p6_P_el [1/°C]'].values.tolist())
-    parameters['p7_P_el [-]'] = (df['p7_P_el [-]'].values.tolist())
-    parameters['p8_P_el [1/°C]'] = (df['p8_P_el [1/°C]'].values.tolist())
-    parameters['p1_EER [-]'] = (df['p1_EER [-]'].values.tolist())
-    parameters['p2_EER [-]'] = (df['p2_EER [-]'].values.tolist())
-    parameters['p3_EER [-]'] = (df['p3_EER [-]'].values.tolist())
-    parameters['p4_EER [-]'] = (df['p4_EER [-]'].values.tolist())
+    try:
+        parameters['P_th_c_ref [W]'] = (df['P_th_c_ref [W]'].values.tolist())
+        parameters['P_el_c_ref [W]'] = (df['P_el_c_ref [W]'].values.tolist())
+        parameters['p1_Pdc [1/°C]'] = (df['p1_Pdc [1/°C]'].values.tolist())
+        parameters['p2_Pdc [1/°C]'] = (df['p2_Pdc [1/°C]'].values.tolist())
+        parameters['p3_Pdc [-]'] = (df['p3_Pdc [-]'].values.tolist())
+        parameters['p4_Pdc [1/°C]'] = (df['p4_Pdc [1/°C]'].values.tolist())
+        parameters['p5_P_el [1/°C]'] = (df['p5_P_el [1/°C]'].values.tolist())
+        parameters['p6_P_el [1/°C]'] = (df['p6_P_el [1/°C]'].values.tolist())
+        parameters['p7_P_el [-]'] = (df['p7_P_el [-]'].values.tolist())
+        parameters['p8_P_el [1/°C]'] = (df['p8_P_el [1/°C]'].values.tolist())
+        parameters['p1_EER [-]'] = (df['p1_EER [-]'].values.tolist())
+        parameters['p2_EER [-]'] = (df['p2_EER [-]'].values.tolist())
+        parameters['p3_EER [-]'] = (df['p3_EER [-]'].values.tolist())
+        parameters['p4_EER [-]'] = (df['p4_EER [-]'].values.tolist())
+    except:
+        pass
 
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
         
         p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
-        parameters.loc[:, 'P_th_ref [W]'] = p_th_ref
+        parameters.loc[:, 'P_th_h_ref [W]'] = p_th_ref
         t_in_hp = [-7,0,10] # air/water, brine/water, water/water
         t_out_fix = 52
         t_amb_fix = -7
@@ -111,18 +114,20 @@ def get_parameters(model: str, group_id: int = 0,
             t_in_fix = t_in_hp[2]    
         cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
         p_el_ref = p_th_ref / cop_ref
-        parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
+        parameters.loc[:, 'P_el_h_ref [W]'] = p_el_ref
         parameters.loc[:, 'COP_ref'] = cop_ref
         if group_id==1:
-            p1_eer = parameters['p1_EER [-]'].array[0]
-            p2_eer = parameters['p2_EER [-]'].array[0]
-            p3_eer = parameters['p3_EER [-]'].array[0]
-            p4_eer = parameters['p4_EER [-]'].array[0]
-            parameters.loc[:,'Pdc_ref'] = p_th_ref
-            eer_ref = p1_eer * 35 + p2_eer * 7 + p3_eer + p4_eer * 35
-            p_el_ref=p_th_ref/eer_ref
-            parameters['P_el_cooling_ref'] = p_el_ref
-            parameters.loc[:, 'EER_ref'] = eer_ref
+            try:
+                p1_eer = parameters['p1_EER [-]'].array[0]
+                p2_eer = parameters['p2_EER [-]'].array[0]
+                p3_eer = parameters['p3_EER [-]'].array[0]
+                p4_eer = parameters['p4_EER [-]'].array[0]
+                eer_ref = p1_eer * 35 + p2_eer * 7 + p3_eer + p4_eer * 35
+                parameters.loc[:,'P_th_c_ref [W]'] = p_el_ref * 0.6852 * eer_ref
+                parameters['P_el_c_ref [W]'] = p_el_ref * 0.6852 #average value from real Heatpumps (P_el35/7 to P_el-7/52) 
+                parameters.loc[:, 'EER_ref'] = eer_ref        
+            except:
+                pass
     return parameters
 
 
@@ -149,8 +154,8 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     parameters = pd.DataFrame()
 
     parameters['Model'] = (df['Model'].values.tolist())
-    parameters['P_th_ref [W]'] = (df['P_th_ref [W]'].values.tolist())
-    parameters['P_el_ref [W]'] = (df['P_el_ref [W]'].values.tolist())
+    parameters['P_th_h_ref [W]'] = (df['P_th_h_ref [W]'].values.tolist())
+    parameters['P_el_h_ref [W]'] = (df['P_el_h_ref [W]'].values.tolist())
     parameters['COP_ref'] = (df['COP_ref'].values.tolist())
     parameters['Group'] = (df['Group'].values.tolist())
     parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
@@ -168,7 +173,7 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     
     if model == 'Generic':
         parameters = parameters.iloc[group_id - 1:group_id]
-        parameters.loc[:, 'P_th_ref [W]'] = p_th
+        parameters.loc[:, 'P_th_h_ref [W]'] = p_th
         t_in_hp = [-7,0,10] # air/water, brine/water, water/water
         t_out_fix = 52
         t_amb_fix = -7
@@ -184,7 +189,7 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
             t_in_fix = t_in_hp[2]  
         cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
         p_el_ref = p_th / cop_ref
-        parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
+        parameters.loc[:, 'P_el_h_ref [W]'] = p_el_ref
         parameters.loc[:, 'COP_ref'] = cop_ref
     return parameters
 
@@ -294,8 +299,8 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
     p2_cop = parameters['p2_COP [-]'].array[0]
     p3_cop = parameters['p3_COP [-]'].array[0]
     p4_cop = parameters['p4_COP [-]'].array[0]
-    p_el_ref = parameters['P_el_ref [W]'].array[0]
-    p_th_ref = parameters['P_th_ref [W]'].array[0]
+    p_el_ref = parameters['P_el_h_ref [W]'].array[0]
+    p_th_ref = parameters['P_th_h_ref [W]'].array[0]
     try:
         p1_eer = parameters['p1_EER [-]'].array[0]
         p2_eer = parameters['p2_EER [-]'].array[0]
@@ -305,15 +310,17 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         p6_p_el = parameters['p6_P_el [1/°C]'].array[0]
         p7_p_el = parameters['p7_P_el [-]'].array[0]
         p8_p_el = parameters['p8_P_el [1/°C]'].array[0]
+        p_el_col_ref=parameters['P_el_c_ref [W]'].array[0]
     except:
-        pass
-    try:
-        pdc_ref= parameters['Pdc_ref'].array[0]
-        p_el_col_ref=parameters['P_el_cooling_ref'].array[0]
-    except:
-        pass
-    
-
+        p1_eer = numpy.nan
+        p2_eer = numpy.nan
+        p3_eer = numpy.nan
+        p4_eer = numpy.nan
+        p5_p_el = numpy.nan
+        p6_p_el = numpy.nan
+        p7_p_el = numpy.nan
+        p8_p_el = numpy.nan
+        p_el_col_ref=numpy.nan
     # for subtype = air/water heat pump
     if group_id == 1 or group_id == 4:
         t_amb = t_in
@@ -414,21 +421,15 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
                     t_in=25
                     t_amb=t_in
                 P_el = (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb) * p_el_col_ref
+                if P_el<0:
+                    COP = numpy.nan
+                    P_el = numpy.nan
                 P_th = COP*P_el
                 if COP > -1:
                     COP = numpy.nan
                     P_el = numpy.nan
                     P_th = numpy.nan
-                #P_th = (p1_pdc * t_in + p2_pdc * t_out + p3_pdc + p4_pdc * t_amb)*pdc_ref
-                #if P_el < 0.25 * p_el_col_ref * (
-                #    p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
-                #    P_el = 0.25 * p_el_ref * (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb)
-                
-                #print(P_el,(0.4 * p_el_col_ref * (p5_p_el * 25 + p6_p_el * t_out + p7_p_el + p8_p_el * 25)))
-                #if P_el < 0.4 * p_el_col_ref * (p5_p_el * 25 + p6_p_el * t_out + p7_p_el + p8_p_el * 25):  # 25% of Pel @ -7°C T_amb = T_in
-                #    P_el = 0.4 * p_el_col_ref * (p5_p_el * 25 + p6_p_el * t_out + p7_p_el + p8_p_el * 25)
-                
-                #P_el=P_th/COP
+
         # for subtype = On-Off
         elif group_id == 4 or group_id == 5 or group_id == 6:
             P_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
@@ -468,8 +469,8 @@ class HeatPump:
         self.p2_cop = float(parameters['p2_COP [-]'].array[0])
         self.p3_cop = float(parameters['p3_COP [-]'].array[0])
         self.p4_cop = float(parameters['p4_COP [-]'].array[0])
-        self.p_el_ref = float(parameters['P_el_ref [W]'].array[0])
-        self.p_th_ref = float(parameters['P_th_ref [W]'].array[0])
+        self.p_el_ref = float(parameters['P_el_h_ref [W]'].array[0])
+        self.p_th_ref = float(parameters['P_th_h_ref [W]'].array[0])
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
@@ -508,7 +509,7 @@ class HeatPump:
         # for subtype = air/water heat pump
         if self.group_id in (1, 4):
             t_amb = t_in
-
+        t_ambient=t_amb
         # for regulated heat pumps
         if self.group_id in (1, 2, 3):
             cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
@@ -566,7 +567,7 @@ class HeatPump:
 
         result['T_in'] = t_in_primary
         result['T_out'] = t_out
-        result['T_amb'] = t_amb
+        result['T_amb'] = t_ambient
         result['COP'] = cop
         result['P_el'] = p_el
         result['P_th'] = p_th
