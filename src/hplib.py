@@ -7,7 +7,6 @@ import scipy
 from scipy.optimize import curve_fit
 
 
-
 def load_database() -> pd.DataFrame:
     """
     Loads data from hplib_database.
@@ -22,7 +21,7 @@ def load_database() -> pd.DataFrame:
 
 
 def get_parameters(model: str, group_id: int = 0,
-                   t_in: int = 0, t_out: int = 0, p_th: int = 0) -> pd.DataFrame:
+                   t_in: int = 0, t_out: int = 0, p_th: int = 0) -> dict:
     """
     Loads the content of the database for a specific heat pump model
     and returns a pandas ``DataFrame`` containing the heat pump parameters.
@@ -46,58 +45,42 @@ def get_parameters(model: str, group_id: int = 0,
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv('hplib_database.csv', delimiter=',')
-    df = df.loc[df['Model'] == model]
-    parameters = pd.DataFrame()
-    parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
-    parameters['Model'] = (df['Model'].values.tolist())
-    try:
-        parameters['MAPE_COP']=df['MAPE_COP'].values.tolist()
-        parameters['MAPE_P_el']=df['MAPE_P_el'].values.tolist()
-        parameters['MAPE_P_th']=df['MAPE_P_th'].values.tolist()
-    except:
-        pass
-    parameters['P_th_ref [W]'] = (df['P_th_ref [W]'].values.tolist())
-    parameters['P_el_ref [W]'] = (df['P_el_ref [W]'].values.tolist())
-    parameters['COP_ref'] = (df['COP_ref'].values.tolist())
-    parameters['Group'] = (df['Group'].values.tolist())
-    parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
-    parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
-    parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
-    parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
-    parameters['p1_P_el [1/°C]'] = (df['p1_P_el [1/°C]'].values.tolist())
-    parameters['p2_P_el [1/°C]'] = (df['p2_P_el [1/°C]'].values.tolist())
-    parameters['p3_P_el [-]'] = (df['p3_P_el [-]'].values.tolist())
-    parameters['p4_P_el [1/°C]'] = (df['p4_P_el [1/°C]'].values.tolist())
-    parameters['p1_COP [-]'] = (df['p1_COP [-]'].values.tolist())
-    parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
-    parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
-    parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
-
+    database = load_database()
     if model == 'Generic':
-        parameters = parameters.iloc[group_id - 1:group_id]
-        
-        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
-        parameters.loc[:, 'P_th_ref [W]'] = p_th_ref
-        t_in_hp = [-7,0,10] # air/water, brine/water, water/water
+        parameters = database[(database['Model'] == model)
+                              & (database['Group'] == group_id)].to_dict(orient='records')[0]
+
+        # Setting constant temperature values
         t_out_fix = 52
         t_amb_fix = -7
-        p1_cop = parameters['p1_COP [-]'].array[0]
-        p2_cop = parameters['p2_COP [-]'].array[0]
-        p3_cop = parameters['p3_COP [-]'].array[0]
-        p4_cop = parameters['p4_COP [-]'].array[0]
-        if (p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb_fix)<=1.0:
+
+        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
+        parameters['P_th_ref [W]'] = p_th_ref
+
+        p1_cop = parameters['p1_COP [-]']
+        p2_cop = parameters['p2_COP [-]']
+        p3_cop = parameters['p3_COP [-]']
+        p4_cop = parameters['p4_COP [-]']
+
+        if (p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb_fix) <= 1.0:
             raise ValueError('COP too low! Increase t_in or decrease t_out.')
-        if group_id == 1 or group_id == 4:
-            t_in_fix = t_in_hp[0]
-        if group_id == 2 or group_id == 5:
-            t_in_fix = t_in_hp[1]
-        if group_id == 3 or group_id == 6:
-            t_in_fix = t_in_hp[2]    
-        cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
-        p_el_ref = p_th_ref / cop_ref
-        parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
-        parameters.loc[:, 'COP_ref'] = cop_ref
+
+        # Air/Water
+        if group_id in (1, 4):
+            t_in_fix = -7
+        # Brine/Water
+        if group_id in (2, 5):
+            t_in_fix = 0
+        # Water/Water
+        if group_id in (3, 6):
+            t_in_fix = 10
+
+        parameters['COP_ref'] = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
+        parameters['P_el_ref [W]'] = p_th_ref / parameters['COP_ref']
+
+    else:
+        parameters = database.loc[database['Model'] == model].to_dict(orient='records')[0]
+
     return parameters
 
 
