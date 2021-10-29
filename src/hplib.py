@@ -1,11 +1,12 @@
 """
 The ``hplib`` module provides a set of functions for simulating the performance of heat pumps.
 """
-from typing import Any
+from typing import Any, Dict, Union
+import numpy.typing as npt
+import numpy as np
 import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
-
 
 
 def load_database() -> pd.DataFrame:
@@ -22,7 +23,7 @@ def load_database() -> pd.DataFrame:
 
 
 def get_parameters(model: str, group_id: int = 0,
-                   t_in: int = 0, t_out: int = 0, p_th: int = 0) -> pd.DataFrame:
+                   t_in: int = 0, t_out: int = 0, p_th: int = 0) -> dict:
     """
     Loads the content of the database for a specific heat pump model
     and returns a pandas ``DataFrame`` containing the heat pump parameters.
@@ -46,58 +47,42 @@ def get_parameters(model: str, group_id: int = 0,
     parameters : pd.DataFrame
         Data frame containing the model parameters.
     """
-    df = pd.read_csv('hplib_database.csv', delimiter=',')
-    df = df.loc[df['Model'] == model]
-    parameters = pd.DataFrame()
-    parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
-    parameters['Model'] = (df['Model'].values.tolist())
-    try:
-        parameters['MAPE_COP']=df['MAPE_COP'].values.tolist()
-        parameters['MAPE_P_el']=df['MAPE_P_el'].values.tolist()
-        parameters['MAPE_P_th']=df['MAPE_P_th'].values.tolist()
-    except:
-        pass
-    parameters['P_th_ref [W]'] = (df['P_th_ref [W]'].values.tolist())
-    parameters['P_el_ref [W]'] = (df['P_el_ref [W]'].values.tolist())
-    parameters['COP_ref'] = (df['COP_ref'].values.tolist())
-    parameters['Group'] = (df['Group'].values.tolist())
-    parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
-    parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
-    parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
-    parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
-    parameters['p1_P_el [1/°C]'] = (df['p1_P_el [1/°C]'].values.tolist())
-    parameters['p2_P_el [1/°C]'] = (df['p2_P_el [1/°C]'].values.tolist())
-    parameters['p3_P_el [-]'] = (df['p3_P_el [-]'].values.tolist())
-    parameters['p4_P_el [1/°C]'] = (df['p4_P_el [1/°C]'].values.tolist())
-    parameters['p1_COP [-]'] = (df['p1_COP [-]'].values.tolist())
-    parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
-    parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
-    parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
-
+    database = load_database()
     if model == 'Generic':
-        parameters = parameters.iloc[group_id - 1:group_id]
-        
-        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
-        parameters.loc[:, 'P_th_ref [W]'] = p_th_ref
-        t_in_hp = [-7,0,10] # air/water, brine/water, water/water
+        parameters = database[(database['Model'] == model)
+                              & (database['Group'] == group_id)].to_dict(orient='records')[0]
+
+        # Setting constant temperature values
         t_out_fix = 52
         t_amb_fix = -7
-        p1_cop = parameters['p1_COP [-]'].array[0]
-        p2_cop = parameters['p2_COP [-]'].array[0]
-        p3_cop = parameters['p3_COP [-]'].array[0]
-        p4_cop = parameters['p4_COP [-]'].array[0]
-        if (p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb_fix)<=1.0:
+
+        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
+        parameters['P_th_ref [W]'] = p_th_ref
+
+        p1_cop = parameters['p1_COP [-]']
+        p2_cop = parameters['p2_COP [-]']
+        p3_cop = parameters['p3_COP [-]']
+        p4_cop = parameters['p4_COP [-]']
+
+        if (p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb_fix) <= 1.0:
             raise ValueError('COP too low! Increase t_in or decrease t_out.')
-        if group_id == 1 or group_id == 4:
-            t_in_fix = t_in_hp[0]
-        if group_id == 2 or group_id == 5:
-            t_in_fix = t_in_hp[1]
-        if group_id == 3 or group_id == 6:
-            t_in_fix = t_in_hp[2]    
-        cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
-        p_el_ref = p_th_ref / cop_ref
-        parameters.loc[:, 'P_el_ref [W]'] = p_el_ref
-        parameters.loc[:, 'COP_ref'] = cop_ref
+
+        # Air/Water
+        if group_id in (1, 4):
+            t_in_fix = -7
+        # Brine/Water
+        if group_id in (2, 5):
+            t_in_fix = 0
+        # Water/Water
+        if group_id in (3, 6):
+            t_in_fix = 10
+
+        parameters['COP_ref'] = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
+        parameters['P_el_ref [W]'] = p_th_ref / parameters['COP_ref']
+
+    else:
+        parameters = database.loc[database['Model'] == model].to_dict(orient='records')[0]
+
     return parameters
 
 
@@ -377,13 +362,15 @@ class HeatPump:
         self.p2_cop = float(parameters['p2_COP [-]'].array[0])
         self.p3_cop = float(parameters['p3_COP [-]'].array[0])
         self.p4_cop = float(parameters['p4_COP [-]'].array[0])
-        self.p_el_ref = float(parameters['P_el_h_ref [W]'].array[0])
-        self.p_th_ref = float(parameters['P_th_h_ref [W]'].array[0])
+        self.p_el_ref = float(parameters['P_el_ref [W]'].array[0])
+        self.p_th_ref = float(parameters['P_th_ref [W]'].array[0])
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
 
-    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float) -> dict:
+    def simulate(self, t_in_primary: Union[float, npt.ArrayLike],
+                 t_in_secondary: Union[float, npt.ArrayLike],
+                 t_amb: Union[float, npt.ArrayLike]) -> Dict:
         """
         Performs the simulation of the heat pump model.
 
@@ -414,55 +401,50 @@ class HeatPump:
         t_in = t_in_primary  # info value for dataframe
         t_out = t_in_secondary + self.delta_t
 
-        # for subtype = air/water heat pump
+        # for subtype air/water heat pump
         if self.group_id in (1, 4):
             t_amb = t_in
 
+        if self.group_id in range(6):
+            p_el = (self.p1_p_el * t_in
+                    + self.p2_p_el * t_out
+                    + self.p3_p_el
+                    + self.p4_p_el * t_amb) * self.p_el_ref
+
         # for regulated heat pumps
         if self.group_id in (1, 2, 3):
-            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
-
-            p_el = (self.p1_p_el * t_in
-                    + self.p2_p_el * t_out
-                    + self.p3_p_el
-                    + self.p4_p_el * t_amb) * self.p_el_ref
 
             if self.group_id == 1:
-                t_in = -7
+                if isinstance(t_in, np.ndarray):
+                    t_in = np.full_like(t_in, -7)
+                else:
+                    t_in = -7
                 t_amb = t_in
+
             elif self.group_id == 2:
-                t_amb = -7
+                if isinstance(t_amb, np.ndarray):
+                    t_amb = np.full_like(t_amb, -7)
+                else:
+                    t_amb = -7
 
             # 25% of Pel @ -7°C T_amb = T_in
-            if p_el < 0.25 * self.p_el_ref * (self.p1_p_el * t_in
+            p_el_25 = 0.25 * self.p_el_ref * (self.p1_p_el * t_in
                                               + self.p2_p_el * t_out
                                               + self.p3_p_el
-                                              + self.p4_p_el * t_amb):
+                                              + self.p4_p_el * t_amb)
+            if isinstance(p_el, np.ndarray):
+                p_el = np.where(p_el < p_el_25, p_el_25, p_el)
+            elif p_el < p_el_25:
+                p_el = p_el_25
 
-                p_el = 0.25 * self.p_el_ref * (self.p1_p_el * t_in
-                                               + self.p2_p_el * t_out
-                                               + self.p3_p_el
-                                               + self.p4_p_el * t_amb)
-
+        if self.group_id in range(6):
+            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
             p_th = p_el * cop
-
-            if cop <= 1:
-                cop = 1
+            if isinstance(cop, np.ndarray):
+                cop = np.where(cop <= 1, 1, cop)
                 p_el = self.p_th_ref
                 p_th = self.p_th_ref
-
-        # for subtype = On-Off
-        elif self.group_id in (4, 5, 6):
-            p_el = (self.p1_p_el * t_in
-                    + self.p2_p_el * t_out
-                    + self.p3_p_el
-                    + self.p4_p_el * t_amb) * self.p_el_ref
-
-            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
-
-            p_th = p_el * cop
-
-            if cop <= 1:
+            elif cop <= 1:
                 cop = 1
                 p_el = self.p_th_ref
                 p_th = self.p_th_ref
