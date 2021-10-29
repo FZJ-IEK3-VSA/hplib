@@ -160,3 +160,4 @@ input/.DS_Store
 .DS_Store
 .idea/inspectionProfiles/Project_Default.xml
 .idea/modules.xml
+.idea/csv-plugin.xml
