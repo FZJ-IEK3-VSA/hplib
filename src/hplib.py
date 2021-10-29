@@ -456,3 +456,120 @@ def cwd():
     real_path = os.path.realpath(__file__)
     dir_path = os.path.dirname(real_path)
     return dir_path
+
+class HeatPump:
+    def __init__(self, parameters: pd.DataFrame):
+        self.group_id = float(parameters['Group'].array[0])
+        self.p1_p_el = float(parameters['p1_P_el [1/°C]'].array[0])
+        self.p2_p_el = float(parameters['p2_P_el [1/°C]'].array[0])
+        self.p3_p_el = float(parameters['p3_P_el [-]'].array[0])
+        self.p4_p_el = float(parameters['p4_P_el [1/°C]'].array[0])
+        self.p1_cop = float(parameters['p1_COP [-]'].array[0])
+        self.p2_cop = float(parameters['p2_COP [-]'].array[0])
+        self.p3_cop = float(parameters['p3_COP [-]'].array[0])
+        self.p4_cop = float(parameters['p4_COP [-]'].array[0])
+        self.p_el_ref = float(parameters['P_el_ref [W]'].array[0])
+        self.p_th_ref = float(parameters['P_th_ref [W]'].array[0])
+
+        self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
+        self.cp = 4200  # J/(kg*K), specific heat capacity of water
+
+    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float) -> dict:
+        """
+        Performs the simulation of the heat pump model.
+
+        Parameters
+        ----------
+        t_in_primary : numeric or iterable (e.g. pd.Series)
+            Input temperature on primry side :math:`T` (air, brine, water). [°C]
+        t_in_secondary : numeric or iterable (e.g. pd.Series)
+            Input temperature on secondary side :math:`T` from heating storage or system. [°C]
+        parameters : pd.DataFrame
+            Data frame containing the heat pump parameters from hplib.getParameters().
+        t_amb : numeric or iterable (e.g. pd.Series)
+            Ambient temperature :math:'T' of the air. [°C]
+
+        Returns
+        -------
+        df : pd.DataFrame
+            with the following columns
+            T_in = Input temperature :math:`T` at primary side of the heat pump. [°C]
+            T_out = Output temperature :math:`T` at secondary side of the heat pump. [°C]
+            T_amb = Ambient / Outdoor temperature :math:`T`. [°C]
+            COP = Coefficient of performance.
+            P_el = Electrical input Power. [W]
+            P_th = Thermal output power. [W]
+            m_dot = Mass flow at secondary side of the heat pump. [kg/s]
+        """
+
+        t_in = t_in_primary  # info value for dataframe
+        t_out = t_in_secondary + self.delta_t
+
+        # for subtype = air/water heat pump
+        if self.group_id in (1, 4):
+            t_amb = t_in
+
+        # for regulated heat pumps
+        if self.group_id in (1, 2, 3):
+            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
+
+            p_el = (self.p1_p_el * t_in
+                    + self.p2_p_el * t_out
+                    + self.p3_p_el
+                    + self.p4_p_el * t_amb) * self.p_el_ref
+
+            if self.group_id == 1:
+                t_in = -7
+                t_amb = t_in
+            elif self.group_id == 2:
+                t_amb = -7
+
+            # 25% of Pel @ -7°C T_amb = T_in
+            if p_el < 0.25 * self.p_el_ref * (self.p1_p_el * t_in
+                                              + self.p2_p_el * t_out
+                                              + self.p3_p_el
+                                              + self.p4_p_el * t_amb):
+
+                p_el = 0.25 * self.p_el_ref * (self.p1_p_el * t_in
+                                               + self.p2_p_el * t_out
+                                               + self.p3_p_el
+                                               + self.p4_p_el * t_amb)
+
+            p_th = p_el * cop
+
+            if cop <= 1:
+                cop = 1
+                p_el = self.p_th_ref
+                p_th = self.p_th_ref
+
+        # for subtype = On-Off
+        elif self.group_id in (4, 5, 6):
+            p_el = (self.p1_p_el * t_in
+                    + self.p2_p_el * t_out
+                    + self.p3_p_el
+                    + self.p4_p_el * t_amb) * self.p_el_ref
+
+            cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
+
+            p_th = p_el * cop
+
+            if cop <= 1:
+                cop = 1
+                p_el = self.p_th_ref
+                p_th = self.p_th_ref
+
+        # massflow
+        m_dot = p_th / (self.delta_t * self.cp)
+
+        # round
+        result = dict()
+
+        result['T_in'] = t_in_primary
+        result['T_out'] = t_out
+        result['T_amb'] = t_amb
+        result['COP'] = cop
+        result['P_el'] = p_el
+        result['P_th'] = p_th
+        result['m_dot']= m_dot
+
+        return result
