@@ -455,12 +455,15 @@ class HeatPump:
         # round
         result = dict()
 
+        # TODO: - Why is the input t_in_primary returned when it's never altered?
+        # TODO: Return t_in instead?
+        #
         result['T_in'] = t_in_primary
         result['T_out'] = t_out
         result['T_amb'] = t_amb
         result['COP'] = cop
         result['P_el'] = p_el
         result['P_th'] = p_th
-        result['m_dot']= m_dot
+        result['m_dot'] = m_dot
 
         return result
