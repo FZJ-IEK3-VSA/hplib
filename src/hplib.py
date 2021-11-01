@@ -446,14 +446,14 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         #round
         df=pd.DataFrame()
         
-        df['T_in']=[round(t_in_primary,1)]
-        df['T_out']=[round(t_out,1)]
-        df['T_amb']=[round(T_amb,1)]
-        df['COP']=[round(COP,2)]
-        df['EER']=[round(EER,2)]
-        df['P_el']=[round(P_el,1)]
+        df['T_in']=[t_in_primary]
+        df['T_out']=[t_out]
+        df['T_amb']=[T_amb]
+        df['COP']=[COP]
+        df['EER']=[EER]
+        df['P_el']=[P_el]
         df['P_th']=[P_th]
-        df['m_dot']=[abs(round(m_dot,3))]
+        df['m_dot']=[abs(m_dot)]
     return df
 
 def cwd():

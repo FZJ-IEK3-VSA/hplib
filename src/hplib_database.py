@@ -7,7 +7,7 @@ import hplib as hpl
 
 # Functions
 
-def import_keymark_data():
+def import_heating_data():
     # read in keymark data from *.txt files in /input/txt/
     # save a dataframe to database_heating.csv in folder /output/
     Modul = []
@@ -1281,7 +1281,7 @@ def import_cooling_data():
     os.chdir("src")
 
 
-def reduce_keymark_data(filename, climate):
+def reduce_heating_data(filename, climate):
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)
     # delete redundant entries
     # climate = average, warm or cold
@@ -1305,7 +1305,7 @@ def reduce_keymark_data(filename, climate):
     data_key.to_csv(r'../output/database_heating_' + climate + '.csv', index=False)
 
 
-def normalize_keymark_data(filename):
+def normalize_heating_data(filename):
     data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
     Models = data_key['Model'].values.tolist()
     Models = list(dict.fromkeys(Models))
@@ -1448,7 +1448,7 @@ def func_simple(para, w, x, y):
     return z
 
 
-def calculate_function_parameters(filename):
+def calculate_heating_parameters(filename):
     # Calculate function parameters from normalized values
     data_key = pd.read_csv('../output/' + filename)
     Models = data_key['Model'].values.tolist()
@@ -1549,7 +1549,7 @@ def calculate_function_parameters(filename):
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
-def validation_relative_error():
+def validation_relative_error_heating():
     # Simulate every set point for every heat pump and save csv file
     df=pd.read_csv('../output/database_heating_average_normalized_subtypes.csv')
     i=0
@@ -1582,7 +1582,7 @@ def validation_relative_error():
     df.to_csv('../output/database_heating_average_normalized_subtypes_validation.csv', encoding='utf-8', index=False)
 
 
-def validation_mape():
+def validation_mape_heating():
     #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
     df=pd.read_csv('../output/database_heating_average_normalized_subtypes_validation.csv')
     para=pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
@@ -1677,7 +1677,7 @@ def reduce_to_unique():
     # because of different controller or storage configurations. 
     # Reduce to unique heat pump models.
     df = pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
-    df_cool=pd.read_csv('../output/database_cooling_keymark.csv')
+    df_cool=pd.read_csv('../output/database_cooling.csv')
     cooling_Models=df_cool['Model'].unique()
     Models = []
     unique_values = pd.unique(df['p3_P_el [-]']).tolist()
@@ -1709,14 +1709,13 @@ def reduce_cooling_data():
     df.to_csv('../output/database_cooling_reduced.csv',encoding='utf-8', index=False)
 
 
-def normalize_cooling_data():
+def normalize_and_add_cooling_data():
     df = pd.read_csv(r'../output/database_cooling_reduced.csv')
     Models = df['Model'].values.tolist()
     Models = list(dict.fromkeys(Models))
     new_df = pd.DataFrame()
-    for model in Models:
-        
-        data_key = pd.read_csv(r'../output/database_cooling_keymark_reduced.csv')
+    for model in Models:   
+        data_key = pd.read_csv(r'../output/database_cooling_reduced.csv')
         data_key = data_key.loc[data_key['Model'] == model]  # get data of model
         group = data_key.Group.array[0]  # get Group of model
         if len(data_key)==4:  
@@ -1740,7 +1739,7 @@ def normalize_cooling_data():
     new_df.to_csv('../output/database_cooling_reduced_normalized.csv',encoding='utf-8', index=False)
 
 
-def calculate_cooling_parameters(filename):
+def calculate_cooling_parameters():
     # Calculate function parameters from normalized values
     data_key = pd.read_csv('../output/database_cooling_reduced_normalized.csv')
     Models = data_key['Model'].values.tolist()
@@ -1827,7 +1826,7 @@ def calculate_cooling_parameters(filename):
        'p4_Pdc [1/°C]', 'p5_P_el [1/°C]', 'p6_P_el [1/°C]', 'p7_P_el [-]',
        'p8_P_el [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]',
        'p4_EER [-]']]
-    para.to_csv(filename + '.csv', encoding='utf-8', index=False)
+    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
 def validation_relative_error_cooling():
@@ -1849,7 +1848,7 @@ def validation_relative_error_cooling():
             results=hpl.simulate(T_in,T_out+5,para,T_amb,2)
             df.loc[i,'Pdc_sim']=-results.P_th[0]
             df.loc[i,'P_el_sim']=results.P_el[0]
-            df.loc[i,'EER_sim']=-results.COP[0]
+            df.loc[i,'EER_sim']=results.EER[0]
             prev_model=Model
             i=i+1
         except:
