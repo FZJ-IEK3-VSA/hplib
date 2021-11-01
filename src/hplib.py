@@ -352,18 +352,18 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
 
 
 class HeatPump:
-    def __init__(self, parameters: pd.DataFrame):
-        self.group_id = float(parameters['Group'].array[0])
-        self.p1_p_el = float(parameters['p1_P_el [1/°C]'].array[0])
-        self.p2_p_el = float(parameters['p2_P_el [1/°C]'].array[0])
-        self.p3_p_el = float(parameters['p3_P_el [-]'].array[0])
-        self.p4_p_el = float(parameters['p4_P_el [1/°C]'].array[0])
-        self.p1_cop = float(parameters['p1_COP [-]'].array[0])
-        self.p2_cop = float(parameters['p2_COP [-]'].array[0])
-        self.p3_cop = float(parameters['p3_COP [-]'].array[0])
-        self.p4_cop = float(parameters['p4_COP [-]'].array[0])
-        self.p_el_ref = float(parameters['P_el_ref [W]'].array[0])
-        self.p_th_ref = float(parameters['P_th_ref [W]'].array[0])
+    def __init__(self, parameters: Dict):
+        self.group_id = parameters['Group']
+        self.p1_p_el = parameters['p1_P_el [1/°C]']
+        self.p2_p_el = parameters['p2_P_el [1/°C]']
+        self.p3_p_el = parameters['p3_P_el [-]']
+        self.p4_p_el = parameters['p4_P_el [1/°C]']
+        self.p1_cop = parameters['p1_COP [-]']
+        self.p2_cop = parameters['p2_COP [-]']
+        self.p3_cop = parameters['p3_COP [-]']
+        self.p4_cop = parameters['p4_COP [-]']
+        self.p_el_ref = parameters['P_el_ref [W]']
+        self.p_th_ref = parameters['P_th_ref [W]']
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
