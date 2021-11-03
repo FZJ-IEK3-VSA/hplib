@@ -280,7 +280,8 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         T_in = Input temperature :math:`T` at primary side of the heat pump. [°C]
         T_out = Output temperature :math:`T` at secondary side of the heat pump. [°C]
         T_amb = Ambient / Outdoor temperature :math:`T`. [°C]
-        COP = Coefficient of performance.
+        COP = Coefficient of Performance.
+        EER = Energy Efficiency Ratio.
         P_el = Electrical input Power. [W]
         P_th = Thermal output power. [W]
         m_dot = Mass flow at secondary side of the heat pump. [kg/s]        
@@ -393,10 +394,10 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
     else:
         if modus==1:
             t_out = t_in_secondary + DELTA_T #Inlet temperature is supposed to be heated up by 5 K
-            EER=numpy.nan
+            EER=0
         if modus==2: # Inlet temperature is supposed to be cooled down by 5 K
             t_out = t_in_secondary - DELTA_T
-            COP=numpy.nan
+            COP=0
         # for regulated heat pumps
         if group_id == 1 or group_id == 2 or group_id == 3:
             if modus==1:
@@ -424,13 +425,13 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
                     t_amb=t_in
                 P_el = (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb) * p_el_col_ref
                 if P_el<0:
-                    EER = numpy.nan
-                    P_el = numpy.nan
+                    EER = 0
+                    P_el = 0
                 P_th = -(EER*P_el)
                 if EER < 1:
-                    EER = numpy.nan
-                    P_el = numpy.nan
-                    P_th = numpy.nan
+                    EER = 0
+                    P_el = 0
+                    P_th = 0
 
         # for subtype = On-Off
         elif group_id == 4 or group_id == 5 or group_id == 6:
@@ -522,7 +523,8 @@ class HeatPump:
             T_in = Input temperature :math:`T` at primary side of the heat pump. [°C]
             T_out = Output temperature :math:`T` at secondary side of the heat pump. [°C]
             T_amb = Ambient / Outdoor temperature :math:`T`. [°C]
-            COP = Coefficient of performance.
+            COP = Coefficient of Performance.
+            EER = Energy Efficiency Ratio.
             P_el = Electrical input Power. [W]
             P_th = Thermal output power. [W]
             m_dot = Mass flow at secondary side of the heat pump. [kg/s]
@@ -531,10 +533,10 @@ class HeatPump:
         t_in = t_in_primary  # info value for dataframe
         if modus==1:
             t_out = t_in_secondary + self.delta_t #Inlet temperature is supposed to be heated up by 5 K
-            eer=numpy.nan
+            eer=0
         if modus==2: # Inlet temperature is supposed to be cooled down by 5 K
             t_out = t_in_secondary - self.delta_t
-            cop=numpy.nan
+            cop=0
         # for subtype = air/water heat pump
         if self.group_id in (1, 4):
             t_amb = t_in
@@ -579,13 +581,13 @@ class HeatPump:
                     t_amb=t_in
                 p_el = (self.p5_p_el * t_in + self.p6_p_el * t_out + self.p7_p_el + self.p8_p_el * t_amb) * self.p_el_col_ref
                 if p_el<0:
-                    eer = numpy.nan
-                    p_el = numpy.nan
+                    eer = 0
+                    p_el = 0
                 p_th = -(eer*p_el)
                 if eer < 1:
-                    eer = numpy.nan
-                    p_el = numpy.nan
-                    p_th = numpy.nan
+                    eer = 0
+                    p_el = 0
+                    p_th = 0
 
         # for subtype = On-Off
         elif self.group_id in (4, 5, 6):
