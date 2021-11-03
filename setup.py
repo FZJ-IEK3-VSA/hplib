@@ -31,52 +31,43 @@ setup(
     # specification here:
     # https://packaging.python.org/specifications/core-metadata/#name
     name="hplib",  # Required
-
     # Versions should comply with PEP 440:
     # https://www.python.org/dev/peps/pep-0440/
     #
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-	# Reset to 0.0.0 when starting a new project, as this version number is the version of
-	# the template itself!
+    # Reset to 0.0.0 when starting a new project, as this version number is the version of
+    # the template itself!
     version="1.2.0",  # Required
-
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#summary
     description="",  # Optional
-
-	# This should be your name or the name of the organization which owns the
+    # This should be your name or the name of the organization which owns the
     # project.
     author="RE-Lab",  # Optional
-
     # This should be a valid email address corresponding to the author listed
     # above.
-    author_email='re-lab@hs-emden-leer.de',  # Optional
-
+    author_email="re-lab@hs-emden-leer.de",  # Optional
     # This should be a valid link to your project's main homepage.
     url="https://github.com/RE-Lab-Projects/RE-Lab_template",  # Optional
-
     # Examples listed include a pattern for specifying where the package tracks
     # issues, where the source is hosted, where to say thanks to the package
     # maintainers, and where to support the project financially. The key is
     # what's used to render the link text on PyPI.
-    #project_urls={  # Optional
+    # project_urls={  # Optional
     #    "Bug Reports": "https://github.com/RE-Lab-Projects/RE-Lab_template/issues",
     #    "Source": "https://github.com/RE-Lab-Projects/RE-Lab_template",
-    #},
-
-	# #########################
-	# The following option don't need to be changed
+    # },
+    # #########################
+    # The following option don't need to be changed
     # This is an optional longer description of your project that represents
     # the body of text which users will see when they visit PyPI.
     #
     # The long discreption is the contents of the README.md
     long_description=long_description,  # Optional
     long_description_content_type="text/markdown",  # Optional (see note above)
-
-
     # When your source code is in a subdirectory under the project root, e.g.
     # `src/`, it is necessary to specify the `package_dir` argument.
     package_dir={"": "src"},  # Optional
@@ -143,5 +134,4 @@ setup(
     # This field corresponds to the "Project-URL" metadata fields:
     # https://packaging.python.org/specifications/core-metadata/#project-url-multiple-use
     #
-
 )
