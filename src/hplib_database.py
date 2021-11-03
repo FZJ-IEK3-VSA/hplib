@@ -1285,7 +1285,7 @@ def reduce_heating_data(filename, climate):
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)
     # delete redundant entries
     # climate = average, warm or cold
-    df = pd.read_csv('../output/' + filename)
+    df = pd.read_csv(r'../output/' + filename)
     data_key = df.loc[df['Climate'] == climate]
     delete = []
     Models = data_key['Model'].values.tolist()
