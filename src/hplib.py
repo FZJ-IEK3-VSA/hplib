@@ -66,10 +66,10 @@ def get_parameters(model: str, group_id: int = 0,
     parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
     parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
     parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
-    parameters['p1_P_el [1/°C]'] = (df['p1_P_el [1/°C]'].values.tolist())
-    parameters['p2_P_el [1/°C]'] = (df['p2_P_el [1/°C]'].values.tolist())
-    parameters['p3_P_el [-]'] = (df['p3_P_el [-]'].values.tolist())
-    parameters['p4_P_el [1/°C]'] = (df['p4_P_el [1/°C]'].values.tolist())
+    parameters['p1_P_el_h [1/°C]'] = (df['p1_P_el_h [1/°C]'].values.tolist())
+    parameters['p2_P_el_h [1/°C]'] = (df['p2_P_el_h [1/°C]'].values.tolist())
+    parameters['p3_P_el_h [-]'] = (df['p3_P_el_h [-]'].values.tolist())
+    parameters['p4_P_el_h [1/°C]'] = (df['p4_P_el_h [1/°C]'].values.tolist())
     parameters['p1_COP [-]'] = (df['p1_COP [-]'].values.tolist())
     parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
     parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
@@ -81,10 +81,10 @@ def get_parameters(model: str, group_id: int = 0,
         parameters['p2_Pdc [1/°C]'] = (df['p2_Pdc [1/°C]'].values.tolist())
         parameters['p3_Pdc [-]'] = (df['p3_Pdc [-]'].values.tolist())
         parameters['p4_Pdc [1/°C]'] = (df['p4_Pdc [1/°C]'].values.tolist())
-        parameters['p5_P_el [1/°C]'] = (df['p5_P_el [1/°C]'].values.tolist())
-        parameters['p6_P_el [1/°C]'] = (df['p6_P_el [1/°C]'].values.tolist())
-        parameters['p7_P_el [-]'] = (df['p7_P_el [-]'].values.tolist())
-        parameters['p8_P_el [1/°C]'] = (df['p8_P_el [1/°C]'].values.tolist())
+        parameters['p1_P_el_c [1/°C]'] = (df['p1_P_el_c [1/°C]'].values.tolist())
+        parameters['p2_P_el_c [1/°C]'] = (df['p2_P_el_c [1/°C]'].values.tolist())
+        parameters['p3_P_el_c [-]'] = (df['p3_P_el_c [-]'].values.tolist())
+        parameters['p4_P_el_c [1/°C]'] = (df['p4_P_el_c [1/°C]'].values.tolist())
         parameters['p1_EER [-]'] = (df['p1_EER [-]'].values.tolist())
         parameters['p2_EER [-]'] = (df['p2_EER [-]'].values.tolist())
         parameters['p3_EER [-]'] = (df['p3_EER [-]'].values.tolist())
@@ -162,10 +162,10 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
     parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
     parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
     parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
-    parameters['p1_P_el [1/°C]'] = (df['p1_P_el [1/°C]'].values.tolist())
-    parameters['p2_P_el [1/°C]'] = (df['p2_P_el [1/°C]'].values.tolist())
-    parameters['p3_P_el [-]'] = (df['p3_P_el [-]'].values.tolist())
-    parameters['p4_P_el [1/°C]'] = (df['p4_P_el [1/°C]'].values.tolist())
+    parameters['p1_P_el_h [1/°C]'] = (df['p1_P_el_h [1/°C]'].values.tolist())
+    parameters['p2_P_el_h [1/°C]'] = (df['p2_P_el_h [1/°C]'].values.tolist())
+    parameters['p3_P_el_h [-]'] = (df['p3_P_el_h [-]'].values.tolist())
+    parameters['p4_P_el_h [1/°C]'] = (df['p4_P_el_h [1/°C]'].values.tolist())
     parameters['p1_COP [-]'] = (df['p1_COP [-]'].values.tolist())
     parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
     parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
@@ -256,7 +256,7 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
 
 
 def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
-             t_amb: any, modus: int = 1) -> pd.DataFrame:
+             t_amb: any, mode: int = 1) -> pd.DataFrame:
     """
     Performs the simulation of the heat pump model.
 
@@ -270,7 +270,7 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         Data frame containing the heat pump parameters from hplib.getParameters().
     t_amb : numeric or iterable (e.g. pd.Series)
         Ambient temperature :math:'T' of the air. [°C]
-    modus : int
+    mode : int
         for heating: 1, for cooling: 2
 
     Returns
@@ -292,10 +292,10 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
     t_in = t_in_primary#info value for dataframe
     T_amb = t_amb #info value for dataframe
     group_id = parameters['Group'].array[0]
-    p1_p_el = parameters['p1_P_el [1/°C]'].array[0]
-    p2_p_el = parameters['p2_P_el [1/°C]'].array[0]
-    p3_p_el = parameters['p3_P_el [-]'].array[0]
-    p4_p_el = parameters['p4_P_el [1/°C]'].array[0]
+    p1_p_el_h = parameters['p1_P_el_h [1/°C]'].array[0]
+    p2_p_el_h = parameters['p2_P_el_h [1/°C]'].array[0]
+    p3_p_el_h = parameters['p3_P_el_h [-]'].array[0]
+    p4_p_el_h = parameters['p4_P_el_h [1/°C]'].array[0]
     p1_cop = parameters['p1_COP [-]'].array[0]
     p2_cop = parameters['p2_COP [-]'].array[0]
     p3_cop = parameters['p3_COP [-]'].array[0]
@@ -307,20 +307,20 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         p2_eer = parameters['p2_EER [-]'].array[0]
         p3_eer = parameters['p3_EER [-]'].array[0]
         p4_eer = parameters['p4_EER [-]'].array[0]
-        p5_p_el = parameters['p5_P_el [1/°C]'].array[0]
-        p6_p_el = parameters['p6_P_el [1/°C]'].array[0]
-        p7_p_el = parameters['p7_P_el [-]'].array[0]
-        p8_p_el = parameters['p8_P_el [1/°C]'].array[0]
+        p1_p_el_c = parameters['p1_P_el_c [1/°C]'].array[0]
+        p2_p_el_c = parameters['p2_P_el_c [1/°C]'].array[0]
+        p3_p_el_c = parameters['p3_P_el_c [-]'].array[0]
+        p4_p_el_c = parameters['p4_P_el_c [1/°C]'].array[0]
         p_el_col_ref=parameters['P_el_c_ref [W]'].array[0]
     except:
         p1_eer = numpy.nan
         p2_eer = numpy.nan
         p3_eer = numpy.nan
         p4_eer = numpy.nan
-        p5_p_el = numpy.nan
-        p6_p_el = numpy.nan
-        p7_p_el = numpy.nan
-        p8_p_el = numpy.nan
+        p1_p_el_c = numpy.nan
+        p2_p_el_c = numpy.nan
+        p3_p_el_c = numpy.nan
+        p4_p_el_c = numpy.nan
         p_el_col_ref=numpy.nan
     # for subtype = air/water heat pump
     if group_id == 1 or group_id == 4:
@@ -331,57 +331,57 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         try:
             df=t_in.to_frame()
             df.rename(columns = {t_in.name:'T_in'}, inplace = True)
-            df['Modus']=modus
-            df.loc[df['Modus']==1,'T_out']=t_in_secondary + DELTA_T
-            df.loc[df['Modus']==2,'T_out']=t_in_secondary - DELTA_T
+            df['mode']=mode
+            df.loc[df['mode']==1,'T_out']=t_in_secondary + DELTA_T
+            df.loc[df['mode']==2,'T_out']=t_in_secondary - DELTA_T
             df['T_amb']=t_amb
             
         except:
             try:
                 df=t_in_secondary.to_frame()
                 df.rename(columns = {t_in_secondary.name:'T_out'}, inplace = True)
-                df['Modus']=modus
-                df.loc[df['Modus']==1,'T_out']=df['T_out']+ DELTA_T
-                df.loc[df['Modus']==2,'T_out']=df['T_out'] - DELTA_T
+                df['mode']=mode
+                df.loc[df['mode']==1,'T_out']=df['T_out']+ DELTA_T
+                df.loc[df['mode']==2,'T_out']=df['T_out'] - DELTA_T
                 df['T_in']=t_in
                 df['T_amb']=t_amb
             except:
                 df=t_amb.to_frame()
                 df.rename(columns = {t_amb.name:'T_amb'}, inplace = True)
                 df['T_in']=t_in
-                df['Modus']=modus
-                df.loc[df['Modus']==1,'T_out']=t_in_secondary + DELTA_T
-                df.loc[df['Modus']==2,'T_out']=t_in_secondary - DELTA_T
+                df['mode']=mode
+                df.loc[df['mode']==1,'T_out']=t_in_secondary + DELTA_T
+                df.loc[df['mode']==2,'T_out']=t_in_secondary - DELTA_T
         if group_id == 1 or group_id == 2 or group_id == 3:
-            df.loc[df['Modus']==1,'COP'] = p1_cop * t_in + p2_cop * df['T_out'] + p3_cop + p4_cop * t_amb
-            df.loc[df['Modus']==1,'P_el'] = (p1_p_el * t_in + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * t_amb) * p_el_ref #this is the first calculated value for P_el
+            df.loc[df['mode']==1,'COP'] = p1_cop * t_in + p2_cop * df['T_out'] + p3_cop + p4_cop * t_amb
+            df.loc[df['mode']==1,'P_el'] = (p1_p_el_h * t_in + p2_p_el_h * df['T_out'] + p3_p_el_h + p4_p_el_h * t_amb) * p_el_ref #this is the first calculated value for P_el
             if group_id == 1:#with regulated heatpumps the electrical power can get too low. We defined a minimum value at 25% from the point at -7/output temperature.
-                df.loc[df['Modus']==2,'EER'] = (p1_eer * t_in + p2_eer * df['T_out'] + p3_eer + p4_eer * t_amb)
-                df.loc[df['Modus']==2,'P_el'] = (p5_p_el * t_in + p6_p_el * df['T_out'] + p7_p_el + p8_p_el * t_amb) * p_el_col_ref
-                df.loc[(df['Modus']==2) & (df['T_in'] < 25),'P_el'] = p_el_col_ref * (p5_p_el * 25 + p6_p_el * df['T_out'] + p7_p_el + p8_p_el * 25)
-                df.loc[(df['Modus']==2) & (df['EER']<1),'P_th'] = numpy.nan
-                df.loc[(df['Modus']==2) & (df['EER']<1),'EER'] = numpy.nan
-                df.loc[df['Modus']==2,'P_th'] = -(df['P_el'] * df['EER'])
-                df.loc[(df['Modus']==2) & (df['P_el']<0),'EER'] = numpy.nan
-                df.loc[(df['Modus']==2) & (df['P_el']<0),'P_th'] = numpy.nan
-                df.loc[(df['Modus']==2) & (df['P_el']<0),'P_el'] = numpy.nan
-                #df.loc[df['Modus']==2,'P_el'] = df['P_th'] / df['COP']
-                df.loc[df['Modus']==1,'t_in'] = -7
-                df.loc[df['Modus']==1,'t_amb'] = -7
+                df.loc[df['mode']==2,'EER'] = (p1_eer * t_in + p2_eer * df['T_out'] + p3_eer + p4_eer * t_amb)
+                df.loc[df['mode']==2,'P_el'] = (p1_p_el_c * t_in + p2_p_el_c * df['T_out'] + p3_p_el_c + p4_p_el_c * t_amb) * p_el_col_ref
+                df.loc[(df['mode']==2) & (df['T_in'] < 25),'P_el'] = p_el_col_ref * (p1_p_el_c * 25 + p2_p_el_c * df['T_out'] + p3_p_el_c + p4_p_el_c * 25)
+                df.loc[(df['mode']==2) & (df['EER']<1),'P_th'] = numpy.nan
+                df.loc[(df['mode']==2) & (df['EER']<1),'EER'] = numpy.nan
+                df.loc[df['mode']==2,'P_th'] = -(df['P_el'] * df['EER'])
+                df.loc[(df['mode']==2) & (df['P_el']<0),'EER'] = numpy.nan
+                df.loc[(df['mode']==2) & (df['P_el']<0),'P_th'] = numpy.nan
+                df.loc[(df['mode']==2) & (df['P_el']<0),'P_el'] = numpy.nan
+                #df.loc[df['mode']==2,'P_el'] = df['P_th'] / df['COP']
+                df.loc[df['mode']==1,'t_in'] = -7
+                df.loc[df['mode']==1,'t_amb'] = -7
             if group_id == 2:
                 df['t_in']=df['T_in']
                 df.loc[:,'t_amb'] = -7
-            df.loc[(df['Modus']==1) & (df['P_el'] < 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])),'P_el'] = 0.25 * p_el_ref * (p1_p_el * df['t_in'] + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * df['t_amb'])
-            df.loc[(df['Modus']==1) ,'P_th'] = (df['P_el'] * df['COP'])
-            df.loc[(df['Modus']==1) & (df['COP'] < 1),'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
-            df.loc[(df['Modus']==1) & (df['COP'] < 1),'P_th']=p_th_ref
-            df.loc[(df['Modus']==1) & (df['COP'] < 1),'COP']=1
+            df.loc[(df['mode']==1) & (df['P_el'] < 0.25 * p_el_ref * (p1_p_el_h * df['t_in'] + p2_p_el_h * df['T_out'] + p3_p_el_h + p4_p_el_h * df['t_amb'])),'P_el'] = 0.25 * p_el_ref * (p1_p_el_h * df['t_in'] + p2_p_el_h * df['T_out'] + p3_p_el_h + p4_p_el_h * df['t_amb'])
+            df.loc[(df['mode']==1) ,'P_th'] = (df['P_el'] * df['COP'])
+            df.loc[(df['mode']==1) & (df['COP'] < 1),'P_el']=p_th_ref#if COP is too low the electeric heating element is used in simulation
+            df.loc[(df['mode']==1) & (df['COP'] < 1),'P_th']=p_th_ref
+            df.loc[(df['mode']==1) & (df['COP'] < 1),'COP']=1
             df['m_dot']=df['P_th']/(DELTA_T * CP)
             del df['t_in']
             del df['t_amb']
         elif group_id == 4 or group_id == 5 or group_id == 6:
             df['COP'] = p1_cop * t_in + p2_cop * df['T_out'] + p3_cop + p4_cop * t_amb
-            df['P_el'] = (p1_p_el * t_in + p2_p_el * df['T_out'] + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            df['P_el'] = (p1_p_el_h * t_in + p2_p_el_h * df['T_out'] + p3_p_el_h + p4_p_el_h * t_amb) * p_el_ref
             df['P_th'] = df['P_el'] * df['COP']
             df.loc[df['COP'] < 1,'P_el']=p_th_ref
             df.loc[df['COP'] < 1,'P_th']=p_th_ref#if COP is too low the electeric heating element is used in simulation
@@ -392,17 +392,17 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         df['m_dot']=df['m_dot'].round(3)
         df['m_dot']=df['m_dot'].abs()
     else:
-        if modus==1:
+        if mode==1:
             t_out = t_in_secondary + DELTA_T #Inlet temperature is supposed to be heated up by 5 K
             EER=0
-        if modus==2: # Inlet temperature is supposed to be cooled down by 5 K
+        if mode==2: # Inlet temperature is supposed to be cooled down by 5 K
             t_out = t_in_secondary - DELTA_T
             COP=0
         # for regulated heat pumps
         if group_id == 1 or group_id == 2 or group_id == 3:
-            if modus==1:
+            if mode==1:
                 COP = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
-                P_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+                P_el = (p1_p_el_h * t_in + p2_p_el_h * t_out + p3_p_el_h + p4_p_el_h * t_amb) * p_el_ref
                 if group_id == 1:
                     t_in = -7
                     t_amb = t_in
@@ -410,20 +410,20 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
                     t_amb = -7
                 
                 if P_el < 0.25 * p_el_ref * (
-                    p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
-                    P_el = 0.25 * p_el_ref * (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb)
+                    p1_p_el_h * t_in + p2_p_el_h * t_out + p3_p_el_h + p4_p_el_h * t_amb):  # 25% of Pel @ -7°C T_amb = T_in
+                    P_el = 0.25 * p_el_ref * (p1_p_el_h * t_in + p2_p_el_h * t_out + p3_p_el_h + p4_p_el_h * t_amb)
                 P_th = P_el * COP
                 if COP <= 1:
                     COP = 1
                     P_el = p_th_ref
                     P_th = p_th_ref
-            elif modus==2:
+            elif mode==2:
                 EER = (p1_eer * t_in + p2_eer * t_out + p3_eer + p4_eer * t_amb)
                 
                 if t_in<25:
                     t_in=25
                     t_amb=t_in
-                P_el = (p5_p_el * t_in + p6_p_el * t_out + p7_p_el + p8_p_el * t_amb) * p_el_col_ref
+                P_el = (p1_p_el_c * t_in + p2_p_el_c * t_out + p3_p_el_c + p4_p_el_c * t_amb) * p_el_col_ref
                 if P_el<0:
                     EER = 0
                     P_el = 0
@@ -435,7 +435,7 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
 
         # for subtype = On-Off
         elif group_id == 4 or group_id == 5 or group_id == 6:
-            P_el = (p1_p_el * t_in + p2_p_el * t_out + p3_p_el + p4_p_el * t_amb) * p_el_ref
+            P_el = (p1_p_el_h * t_in + p2_p_el_h * t_out + p3_p_el_h + p4_p_el_h * t_amb) * p_el_ref
             COP = p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb
             P_th = P_el * COP
             if COP <= 1:
@@ -465,10 +465,10 @@ def cwd():
 class HeatPump:
     def __init__(self, parameters: pd.DataFrame):
         self.group_id = float(parameters['Group'].array[0])
-        self.p1_p_el = float(parameters['p1_P_el [1/°C]'].array[0])
-        self.p2_p_el = float(parameters['p2_P_el [1/°C]'].array[0])
-        self.p3_p_el = float(parameters['p3_P_el [-]'].array[0])
-        self.p4_p_el = float(parameters['p4_P_el [1/°C]'].array[0])
+        self.p1_p_el_h = float(parameters['p1_P_el_h [1/°C]'].array[0])
+        self.p2_p_el_h = float(parameters['p2_P_el_h [1/°C]'].array[0])
+        self.p3_p_el_h = float(parameters['p3_P_el_h [-]'].array[0])
+        self.p4_p_el_h = float(parameters['p4_P_el_h [1/°C]'].array[0])
         self.p1_cop = float(parameters['p1_COP [-]'].array[0])
         self.p2_cop = float(parameters['p2_COP [-]'].array[0])
         self.p3_cop = float(parameters['p3_COP [-]'].array[0])
@@ -480,26 +480,26 @@ class HeatPump:
             self.p2_eer = parameters['p2_EER [-]'].array[0]
             self.p3_eer = parameters['p3_EER [-]'].array[0]
             self.p4_eer = parameters['p4_EER [-]'].array[0]
-            self.p5_p_el = parameters['p5_P_el [1/°C]'].array[0]
-            self.p6_p_el = parameters['p6_P_el [1/°C]'].array[0]
-            self.p7_p_el = parameters['p7_P_el [-]'].array[0]
-            self.p8_p_el = parameters['p8_P_el [1/°C]'].array[0]
+            self.p1_p_el_c = parameters['p1_P_el_c [1/°C]'].array[0]
+            self.p2_p_el_c = parameters['p2_P_el_c [1/°C]'].array[0]
+            self.p3_p_el_c = parameters['p3_P_el_c [-]'].array[0]
+            self.p4_p_el_c = parameters['p4_P_el_c [1/°C]'].array[0]
             self.p_el_col_ref=parameters['P_el_c_ref [W]'].array[0]
         except:
             self.p1_eer = numpy.nan
             self.p2_eer = numpy.nan
             self.p3_eer = numpy.nan
             self.p4_eer = numpy.nan
-            self.p5_p_el = numpy.nan
-            self.p6_p_el = numpy.nan
-            self.p7_p_el = numpy.nan
-            self.p8_p_el = numpy.nan
+            self.p1_p_el_c = numpy.nan
+            self.p2_p_el_c = numpy.nan
+            self.p3_p_el_c = numpy.nan
+            self.p4_p_el_c = numpy.nan
             self.p_el_col_ref=numpy.nan
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
 
-    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float, modus: int = 1) -> dict:
+    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float, mode: int = 1) -> dict:
         """
         Performs the simulation of the heat pump model.
 
@@ -513,7 +513,7 @@ class HeatPump:
             Data frame containing the heat pump parameters from hplib.getParameters().
         t_amb : numeric or iterable (e.g. pd.Series)
             Ambient temperature :math:'T' of the air. [°C]
-        modus : int
+        mode : int
             for heating: 1, for cooling: 2
 
         Returns
@@ -531,10 +531,10 @@ class HeatPump:
         """
 
         t_in = t_in_primary  # info value for dataframe
-        if modus==1:
+        if mode==1:
             t_out = t_in_secondary + self.delta_t #Inlet temperature is supposed to be heated up by 5 K
             eer=0
-        if modus==2: # Inlet temperature is supposed to be cooled down by 5 K
+        if mode==2: # Inlet temperature is supposed to be cooled down by 5 K
             t_out = t_in_secondary - self.delta_t
             cop=0
         # for subtype = air/water heat pump
@@ -543,13 +543,13 @@ class HeatPump:
         t_ambient=t_amb
         # for regulated heat pumps
         if self.group_id in (1, 2, 3):
-            if modus==1:
+            if mode==1:
                 cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
 
-                p_el = (self.p1_p_el * t_in
-                        + self.p2_p_el * t_out
-                        + self.p3_p_el
-                        + self.p4_p_el * t_amb) * self.p_el_ref
+                p_el = (self.p1_p_el_h * t_in
+                        + self.p2_p_el_h * t_out
+                        + self.p3_p_el_h
+                        + self.p4_p_el_h * t_amb) * self.p_el_ref
 
                 if self.group_id == 1:
                     t_in = -7
@@ -558,15 +558,15 @@ class HeatPump:
                     t_amb = -7
 
                 # 25% of Pel @ -7°C T_amb = T_in
-                if p_el < 0.25 * self.p_el_ref * (self.p1_p_el * t_in
-                                                + self.p2_p_el * t_out
-                                                + self.p3_p_el
-                                                + self.p4_p_el * t_amb):
+                if p_el < 0.25 * self.p_el_ref * (self.p1_p_el_h * t_in
+                                                + self.p2_p_el_h * t_out
+                                                + self.p3_p_el_h
+                                                + self.p4_p_el_h * t_amb):
 
-                    p_el = 0.25 * self.p_el_ref * (self.p1_p_el * t_in
-                                                + self.p2_p_el * t_out
-                                                + self.p3_p_el
-                                                + self.p4_p_el * t_amb)
+                    p_el = 0.25 * self.p_el_ref * (self.p1_p_el_h * t_in
+                                                + self.p2_p_el_h * t_out
+                                                + self.p3_p_el_h
+                                                + self.p4_p_el_h * t_amb)
 
                 p_th = p_el * cop
 
@@ -574,12 +574,12 @@ class HeatPump:
                     cop = 1
                     p_el = self.p_th_ref
                     p_th = self.p_th_ref
-            if modus==2:
+            if mode==2:
                 eer = (self.p1_eer * t_in + self.p2_eer * t_out + self.p3_eer + self.p4_eer * t_amb)
                 if t_in<25:
                     t_in=25
                     t_amb=t_in
-                p_el = (self.p5_p_el * t_in + self.p6_p_el * t_out + self.p7_p_el + self.p8_p_el * t_amb) * self.p_el_col_ref
+                p_el = (self.p1_p_el_c * t_in + self.p2_p_el_c * t_out + self.p3_p_el_c + self.p4_p_el_c * t_amb) * self.p_el_col_ref
                 if p_el<0:
                     eer = 0
                     p_el = 0
@@ -591,10 +591,10 @@ class HeatPump:
 
         # for subtype = On-Off
         elif self.group_id in (4, 5, 6):
-            p_el = (self.p1_p_el * t_in
-                    + self.p2_p_el * t_out
-                    + self.p3_p_el
-                    + self.p4_p_el * t_amb) * self.p_el_ref
+            p_el = (self.p1_p_el_h * t_in
+                    + self.p2_p_el_h * t_out
+                    + self.p3_p_el_h
+                    + self.p4_p_el_h * t_amb) * self.p_el_ref
 
             cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
 

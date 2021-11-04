@@ -1521,10 +1521,10 @@ def calculate_heating_parameters(filename):
     paradf['p2_P_th [1/°C]'] = p2_P_th
     paradf['p3_P_th [-]'] = p3_P_th
     paradf['p4_P_th [1/°C]'] = p4_P_th
-    paradf['p1_P_el [1/°C]'] = p1_P_el
-    paradf['p2_P_el [1/°C]'] = p2_P_el
-    paradf['p3_P_el [-]'] = p3_P_el
-    paradf['p4_P_el [1/°C]'] = p4_P_el
+    paradf['p1_P_el_h [1/°C]'] = p1_P_el
+    paradf['p2_P_el_h [1/°C]'] = p2_P_el
+    paradf['p3_P_el_h [-]'] = p3_P_el
+    paradf['p4_P_el_h [1/°C]'] = p4_P_el
     paradf['p1_COP [-]'] = p1_COP
     paradf['p2_COP [-]'] = p2_COP
     paradf['p3_COP [-]'] = p3_COP
@@ -1543,8 +1543,8 @@ def calculate_heating_parameters(filename):
     table = parakey[
         ['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group', 'Refrigerant', 'Mass of Refrigerant [kg]',
          'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_ref [W]', 'P_th_ref [W]', 'COP_ref',
-         'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el [1/°C]', 'p2_P_el [1/°C]',
-         'p3_P_el [-]', 'p4_P_el [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
+         'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]',
+         'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
 
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
@@ -1633,10 +1633,10 @@ def add_generic():
         p2_P_th_average = pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
         p3_P_th_average = pd.unique(Group1['p3_P_th [-]']).mean(0)
         p4_P_th_average = pd.unique(Group1['p4_P_th [1/°C]']).mean(0)
-        p1_P_el_average = pd.unique(Group1['p1_P_el [1/°C]']).mean(0)
-        p2_P_el_average = pd.unique(Group1['p2_P_el [1/°C]']).mean(0)
-        p3_P_el_average = pd.unique(Group1['p3_P_el [-]']).mean(0)
-        p4_P_el_average = pd.unique(Group1['p4_P_el [1/°C]']).mean(0)
+        p1_P_el_average = pd.unique(Group1['p1_P_el_h [1/°C]']).mean(0)
+        p2_P_el_average = pd.unique(Group1['p2_P_el_h [1/°C]']).mean(0)
+        p3_P_el_average = pd.unique(Group1['p3_P_el_h [-]']).mean(0)
+        p4_P_el_average = pd.unique(Group1['p4_P_el_h [1/°C]']).mean(0)
         p1_COP_average = pd.unique(Group1['p1_COP [-]']).mean(0)
         p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
         p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
@@ -1645,10 +1645,10 @@ def add_generic():
         p2_Pdc_average = Group1['p2_Pdc [1/°C]'].mean(0)
         p3_Pdc_average = Group1['p3_Pdc [-]'].mean(0)
         p4_Pdc_average = Group1['p4_Pdc [1/°C]'].mean(0)
-        p5_P_el_average = Group1['p5_P_el [1/°C]'].mean(0)
-        p6_P_el_average = Group1['p6_P_el [1/°C]'].mean(0)
-        p7_P_el_average = Group1['p7_P_el [-]'].mean(0)
-        p8_P_el_average = Group1['p8_P_el [1/°C]'].mean(0)
+        p5_P_el_average = Group1['p1_P_el_c [1/°C]'].mean(0)
+        p6_P_el_average = Group1['p2_P_el_c [1/°C]'].mean(0)
+        p7_P_el_average = Group1['p3_P_el_c [-]'].mean(0)
+        p8_P_el_average = Group1['p4_P_el_c [1/°C]'].mean(0)
         p1_EER_average = Group1['p1_EER [-]'].mean(0)
         p2_EER_average = Group1['p2_EER [-]'].mean(0)
         p3_EER_average = Group1['p3_EER [-]'].mean(0)
@@ -1802,10 +1802,10 @@ def calculate_cooling_parameters():
     paradf['p2_Pdc [1/°C]'] = p2_Pdc
     paradf['p3_Pdc [-]'] = p3_Pdc
     paradf['p4_Pdc [1/°C]'] = p4_Pdc
-    paradf['p5_P_el [1/°C]'] = p1_P_el
-    paradf['p6_P_el [1/°C]'] = p2_P_el
-    paradf['p7_P_el [-]'] = p3_P_el
-    paradf['p8_P_el [1/°C]'] = p4_P_el
+    paradf['p1_P_el_c [1/°C]'] = p1_P_el
+    paradf['p2_P_el_c [1/°C]'] = p2_P_el
+    paradf['p3_P_el_c [-]'] = p3_P_el
+    paradf['p4_P_el_c [1/°C]'] = p4_P_el
     paradf['p1_EER [-]'] = p1_EER
     paradf['p2_EER [-]'] = p2_EER
     paradf['p3_EER [-]'] = p3_EER
@@ -1820,11 +1820,11 @@ def calculate_cooling_parameters():
        'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]',
        'P_th_h_ref [W]', 'COP_ref', 'P_el_c_ref [W]', 'P_th_c_ref [W]',
        'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]',
-       'p1_P_el [1/°C]', 'p2_P_el [1/°C]', 'p3_P_el [-]', 'p4_P_el [1/°C]',
+       'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]',
        'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'MAPE_P_el',
        'MAPE_COP', 'MAPE_P_th', 'p1_Pdc [1/°C]', 'p2_Pdc [1/°C]', 'p3_Pdc [-]',
-       'p4_Pdc [1/°C]', 'p5_P_el [1/°C]', 'p6_P_el [1/°C]', 'p7_P_el [-]',
-       'p8_P_el [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]',
+       'p4_Pdc [1/°C]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]',
+       'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]',
        'p4_EER [-]']]
     para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
