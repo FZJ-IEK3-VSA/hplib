@@ -1832,7 +1832,7 @@ def calculate_cooling_parameters():
 
 def validation_relative_error_cooling():
     # Simulate every set point for every heat pump and save csv file
-    df=pd.read_csv('../output/database_cooling_reduced_normalized.csv')
+    df=pd.read_csv('../output/database_cooling_reduced.csv')
     i=0
     prev_model='first Model'
     while i<len(df): 
