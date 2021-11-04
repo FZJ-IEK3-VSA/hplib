@@ -1538,15 +1538,16 @@ def calculate_heating_parameters(filename):
     key = pd.read_csv('../output/' + filename)
     key = key.loc[key['T_out [°C]'] == 52]
     parakey = para.merge(key, how='left', on='Model')
-    parakey = parakey.rename(columns={'Group_x': 'Group', 'P_el_ref': 'P_el_ref [W]', 'P_th_ref': 'P_th_ref [W]'})
-    parakey['COP_ref'] = parakey['P_th_ref [W]'] / parakey['P_el_ref [W]']
+    parakey = parakey.rename(columns={'Group_x': 'Group', 'P_el_ref': 'P_el_h_ref [W]', 'P_th_ref': 'P_th_h_ref [W]'})
+    parakey['COP_ref'] = parakey['P_th_h_ref [W]'] / parakey['P_el_h_ref [W]']
     table = parakey[
         ['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group', 'Refrigerant', 'Mass of Refrigerant [kg]',
-         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_ref [W]', 'P_th_ref [W]', 'COP_ref',
+         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]', 'P_th_h_ref [W]', 'COP_ref',
          'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]',
          'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
 
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+    table.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
 
 
 def validation_relative_error_heating():
@@ -1680,9 +1681,9 @@ def reduce_to_unique():
     df_cool=pd.read_csv('../output/database_cooling.csv')
     cooling_Models=df_cool['Model'].unique()
     Models = []
-    unique_values = pd.unique(df['p3_P_el [-]']).tolist()
+    unique_values = pd.unique(df['p3_P_el_h [-]']).tolist()
     for values in unique_values:
-        modelnames = df.loc[df['p3_P_el [-]'] == values, ['Model']]
+        modelnames = df.loc[df['p3_P_el_h [-]'] == values, ['Model']]
         for model in (modelnames.Model.values):
             for cooling_model in cooling_Models:
                 if model==cooling_model:
@@ -1814,7 +1815,7 @@ def calculate_cooling_parameters():
     paradf['Pdc_ref'] = Pdc_ref
     hplib=pd.read_csv('../output/hplib_database_heating.csv')       
     para = hplib.merge(paradf, how='left', on='Model')
-    para.rename(columns={'P_el_cooling_ref': 'P_el_c_ref [W]', 'P_el_ref [W]': 'P_el_h_ref [W]', 'Pdc_ref': 'P_th_c_ref [W]', 'P_th_ref [W]': 'P_th_h_ref [W]'}, inplace=True)
+    para.rename(columns={'P_el_cooling_ref': 'P_el_c_ref [W]', 'Pdc_ref': 'P_th_c_ref [W]'}, inplace=True)
     para=para[['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group',
        'Refrigerant', 'Mass of Refrigerant [kg]', 'SPL indoor [dBA]',
        'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]',
