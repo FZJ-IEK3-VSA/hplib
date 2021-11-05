@@ -1695,6 +1695,7 @@ def reduce_to_unique():
         new_df1 = df.loc[df['Model'] == model]
         new_df = pd.concat([new_df, new_df1])
     new_df.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
+    new_df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
 def reduce_cooling_data():
@@ -1813,7 +1814,8 @@ def calculate_cooling_parameters():
     paradf['p4_EER [-]'] = p4_EER
     paradf['P_el_cooling_ref'] = Pel_ref
     paradf['Pdc_ref'] = Pdc_ref
-    hplib=pd.read_csv('../output/hplib_database_heating.csv')       
+    hplib=pd.read_csv('../output/hplib_database_heating.csv')
+    os.remove('../output/hplib_database_heating.csv')        
     para = hplib.merge(paradf, how='left', on='Model')
     para.rename(columns={'P_el_cooling_ref': 'P_el_c_ref [W]', 'Pdc_ref': 'P_th_c_ref [W]'}, inplace=True)
     para=para[['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group',
