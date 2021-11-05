@@ -4,9 +4,9 @@ The ``hplib`` module provides a set of functions for simulating the performance 
 import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
-from typing import Any, Tuple
+from typing import Any, Dict, Union
 import os
-import numpy
+import numpy as np
 
 
 def load_database() -> pd.DataFrame:
@@ -313,15 +313,15 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         p4_p_el_c = parameters['p4_P_el_c [1/°C]'].array[0]
         p_el_col_ref=parameters['P_el_c_ref [W]'].array[0]
     except:
-        p1_eer = numpy.nan
-        p2_eer = numpy.nan
-        p3_eer = numpy.nan
-        p4_eer = numpy.nan
-        p1_p_el_c = numpy.nan
-        p2_p_el_c = numpy.nan
-        p3_p_el_c = numpy.nan
-        p4_p_el_c = numpy.nan
-        p_el_col_ref=numpy.nan
+        p1_eer = np.nan
+        p2_eer = np.nan
+        p3_eer = np.nan
+        p4_eer = np.nan
+        p1_p_el_c = np.nan
+        p2_p_el_c = np.nan
+        p3_p_el_c = np.nan
+        p4_p_el_c = np.nan
+        p_el_col_ref=np.nan
     # for subtype = air/water heat pump
     if group_id == 1 or group_id == 4:
         t_amb = t_in
@@ -359,12 +359,12 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
                 df.loc[df['mode']==2,'EER'] = (p1_eer * t_in + p2_eer * df['T_out'] + p3_eer + p4_eer * t_amb)
                 df.loc[df['mode']==2,'P_el'] = (p1_p_el_c * t_in + p2_p_el_c * df['T_out'] + p3_p_el_c + p4_p_el_c * t_amb) * p_el_col_ref
                 df.loc[(df['mode']==2) & (df['T_in'] < 25),'P_el'] = p_el_col_ref * (p1_p_el_c * 25 + p2_p_el_c * df['T_out'] + p3_p_el_c + p4_p_el_c * 25)
-                df.loc[(df['mode']==2) & (df['EER']<1),'P_th'] = numpy.nan
-                df.loc[(df['mode']==2) & (df['EER']<1),'EER'] = numpy.nan
+                df.loc[(df['mode']==2) & (df['EER']<1),'P_th'] = np.nan
+                df.loc[(df['mode']==2) & (df['EER']<1),'EER'] = np.nan
                 df.loc[df['mode']==2,'P_th'] = -(df['P_el'] * df['EER'])
-                df.loc[(df['mode']==2) & (df['P_el']<0),'EER'] = numpy.nan
-                df.loc[(df['mode']==2) & (df['P_el']<0),'P_th'] = numpy.nan
-                df.loc[(df['mode']==2) & (df['P_el']<0),'P_el'] = numpy.nan
+                df.loc[(df['mode']==2) & (df['P_el']<0),'EER'] = np.nan
+                df.loc[(df['mode']==2) & (df['P_el']<0),'P_th'] = np.nan
+                df.loc[(df['mode']==2) & (df['P_el']<0),'P_el'] = np.nan
                 #df.loc[df['mode']==2,'P_el'] = df['P_th'] / df['COP']
                 df.loc[df['mode']==1,'t_in'] = -7
                 df.loc[df['mode']==1,'t_amb'] = -7
@@ -486,15 +486,15 @@ class HeatPump:
             self.p4_p_el_c = parameters['p4_P_el_c [1/°C]'].array[0]
             self.p_el_col_ref=parameters['P_el_c_ref [W]'].array[0]
         except:
-            self.p1_eer = numpy.nan
-            self.p2_eer = numpy.nan
-            self.p3_eer = numpy.nan
-            self.p4_eer = numpy.nan
-            self.p1_p_el_c = numpy.nan
-            self.p2_p_el_c = numpy.nan
-            self.p3_p_el_c = numpy.nan
-            self.p4_p_el_c = numpy.nan
-            self.p_el_col_ref=numpy.nan
+            self.p1_eer = np.nan
+            self.p2_eer = np.nan
+            self.p3_eer = np.nan
+            self.p4_eer = np.nan
+            self.p1_p_el_c = np.nan
+            self.p2_p_el_c = np.nan
+            self.p3_p_el_c = np.nan
+            self.p4_p_el_c = np.nan
+            self.p_el_col_ref=np.nan
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
@@ -545,46 +545,61 @@ class HeatPump:
         if self.group_id in (1, 2, 3):
             if mode==1:
                 cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
-
-                p_el = (self.p1_p_el_h * t_in
-                        + self.p2_p_el_h * t_out
-                        + self.p3_p_el_h
-                        + self.p4_p_el_h * t_amb) * self.p_el_ref
-
+                p_el=self.p_el_ref * (self.p1_p_el_h * t_in
+                                    + self.p2_p_el_h * t_out
+                                    + self.p3_p_el_h
+                                    + self.p4_p_el_h * t_amb)
                 if self.group_id == 1:
-                    t_in = -7
+                    if isinstance(t_in, np.ndarray):
+                        t_in = np.full_like(t_in, -7)
+                    else:
+                        t_in = -7
                     t_amb = t_in
+
                 elif self.group_id == 2:
-                    t_amb = -7
-
-                # 25% of Pel @ -7°C T_amb = T_in
-                if p_el < 0.25 * self.p_el_ref * (self.p1_p_el_h * t_in
-                                                + self.p2_p_el_h * t_out
-                                                + self.p3_p_el_h
-                                                + self.p4_p_el_h * t_amb):
-
-                    p_el = 0.25 * self.p_el_ref * (self.p1_p_el_h * t_in
+                    if isinstance(t_amb, np.ndarray):
+                        t_amb = np.full_like(t_amb, -7)
+                    else:
+                        t_amb = -7
+                p_el_25 = 0.25 * self.p_el_ref * (self.p1_p_el_h * t_in
                                                 + self.p2_p_el_h * t_out
                                                 + self.p3_p_el_h
                                                 + self.p4_p_el_h * t_amb)
-
+                if isinstance(p_el, np.ndarray):
+                    p_el = np.where(p_el < p_el_25, p_el_25, p_el)
+                elif p_el < p_el_25:
+                    p_el = p_el_25
+                
+                
                 p_th = p_el * cop
-
-                if cop <= 1:
+                if isinstance(cop, np.ndarray):
+                    p_el = np.where(cop <= 1, self.p_th_ref, p_el)
+                    p_th = np.where(cop <= 1, self.p_th_ref, p_th)
+                    cop = np.where(cop <= 1, 1, cop)
+                elif cop <= 1:
                     cop = 1
                     p_el = self.p_th_ref
                     p_th = self.p_th_ref
             if mode==2:
                 eer = (self.p1_eer * t_in + self.p2_eer * t_out + self.p3_eer + self.p4_eer * t_amb)
-                if t_in<25:
+                if isinstance(t_in, np.ndarray):
+                    t_in=np.where(t_in<25,25,t_in)
+                elif t_in<25:
                     t_in=25
-                    t_amb=t_in
+                t_amb=t_in
                 p_el = (self.p1_p_el_c * t_in + self.p2_p_el_c * t_out + self.p3_p_el_c + self.p4_p_el_c * t_amb) * self.p_el_col_ref
-                if p_el<0:
+                if isinstance(p_el,np.ndarray):
+                    eer = np.where(p_el<0,0,eer)
+                    p_el = np.where(p_el<0,0,p_el)
+                elif p_el<0:
                     eer = 0
                     p_el = 0
                 p_th = -(eer*p_el)
-                if eer < 1:
+                if isinstance(eer,np.ndarray):
+                    p_el = np.where(eer <= 1, 0 , p_el)
+                    p_th = np.where(eer <= 1, 0 , p_th)
+                    eer = np.where(eer <= 1, 0, eer)
+                elif eer < 1:
                     eer = 0
                     p_el = 0
                     p_th = 0
@@ -600,7 +615,11 @@ class HeatPump:
 
             p_th = p_el * cop
 
-            if cop <= 1:
+            if isinstance(cop, np.ndarray):
+                p_el = np.where(cop <= 1, self.p_th_ref, p_el)
+                p_th = np.where(cop <= 1, self.p_th_ref, p_th)
+                cop = np.where(cop <= 1, 1, cop)
+            elif cop <= 1:
                 cop = 1
                 p_el = self.p_th_ref
                 p_th = self.p_th_ref
