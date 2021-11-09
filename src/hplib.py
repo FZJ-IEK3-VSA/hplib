@@ -367,6 +367,7 @@ class HeatPump:
 
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
+        
 
     def simulate(self, t_in_primary: Union[float, npt.ArrayLike],
                  t_in_secondary: Union[float, npt.ArrayLike],
@@ -405,7 +406,7 @@ class HeatPump:
         if self.group_id in (1, 4):
             t_amb = t_in
 
-        if self.group_id in range(6):
+        if self.group_id in (1,2,3,4,5,6):
             p_el = (self.p1_p_el * t_in
                     + self.p2_p_el * t_out
                     + self.p3_p_el
@@ -437,7 +438,7 @@ class HeatPump:
             elif p_el < p_el_25:
                 p_el = p_el_25
 
-        if self.group_id in range(6):
+        if self.group_id in (1,2,3,4,5,6):
             cop = self.p1_cop * t_in + self.p2_cop * t_out + self.p3_cop + self.p4_cop * t_amb
             p_th = p_el * cop
             if isinstance(cop, np.ndarray):
@@ -452,12 +453,12 @@ class HeatPump:
         # massflow
         m_dot = p_th / (self.delta_t * self.cp)
 
-        # round
+
         result = dict()
 
         # TODO: - Why is the input t_in_primary returned when it's never altered?
         # TODO: Return t_in instead?
-        #
+
         result['T_in'] = t_in_primary
         result['T_out'] = t_out
         result['T_amb'] = t_amb
