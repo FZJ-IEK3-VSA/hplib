@@ -518,7 +518,7 @@ class HeatPump:
 
         Returns
         -------
-        df : pd.DataFrame
+        result : dict
             with the following columns
             T_in = Input temperature :math:`T` at primary side of the heat pump. [°C]
             T_out = Output temperature :math:`T` at secondary side of the heat pump. [°C]
@@ -530,6 +530,9 @@ class HeatPump:
             m_dot = Mass flow at secondary side of the heat pump. [kg/s]
         """
 
+        if mode==2 and self.group_id > 1:
+            raise ValueError('Cooling is only possible with heat pumps of group id = 1.')
+        
         t_in = t_in_primary  # info value for dataframe
         if mode==1:
             t_out = t_in_secondary + self.delta_t #Inlet temperature is supposed to be heated up by 5 K
