@@ -28,7 +28,7 @@ Create the environment:
 
 `conda env create --name hplib --file requirements.txt`
 
-Create some code with `import hplib` and use the included functions `hplib.load_database()`, `hplib.get_parameters` and `hplib.simulate`.
+Create some code with `import hplib` and use the included functions `hplib.load_database()`, `hplib.get_parameters`, `hplib.HeatPump` and `hplib.HeatPump.simulate`.
 
 ---
 
@@ -65,11 +65,12 @@ The following columns are available for every heat pump of this library
 | SPL outdoor [dBA]| Sound emissions outdoor| 33 - 78 dBA|
 | PSB [W] | Eletrical power consumption, standby mode| 3 to 60 W |
 | Climate | Climate definition for set points, which were used for parameter identification | average, colder, warmer |
-| P_el_ref [W]| Electrical power at -7°C / 52°C | 881 to 23293 W |
-| P_th_ref [W]| Thermal power at -7°C / 52°C | 2400 to 69880 W |
+| P_el_h_ref [W]| Electrical power at -7°C / 52°C | 881 to 23293 W |
+| P_th_h_ref [W]| Thermal heating power at -7°C / 52°C | 2400 to 69880 W |
 | p1-p4_P_th | Fit-Parameters for thermal power  | - |
 | p1-p4_P_el | Fit-Parameters for electricl power  | P_el = P_el_ref * (p1 * T_in + p2 * T_out + p3 + p4 * T_amb) |
 | p1-p4_COP | Fit-Parameters for COP  | COP = p1 * T_in + p2 * T_out + p3 + p4 * T_amb|
+| p1-p4_EER | Fit-Parameters for EER  | EER = p1 * T_in + p2 * T_out + p3 + p4 * T_amb|
 | MAPE_P_el | mean absolute percentage error for electrical input power (simulation vs. measurement) | average over all heat pump models = 16,3 % |
 | MAPE_COP | mean absolute percentage error for thermal input power (simulation vs. measurement) | average over all heat pump models = 9,8 % |
 | MAPE_P_th | mean absolute percentage error for coefficient of performance (simulation vs. measurement) | average over all heat pump models = 19,7 % |
