@@ -11,8 +11,8 @@ For the simulation, it is possible to calculate outputs of a **specific manufact
 [1] *K. Schwamberger: „Modellbildung und Regelung von Gebäudeheizungsanlagen mit Wärmepumpen“, VDI Verlag, Düsseldorf, Fortschrittsberichte VDI Reihe 6 Nr. 263, 1991.*
 
 **For reference purposes:**
-- DOI: [![DOI](https://www.zenodo.org/badge/DOI/10.5281/zenodo.5553195.svg)](https://doi.org/10.5281/zenodo.5553195) 
-- Citation: Tjarko Tjaden, Hauke Hoops. (2021). RE-Lab-Projects/hplib: heat pump library (v1.2). Zenodo. https://doi.org/10.5281/zenodo.5553195
+- DOI: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5521597.svg)](https://doi.org/10.5281/zenodo.5521597)
+- Citation: Tjarko Tjaden, Hauke Hoops, Kai Rösken. (2021). RE-Lab-Projects/hplib: heat pump library (v1.3). Zenodo. https://doi.org/10.5281/zenodo.5521597
 
 ## Documentation
 
