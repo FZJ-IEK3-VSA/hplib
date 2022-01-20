@@ -643,3 +643,19 @@ class HeatPump:
         result['m_dot']= m_dot
 
         return result
+def calc_brine_temp(T_avg_D: float):
+    """
+    Calculate the soil temperature by the average Temperature of the day. 
+    Source: „WP Monitor“ Feldmessung von Wärmepumpenanlagen S. 115, Frauenhofer ISE, 2014
+    added 9 points at -15°C average day at 3°C soil temperature in order to prevent higher temperature of soil below -10°C.
+
+    Parameters
+    ----------
+    T_avg_D : the average temperature of the day.
+
+    Returns:
+    ----------
+    brine_temperature : the temperature of the soil/ Brine inflow temperature
+    """
+    brine_temperature = -0.0003*T_avg_D**3 + 0.0086*T_avg_D**2 + 0.3047*T_avg_D + 5.0647
+    return brine_temperature
