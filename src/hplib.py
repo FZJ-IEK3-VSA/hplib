@@ -457,10 +457,12 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         df['m_dot']=[abs(m_dot)]
     return df
 
+
 def cwd():
     real_path = os.path.realpath(__file__)
     dir_path = os.path.dirname(real_path)
     return dir_path
+
 
 class HeatPump:
     def __init__(self, parameters: pd.DataFrame):
@@ -643,19 +645,80 @@ class HeatPump:
         result['m_dot']= m_dot
 
         return result
-def calc_brine_temp(T_avg_D: float):
-    """
-    Calculate the soil temperature by the average Temperature of the day. 
-    Source: „WP Monitor“ Feldmessung von Wärmepumpenanlagen S. 115, Frauenhofer ISE, 2014
-    added 9 points at -15°C average day at 3°C soil temperature in order to prevent higher temperature of soil below -10°C.
 
-    Parameters
-    ----------
-    T_avg_D : the average temperature of the day.
 
-    Returns:
-    ----------
-    brine_temperature : the temperature of the soil/ Brine inflow temperature
-    """
-    brine_temperature = -0.0003*T_avg_D**3 + 0.0086*T_avg_D**2 + 0.3047*T_avg_D + 5.0647
-    return brine_temperature
+class HeatingSystem:
+    def __init__(self, t_outside_min: float = -15.0,
+                t_inside_set: float = 20.0,
+                t_hs_set: list = [35,28],
+                f_hs_size: float = 1.0,
+                f_hs_exp: float = 1.1):
+        """
+        Init function to set several input parameters for functions regarding the heating system.
+
+        Parameters:
+        ----------
+        t_outside_min : minimal reference outside temperatur for building.
+        t_inside_set : set room temperatur for building.
+        t_hf_set : list with maximum heating flow and return temperature in °C
+                [35,28] for floor heating
+                [55,45] for low temperatur radiator
+                [70,55] for radtiator
+        f_hs_size : factor of oversizing of heat distribution system
+        f_hs_exp : exponent factor of heating distribution system, e.g. 1.1 floor heating and 1.3 radiator
+        """
+
+        self.t_outside_min = t_outside_min
+        self.t_inside_set = t_inside_set
+        self.t_hf_max = t_hs_set[0]
+        self.t_hf_min = t_inside_set
+        self.t_hr_max = t_hs_set[1]
+        self.t_hr_min = t_inside_set
+        self.f_hs_size = f_hs_size
+        self.f_hs_exp = f_hs_exp
+
+
+    def calc_brine_temp(self, t_avg_d: float):
+        """
+        Calculate the soil temperature by the average Temperature of the day. 
+        Source: „WP Monitor“ Feldmessung von Wärmepumpenanlagen S. 115, Frauenhofer ISE, 2014
+        added 9 points at -15°C average day at 3°C soil temperature in order to prevent higher temperature of soil below -10°C.
+
+        Parameters
+        ----------
+        t_avg_d : the average temperature of the day.
+
+        Returns:
+        ----------
+        t_brine : the temperature of the soil/ Brine inflow temperature
+        """
+        
+        t_brine = -0.0003*t_avg_d**3 + 0.0086*t_avg_d**2 + 0.3047*t_avg_d + 5.0647
+        
+        return t_brine
+
+    def calc_heating_dist_temp(self, t_avg_d: float):
+        """
+        Calculate the heat distribution flow and return temperature 
+        as a function of the moving average daily mean outside temperature.
+        Calculations are bsed on DIN V 4701-10, Section 5
+
+        Parameters
+        ----------
+        self : parameters from __init__
+
+        Returns:
+        ----------
+        t_dist : list with heating flow and heating return temperature
+        """
+        
+        if t_avg_d > self.t_inside_set:
+            t_hf = self.t_hf_min
+            t_hr = self.t_hr_min
+        else:
+            t_hf = self.t_hf_min + ((1/self.f_hs_size) * ((self.t_inside_set-t_avg_d)/(self.t_inside_set-self.t_outside_min)))**(1/self.f_hs_exp) * (self.t_hf_max - self.t_hf_min)
+            t_hr = self.t_hr_min + ((1/self.f_hs_size) * ((self.t_inside_set-t_avg_d)/(self.t_inside_set-self.t_outside_min)))**(1/self.f_hs_exp) * (self.t_hr_max - self.t_hr_min)
+        
+        t_dist = [t_hf, t_hr]
+        
+        return t_dist
