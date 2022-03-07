@@ -3,7 +3,7 @@ from pathlib import Path
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 setup(name='hplib',
-    version='0.0.8',
+    version='0.0.9',
     description='Database and code to simulate heat pumps',
     install_requires=['numpy >= 1.16.0', 
                     'pandas >= 0.22.0'],
@@ -11,6 +11,6 @@ setup(name='hplib',
     long_description_content_type='text/markdown',
     url='https://github.com/RE-Lab-Projects/hplib',
     author='RE-Lab HS-Emden-Leer',
-    packages=['src'],
+    packages=['hplib'],
     include_package_data=True
     )

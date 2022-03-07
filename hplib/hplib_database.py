@@ -1026,7 +1026,7 @@ def import_heating_data():
     df.sort_values(by=['Manufacturer', 'Model'], inplace=True)
     os.chdir("../")
     df.to_csv(r'../output/database_heating.csv', index=False)
-    os.chdir('../src/')
+    os.chdir('../hplib/')
 
 
 def import_cooling_data():
@@ -1278,7 +1278,7 @@ def import_cooling_data():
     df.drop(index=df[filt].index, inplace=True)
     os.chdir("../..")
     df.to_csv(os.getcwd() + r'/output/database_cooling.csv', index=False)
-    os.chdir("src")
+    os.chdir("hplib")
 
 
 def reduce_heating_data(filename, climate):

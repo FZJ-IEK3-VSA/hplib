@@ -16,7 +16,7 @@ For the simulation, it is possible to calculate outputs of a **specific manufact
 
 ## Documentation
 
-If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](http://htmlpreview.github.io/?https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.html) or [Jupyter-Notebook](https://github.com/RE-Lab-Projects/hplib/blob/main/src/documentation.ipynb). There you also find a **simulation examples** and a **validation**.
+If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](http://htmlpreview.github.io/?https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.html) or [Jupyter-Notebook](https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.ipynb). There you also find a **simulation examples** and a **validation**.
 
 ## Usage
 
@@ -32,7 +32,7 @@ Create some code with `import hplib` and use the included functions `hplib.load_
 
 ---
 
-**Hint:** The csv files in the `output` folder are for documentation and validation purpose. The code and database files, which are meant to be used for simulations, are located in the `src` folder. 
+**Hint:** The csv files in the `output` folder are for documentation and validation purpose. The code and database files, which are meant to be used for simulations, are located in the `hplib` folder. 
 
 ---
 
