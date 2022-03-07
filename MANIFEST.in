@@ -16,3 +16,5 @@ global-exclude .DS_Store
 global-exclude .git*
 global-exclude \#*
 global-exclude .ipynb_checkpoints*
+include versioneer.py
+include hplib/_version.py
