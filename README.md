@@ -82,7 +82,4 @@ This repository is based on all pdf files that were download for every manufactu
 
 ## Further development & possibilities to collaborate
 
-- Extend hplib.py and hplib_database.csv for cooling functionality 
-- Make hplib installable via `pip`
-
 If you find errors or are interested in developing together on the heat pump library, please create an ISSUE and/or FORK this repository and create a PULL REQUEST.
