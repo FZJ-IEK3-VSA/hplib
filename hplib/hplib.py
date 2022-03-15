@@ -457,7 +457,20 @@ def simulate(t_in_primary: any, t_in_secondary: any, parameters: pd.DataFrame,
         df['m_dot']=[abs(m_dot)]
     return df
 
+def same_built_type(modelname):
+    """
+    Returns all models which have the same parameters. But different names.
 
+    Parameters
+    ----------
+    modelname : the modelname which is in the hplib_database.csv
+
+    Returns
+    ----------
+    list : list of all models with same fitting parameters
+    """
+    same_built=pd.read_pickle(cwd()+r'/same_built_type.pkl')[modelname]
+    return (same_built)
 def cwd():
     real_path = os.path.realpath(__file__)
     dir_path = os.path.dirname(real_path)

@@ -4,7 +4,7 @@ import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
 import hplib as hpl
-
+import pickle
 # Functions
 
 def import_heating_data():
@@ -1681,19 +1681,29 @@ def reduce_to_unique():
     df_cool=pd.read_csv('../output/database_cooling.csv')
     cooling_Models=df_cool['Model'].unique()
     Models = []
+    built_type={}
     unique_values = pd.unique(df['p3_P_el_h [-]']).tolist()
     for values in unique_values:
         modelnames = df.loc[df['p3_P_el_h [-]'] == values, ['Model']]
+        equal_Models=[]
         for model in (modelnames.Model.values):
+            equal_Models.append(model)
             for cooling_model in cooling_Models:
                 if model==cooling_model:
                     modelnames.Model.values[0]=model    
         Models.append(modelnames.Model.values[0])
+        built_type[modelnames.Model.values[0]]=equal_Models
     new_df = pd.DataFrame()
     new_df1 = pd.DataFrame()
     for model in Models:
         new_df1 = df.loc[df['Model'] == model]
         new_df = pd.concat([new_df, new_df1])
+    # create a binary pickle file 
+    f = open("same_built_type.pkl","wb")
+    # write the python object (dict) to pickle file
+    pickle.dump(built_type,f)
+    # close file
+    f.close()
     new_df.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
     new_df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
