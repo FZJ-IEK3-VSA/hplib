@@ -514,7 +514,7 @@ class HeatPump:
         self.delta_t = 5  # Inlet temperature is supposed to be heated up by 5 K
         self.cp = 4200  # J/(kg*K), specific heat capacity of water
 
-    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float, mode: int = 1) -> dict:
+    def simulate(self, t_in_primary: float, t_in_secondary: float, t_amb: float, mode: int = 1, p_th_min: float = 0) -> dict:
         """
         Performs the simulation of the heat pump model.
 
@@ -530,6 +530,7 @@ class HeatPump:
             Ambient temperature :math:'T' of the air. [°C]
         mode : int
             for heating: 1, for cooling: 2
+        P_th_min : Minimum thermal power output [W]. Inverter heat pumps increase electrical Power input. At maximum electrical input a electrical heating rod turns on.
 
         Returns
         -------
@@ -587,14 +588,22 @@ class HeatPump:
                     p_el = np.where(p_el < p_el_25, p_el_25, p_el)
                 elif p_el < p_el_25:
                     p_el = p_el_25
-                
-                
+
                 p_th = p_el * cop
                 if isinstance(cop, np.ndarray):
                     p_el = np.where(cop <= 1, self.p_th_ref, p_el)
                     p_th = np.where(cop <= 1, self.p_th_ref, p_th)
                     cop = np.where(cop <= 1, 1, cop)
-                elif cop <= 1:
+                elif p_th < p_th_min:
+                    if cop>1:
+                        if self.p_el_ref > p_th_min/cop:
+                            p_el = p_th_min/cop
+                            p_th = p_th_min
+                        else:
+                            p_el = self.p_el_ref + self.p_th_ref
+                            p_th = self.p_el_ref*cop + self.p_th_ref
+                            cop = p_th/p_el                            
+                if cop <= 1:
                     cop = 1
                     p_el = self.p_th_ref
                     p_th = self.p_th_ref
@@ -637,10 +646,17 @@ class HeatPump:
                 p_el = np.where(cop <= 1, self.p_th_ref, p_el)
                 p_th = np.where(cop <= 1, self.p_th_ref, p_th)
                 cop = np.where(cop <= 1, 1, cop)
-            elif cop <= 1:
+            elif p_th < p_th_min:
+                if cop>1: 
+                    p_th=p_th+self.p_th_ref
+                    p_el=p_el+self.p_th_ref
+                    cop=p_th/p_el
+            if cop <= 1:
                 cop = 1
                 p_el = self.p_th_ref
                 p_th = self.p_th_ref
+            
+
 
         # massflow
         m_dot = abs(p_th / (self.delta_t * self.cp))
