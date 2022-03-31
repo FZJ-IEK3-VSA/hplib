@@ -12,27 +12,13 @@ For the simulation, it is possible to calculate outputs of a **specific manufact
 
 **For reference purposes:**
 - DOI: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5521597.svg)](https://doi.org/10.5281/zenodo.5521597)
-- Citation: Tjarko Tjaden, Hauke Hoops, Kai Rösken. (2021). RE-Lab-Projects/hplib: heat pump library (v1.3). Zenodo. https://doi.org/10.5281/zenodo.5521597
+- Citation: Tjarko Tjaden, Hauke Hoops, Kai Rösken. (2021). RE-Lab-Projects/hplib: heat pump library (v1.6). Zenodo. https://doi.org/10.5281/zenodo.5521597
 
 ## Documentation
 
 If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](http://htmlpreview.github.io/?https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.html) or [Jupyter-Notebook](https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.ipynb). There you also find a **simulation examples** and a **validation**.
 
-## Usage
 
-Download or clone repository:
-
-`git clone https://github.com/RE-Lab-Projects/hplib.git`
-
-Create the environment:
-
-`conda env create --name hplib --file requirements.txt`
-
-Create some code with `import hplib` and use the included functions `hplib.load_database()`, `hplib.get_parameters`, `hplib.HeatPump` and `hplib.HeatPump.simulate`.
-
----
-
-**Hint:** The csv files in the `output` folder are for documentation and validation purpose. The code and database files, which are meant to be used for simulations, are located in the `hplib` folder. 
 
 ---
 
@@ -74,6 +60,25 @@ The following columns are available for every heat pump of this library
 | MAPE_P_el | mean absolute percentage error for electrical input power (simulation vs. measurement) | average over all heat pump models = 16,3 % |
 | MAPE_COP | mean absolute percentage error for thermal input power (simulation vs. measurement) | average over all heat pump models = 9,8 % |
 | MAPE_P_th | mean absolute percentage error for coefficient of performance (simulation vs. measurement) | average over all heat pump models = 19,7 % |
+
+## Usage
+
+- Get repository with pip:
+  - `pip install hplib`
+
+or: 
+
+- Download or clone repository:
+  - `git clone https://github.com/RE-Lab-Projects/hplib.git`
+  - Create the environment:
+    - `conda env create --name hplib --file requirements.txt`
+
+Create some code with `from hplib import hplib` and use the included functions `hplib.load_database()`, `hplib.get_parameters`, `hplib.same_built_type()`,  `hplib.HeatPump`, `hplib.HeatPump.simulate`, `hplib.HeatingSystem.calc_brine_temp()` and `hplib.HeatingSystem.calc_heating_dist_temp()`
+
+
+**Hint:** The csv files in the `output` folder are for documentation and validation purpose. The code and database files, which are meant to be used for simulations, are located in the `hplib` folder. 
+
+---
 
 ## Input-Data
 The European Heat Pump Association (EHPA) hosts a website with the results of laboratory measurements from the keymark certification process. For every heat pump model a pdf file can be downloaded from https://keymark.eu/en/products/heatpumps/certified-products.
