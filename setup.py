@@ -15,5 +15,6 @@ setup(  name='hplib',
         url='https://github.com/RE-Lab-Projects/hplib',
         author='RE-Lab HS-Emden-Leer',
         packages=['hplib'],
+        package_data={'hplib': ['hplib/*.csv', 'hplib/*.pkl']},
         include_package_data=True
         )
