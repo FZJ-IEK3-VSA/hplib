@@ -2,9 +2,9 @@ include MANIFEST.in
 include LICENSE
 include README.md
 include setup.py
-include hplib\hplib_database.csv
-include hplib\hplib.py
-include hplib\same_built_type.pkl
+include hplib/hplib_database.csv
+include hplib/hplib.py
+include hplib/same_built_type.pkl
 
 global-exclude __pycache__
 global-exclude *.pyc
