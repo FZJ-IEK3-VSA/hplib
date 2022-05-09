@@ -11,6 +11,7 @@ testpaths = [
 [project]
 name='hplib'
 authors= [{name='RE-Lab-Projects', email = 're-lab-projects@hs-emden-leer.de'}]
+dynamic=['version', 'description']
 
 [project.optional-dependencies]
 doc=[
