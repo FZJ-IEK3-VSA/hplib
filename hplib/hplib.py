@@ -1,6 +1,7 @@
 """
 The ``hplib`` module provides a set of functions for simulating the performance of heat pumps.
 """
+import string
 import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
@@ -459,7 +460,7 @@ def simulate(t_in_primary: Union[float,np.ndarray], t_in_secondary: Union[float,
     result['m_dot']= [m_dot]
     return result
 
-def same_built_type(modelname):
+def same_built_type(modelname: string) -> list:
     """
     Returns all models which have the same parameters. But different names.
 
@@ -469,11 +470,15 @@ def same_built_type(modelname):
 
     Returns
     ----------
-    list : list of all models with same fitting parameters
+    same_built : list of all models with same fitting parameters
     """
     same_built=pd.read_pickle(cwd()+r'/same_built_type.pkl')[modelname]
     return (same_built)
+
 def cwd():
+    """
+    Returns parent directory.
+    """
     real_path = os.path.realpath(__file__)
     dir_path = os.path.dirname(real_path)
     return dir_path
