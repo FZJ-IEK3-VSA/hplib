@@ -14,6 +14,4 @@ Read installation instructions in {ref}`Installation`.
 ```{toctree}
 :caption: 'Contents:'
 :maxdepth: 2
-
-usage
 ```
