@@ -3,7 +3,7 @@ requires = ['flit_core >=3.4,<4']
 build-backend = "flit_core.buildapi"
 
 [tool.pytest.ini_options]
-addopts = "--cov=bslib"
+addopts = "--cov=hplib"
 testpaths = [
     "tests",
 ]
@@ -20,17 +20,3 @@ doc=[
     'furo',
     'nbsphinx',
 ]
-
-[tool.mypy]
-mypy_path = "bslib"
-check_untyped_defs = true
-disallow_any_generics = true
-ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
-strict_equality = true
-warn_redundant_casts = true
-warn_return_any = true
-warn_unreachable = true
-warn_unused_configs = true
-no_implicit_reexport = true
