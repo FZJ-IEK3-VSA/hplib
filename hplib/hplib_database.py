@@ -7,7 +7,7 @@ import hplib as hpl
 import pickle
 # Functions
 
-def import_heating_data():
+def import_heating_data(scandirectory):
     # read in keymark data from *.txt files in /input/txt/
     # save a dataframe to database_heating.csv in folder /output/
     Modul = []
@@ -30,7 +30,7 @@ def import_heating_data():
     df = pd.DataFrame()
     os.chdir('../')
     root = os.getcwd()
-    Scanordner = (root + '/input/txt')
+    Scanordner = (root + '/input/'+scandirectory)
     os.chdir(Scanordner)
     Scan = os.scandir(os.getcwd())
     with Scan as dir1:
@@ -58,14 +58,18 @@ def import_heating_data():
                 date = date[61:]
                 if (date == '17 Dec 2020\n'):
                     date = '17.12.2020\n'
-                if (date == '18 Dec 2020\n'):
+                elif (date == '18 Dec 2020\n'):
                     date = '18.12.2020\n'
-                if (date.startswith('5 Mar 2021')):
+                elif (date.startswith('5 Mar 2021')):
                     date = '05.03.2021\n'
-                if (date.startswith('15 Feb 2021')):
+                elif (date.startswith('15 Feb 2021')):
                     date = '15.02.2021\n'
-                if (date.startswith('22 Feb 2021')):
+                elif (date.startswith('22 Feb 2021')):
                     date = '22.02.2021\n'
+                elif (date.startswith('18 Mar 2022')):
+                    date = '18.03.2022\n'
+                if date.startswith('3x400V 50Hz'):
+                    print(file)
                 for lines in contents:
                     i = i + 1
                     if (lines.startswith('Name\n') == 1):
@@ -357,7 +361,7 @@ def import_heating_data():
                         if (contents[i - 3] == 'Mass Of\n'):
                             continue
                         refrigerant = (contents[i])
-                    elif (lines.startswith('Mass Of') == 1):
+                    elif (lines.startswith('Mass Of') == 1 or lines.startswith('Mass of')):
                         if (lines == 'Mass Of\n'):
                             mass = contents[i + 1]
                         elif (lines.endswith('kg\n') == 1):
@@ -446,7 +450,9 @@ def import_heating_data():
                             if (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
                                 continue
                             if (contents[i + 2].startswith('EHPA')):  # End of page
-                                if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
+                                if (len(contents)- i)<10:
+                                    continue
+                                elif (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
                                     continue
                             minusfifteen_medium = contents[i + 2]
 
@@ -968,16 +974,16 @@ def import_heating_data():
     df['Manufacturer'] = Manufacturer
     df['Model'] = Modul
     df['Date'] = Date
-    df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y')
+    #df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y')
     df['Type'] = Type
     df['SPL indoor [dBA]'] = SPLindoor
     df['SPL outdoor [dBA]'] = SPLoutdoor
     df['Refrigerant'] = Refrigerant
     df['Mass of Refrigerant [kg]'] = Mass
-    df['Poff [W]'] = Poff
-    df['Poff [W]'] = df['Poff [W]'].astype(int)
-    df['PSB [W]'] = Psb
-    df['PSB [W]'] = df['PSB [W]'].astype(int)
+    #df['Poff [W]'] = Poff
+    #df['Poff [W]'] = df['Poff [W]'].astype(int)
+    #df['PSB [W]'] = Psb
+    #df['PSB [W]'] = df['PSB [W]'].astype(int)
     df['Prated [W]'] = Prated
 
     df['Guideline'] = Guideline
@@ -1029,7 +1035,7 @@ def import_heating_data():
     os.chdir('../hplib/')
 
 
-def import_cooling_data():
+def import_cooling_data(scandirectory):
     # read in keymark data from *.txt files in /input/txt/
     # save a dataframe to database_heating.csv in folder /output/
     Modul = []
@@ -1046,7 +1052,7 @@ def import_cooling_data():
     df = pd.DataFrame()
     os.chdir('../')
     root = os.getcwd()
-    Scanordner = (root + '/input/txt')
+    Scanordner = (root + '/input/'+ scandirectory)
     os.chdir(Scanordner)
     Scan = os.scandir(os.getcwd())
     with Scan as dir1:
