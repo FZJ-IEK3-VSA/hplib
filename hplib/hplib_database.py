@@ -1546,6 +1546,7 @@ def calculate_heating_parameters(filename):
          'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]',
          'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
 
+    table.to_csv('hplib_database_all.csv', encoding='utf-8', index=False)
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
     table.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
 
