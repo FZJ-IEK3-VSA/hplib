@@ -12,7 +12,7 @@ For the simulation, it is possible to calculate outputs of a **specific manufact
 
 **For reference purposes:**
 - DOI: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5521597.svg)](https://doi.org/10.5281/zenodo.5521597)
-- Citation: Tjarko Tjaden, Hauke Hoops, Kai Rösken. (2021). RE-Lab-Projects/hplib: heat pump library (v1.7). Zenodo. https://doi.org/10.5281/zenodo.5521597
+- Citation: Tjarko Tjaden, Hauke Hoops, Kai Rösken. (2021). RE-Lab-Projects/hplib: heat pump library (v1.8). Zenodo. https://doi.org/10.5281/zenodo.5521597
 
 ## Documentation
 
