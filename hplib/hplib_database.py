@@ -8,7 +8,7 @@ import pickle
 # Functions
 
 def import_heating_data():
-    # read in keymark data from *.txt files in /input/txt/
+    # read in keymark data from *.txt files in /input/txt_07_22/
     # save a dataframe to database_heating.csv in folder /output/
     Modul = []
     Manufacturer = []
@@ -30,7 +30,7 @@ def import_heating_data():
     df = pd.DataFrame()
     os.chdir('../')
     root = os.getcwd()
-    Scanordner = (root + '/input/txt')
+    Scanordner = (root+'/input/txt_07_22')
     os.chdir(Scanordner)
     Scan = os.scandir(os.getcwd())
     with Scan as dir1:
@@ -51,6 +51,7 @@ def import_heating_data():
                 climate = 'NaN'
                 NumberOfTestsPerNorm = []
                 NumberOfTestsPerModule = []
+                low_medium_swapped=0#indicator if they are swaped
                 i = 1  # indicator for the line wich is read
                 d = 0  # indicator if only medium Temperature is given
                 p = 0  # -15° yes or no
@@ -58,14 +59,22 @@ def import_heating_data():
                 date = date[61:]
                 if (date == '17 Dec 2020\n'):
                     date = '17.12.2020\n'
-                if (date == '18 Dec 2020\n'):
+                elif (date == '18 Dec 2020\n'):
                     date = '18.12.2020\n'
-                if (date.startswith('5 Mar 2021')):
+                elif (date.startswith('5 Mar 2021')):
                     date = '05.03.2021\n'
-                if (date.startswith('15 Feb 2021')):
+                elif (date.startswith('15 Feb 2021')):
                     date = '15.02.2021\n'
-                if (date.startswith('22 Feb 2021')):
+                elif (date.startswith('22 Feb 2021')):
                     date = '22.02.2021\n'
+                elif (date.startswith('18 Mar 2022')):
+                    date = '18.03.2022\n'
+                elif date.startswith('7 Jul 2022'):
+                    date='07.07.2022\n'
+                if ' Jun ' in date:
+                    date=date.replace(' Jun ','.06.')
+                if ' Jul ' in date:
+                    date=date.replace(' Jul ','.07.')
                 for lines in contents:
                     i = i + 1
                     if (lines.startswith('Name\n') == 1):
@@ -108,16 +117,22 @@ def import_heating_data():
                             manufacturer = 'Viessmann\n'
 
                     elif (lines.endswith('Date\n') == 1):
+                        if contents[i-2].startswith('Phase'):
+                            continue
                         date = (contents[i])
                         if (date == 'basis\n'):
                             date = contents[i - 3]
                             date = date[14:]
-                    elif (lines.startswith('Model') == 1):
+                    elif (lines.startswith('Model:') == 1):
                         modul = (contents[i - 2])
+                        if manufacturer.startswith('Heliotherm'):
+                            modul=('1234567'+contents[i-31])
                         splindoor_low = 'NaN'
                         splindoor_medium = 'NaN'
                         sploutdoor_low = 'NaN'
                         sploutdoor_medium = 'NaN'
+                    elif lines.startswith('Heat Pump Type '):
+                        heatpumpType=lines[15:-1]
                     elif lines.endswith('Type\n'):
                         heatpumpType = contents[i][:-1]
                         if heatpumpType.startswith('A'):
@@ -354,12 +369,12 @@ def import_heating_data():
                                 sploutdoor_low = contents[i][:-7]
                                 sploutdoor_medium = contents[i][:-7]
                     elif (lines == 'Refrigerant\n'):
-                        if (contents[i - 3] == 'Mass Of\n'):
+                        if (contents[i - 3] == 'Mass Of\n') or (contents[i - 3] == 'Mass of\n'):
                             continue
                         refrigerant = (contents[i])
-                    elif (lines.startswith('Mass Of') == 1):
-                        if (lines == 'Mass Of\n'):
-                            mass = contents[i + 1]
+                    elif (lines.startswith('Mass Of') == 1 or lines.startswith('Mass of')):
+                        if (lines == 'Mass Of\n') or (lines == 'Mass of\n'):
+                            mass = contents[i + 1]                    
                         elif (lines.endswith('kg\n') == 1):
                             mass = contents[i - 2]
                             mass = mass[20:]
@@ -403,13 +418,20 @@ def import_heating_data():
 
 
                     elif (lines.startswith('Pdh Tj = -15°C') == 1):  # check
+                        if (contents[i].startswith('Cdh') == 1):  # wrong content
+                            continue
+                        if (contents[i].startswith('EHPA') == 1):  # wrong content
+                            continue
                         if (contents[i].endswith('Cdh\n') == 1):  # wrong content
                             continue
-                        if (contents[i] == '\n'):  # no content
+                        elif (contents[i] == '\n'):  # no content
                             continue
                         else:
                             minusfifteen_low = contents[i]
-                            P_th.append(minusfifteen_low[:-4])
+                            if minusfifteen_low.endswith('kW'):
+                                P_th.append(minusfifteen_low[:-4])
+                            else:
+                                P_th.append(minusfifteen_low)
                             T_in.append('-15')
                             if d == 0:  # first low than medium Temperatur
                                 if (climate == 'average'):
@@ -443,14 +465,18 @@ def import_heating_data():
                             Type.append(heatpumpType)
                             if (contents[i + 2].startswith('COP')):  # for PDF without medium heat
                                 continue
-                            if (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
+                            elif (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
                                 continue
-                            if (contents[i + 2].startswith('EHPA')):  # End of page
-                                if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
+                            elif (contents[i + 2].startswith('EHPA')):  # End of page
+                                if (len(contents)- i)<10:
+                                    continue
+                                elif (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
                                     continue
                             minusfifteen_medium = contents[i + 2]
-
-                            P_th.append(minusfifteen_medium[:-4])
+                            if minusfifteen_medium.endswith('kW'):
+                                P_th.append(minusfifteen_medium[:-4])
+                            else:
+                                P_th.append(minusfifteen_medium)
                             T_in.append('-15')
                             if (climate == 'average'):
                                 T_out.append('55')
@@ -477,7 +503,9 @@ def import_heating_data():
                             continue
                         if (contents[i].startswith('EHPA')):
                             continue
+
                         COP.append(contents[i][:-1])
+                        
                         NumberOfTestsPerModule.append(i)
                         p = 1
 
@@ -487,6 +515,7 @@ def import_heating_data():
                             continue
                         if (contents[i + 2].startswith('EHPA')):  # no medium Climate
                             continue
+                        
                         COP.append(contents[i + 2][:-1])
                         NumberOfTestsPerModule.append(i)
                         p = 2
@@ -494,6 +523,39 @@ def import_heating_data():
 
                     elif (lines.startswith('Pdh Tj = -7°C') == 1):  # check
                         minusseven_low = contents[i]
+                        if 'k' in minusseven_low[:-4]:
+                            low_medium_swapped=1
+                            if minusseven_low[10]=='.':
+                                minusseven_low=(minusseven_low[:-8])
+                                minusseven_medium = contents[i][-8:]
+                                prated_medium=prated_medium[-4:]
+                                prated_low=prated_low[:4]
+                            elif minusseven_low[11]=='.':
+                                minusseven_low=(minusseven_low[:-9])
+                                minusseven_medium = contents[i][-9:]
+                                prated_medium=prated_medium[-4:]
+                                prated_low=prated_low[:4]
+                            P_th.append(minusseven_medium[:-4])
+                            T_in.append('-7')
+                            if (climate == 'average'):
+                                T_out.append('52')
+                            elif (climate == 'cold'):
+                                T_out.append('44')
+                            elif (climate == 'warm'):
+                                T_out.append('55')
+                            Modul.append(modul[7:-1])
+                            Manufacturer.append(manufacturer[:-1])
+                            Date.append(date[:-1])
+                            Refrigerant.append(refrigerant[:-1])
+                            # SPLindoor.append(splindoor_low)
+                            SPLindoor.append(splindoor_medium)
+                            # SPLoutdoor.append(sploutdoor_low)
+                            SPLoutdoor.append(sploutdoor_medium)
+                            Mass.append(mass[:-4])
+                            Prated.append(prated_medium)
+                            Type.append(heatpumpType)
+                            Guideline.append(guideline[:-1])
+                            Climate.append(climate)
                         P_th.append(minusseven_low[:-4])
                         T_in.append('-7')
                         if d == 0:  # first low than medium Temperatur
@@ -511,7 +573,7 @@ def import_heating_data():
                                 T_out.append('44')
                             elif (climate == 'warm'):
                                 T_out.append('55')
-
+                        
                         Modul.append(modul[7:-1])
                         Manufacturer.append(manufacturer[:-1])
                         Date.append(date[:-1])
@@ -526,8 +588,12 @@ def import_heating_data():
                         Guideline.append(guideline[:-1])
                         Climate.append(climate)
 
-                        if (contents[i + 2].startswith('COP') == 1):
+                        if (contents[i+2].startswith('EHPA')):  # wrong content
                             continue
+                        if (contents[i + 2].startswith('COP') == 1):
+                                continue
+                        elif (contents[i + 2].startswith('kW')):
+                                continue
                         else:
                             minusseven_medium = contents[i + 2]
                             P_th.append(minusseven_medium[:-4])
@@ -553,13 +619,28 @@ def import_heating_data():
                             Climate.append(climate)
 
                     elif (lines.startswith('COP Tj = -7°C')):
+                        if low_medium_swapped==1:
+                            
+                            
+                            COP.append(contents[i + 2][:-1])
+                            COP.append(contents[i][:-1])
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            low_medium_swapped=0
+                            continue
+                        
                         COP.append(contents[i][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
+                        if (contents[i + 2].startswith('EHPA')):  # no medium Climate
+                            continue
                         if (contents[i + 2].startswith('Pdh')):  # no medium Climate
                             continue
                         if (contents[i + 2].startswith('Cdh')):  # no medium Climate
                             continue
+                        
                         COP.append(contents[i + 2][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -572,6 +653,35 @@ def import_heating_data():
                             continue
                         else:
                             plustwo_low = contents[i]
+                            if 'k' in plustwo_low[:-4]:
+                                low_medium_swapped=1
+                                if plustwo_low[10]=='.':
+                                    plustwo_low=(plustwo_low[:-8])
+                                    plustwo_medium = contents[i][-8:]
+                                elif plustwo_low[11]=='.':
+                                    plustwo_low=(plustwo_low[:-9])
+                                    plustwo_medium = contents[i][-9:]
+                                P_th.append(plustwo_medium[:-4])
+                                T_in.append('2')
+                                if (climate == 'average'):
+                                    T_out.append('42')
+                                elif (climate == 'cold'):
+                                    T_out.append('37')
+                                elif (climate == 'warm'):
+                                    T_out.append('55')
+                                Modul.append(modul[7:-1])
+                                Manufacturer.append(manufacturer[:-1])
+                                Date.append(date[:-1])
+                                Refrigerant.append(refrigerant[:-1])
+                                # SPLindoor.append(splindoor_low)
+                                SPLindoor.append(splindoor_medium)
+                                # SPLoutdoor.append(sploutdoor_low)
+                                SPLoutdoor.append(sploutdoor_medium)
+                                Mass.append(mass[:-4])
+                                Prated.append(prated_medium)
+                                Type.append(heatpumpType)
+                                Guideline.append(guideline[:-1])
+                                Climate.append(climate)
                             P_th.append(plustwo_low[:-4])
                             T_in.append('2')
                             if d == 0:  # first low than medium Temperatur
@@ -610,6 +720,8 @@ def import_heating_data():
                             if (contents[i + 2].startswith('EHPA')):  # End of page
                                 if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
                                     continue
+                            if (contents[i + 2].startswith('kW')):
+                                continue
                             plustwo_medium = contents[i + 2]
                             # if(plustwo_low[:-1].endswith('kW')==0):#test
                             # print(plustwo_low[:-1])
@@ -648,6 +760,18 @@ def import_heating_data():
                             continue
                         if (contents[i] == 'n/a\n'):  # usless infos
                             continue
+                        if low_medium_swapped==1:
+                            
+                            COP.append(contents[i + 2][:-1])
+                            
+                            COP.append(contents[i][:-1])
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            low_medium_swapped=0
+                            continue
+                        
                         COP.append(contents[i][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -658,6 +782,7 @@ def import_heating_data():
                             continue
                         if (contents[i + 2].startswith('EHPA')):  # no medium Climate
                             continue
+                        
                         COP.append(contents[i + 2][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -670,6 +795,36 @@ def import_heating_data():
                             continue
                         else:
                             plusseven_low = contents[i]
+                            if 'k' in plusseven_low[:-4]:
+                                low_medium_swapped=1
+                                if plusseven_low[10]=='.':
+                                    plusseven_low=(plusseven_low[:-8])
+                                    pluseven_medium = contents[i][-8:]
+                                elif plusseven_low[11]=='.':
+                                    plusseven_low=(plusseven_low[:-9])
+                                    pluseven_medium = contents[i][-9:]
+                                P_th.append(plusseven_medium[:-4])
+                                T_in.append('7')
+                                if (climate == 'average'):
+                                    T_out.append('36')
+                                elif (climate == 'cold'):
+                                    T_out.append('32')
+                                elif (climate == 'warm'):
+                                    T_out.append('46')
+
+                                Modul.append(modul[7:-1])
+                                Manufacturer.append(manufacturer[:-1])
+                                Date.append(date[:-1])
+                                Refrigerant.append(refrigerant[:-1])
+                                # SPLindoor.append(splindoor_low)
+                                SPLindoor.append(splindoor_medium)
+                                # SPLoutdoor.append(sploutdoor_low)
+                                SPLoutdoor.append(sploutdoor_medium)
+                                Mass.append(mass[:-4])
+                                Prated.append(prated_medium)
+                                Type.append(heatpumpType)
+                                Guideline.append(guideline[:-1])
+                                Climate.append(climate)
                             P_th.append(plusseven_low[:-4])
                             T_in.append('7')
                             if d == 0:  # first low than medium Temperatur
@@ -708,6 +863,8 @@ def import_heating_data():
                             if (contents[i + 2].startswith('EHPA')):  # End of page
                                 if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
                                     continue
+                            if (contents[i + 2].startswith('kW')):
+                                continue
                             plusseven_medium = contents[i + 2]
 
                             P_th.append(plusseven_medium[:-4])
@@ -742,6 +899,18 @@ def import_heating_data():
                             continue
                         if (contents[i] == 'n/a\n'):  # usless infos
                             continue
+                        if low_medium_swapped==1:
+                            COP.append(contents[i + 2][:-1])
+                            
+                            
+                            COP.append(contents[i][:-1])
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            low_medium_swapped=0
+                            continue
+                        
                         COP.append(contents[i][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -752,6 +921,7 @@ def import_heating_data():
                             continue
                         if (contents[i + 2].startswith('EHPA')):  # no medium Climate
                             continue
+                        
                         COP.append(contents[i + 2][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -814,7 +984,35 @@ def import_heating_data():
 
                         else:
                             plustwelfe_low = contents[i]
+                            if 'k' in plustwelfe_low[:-4]:
+                                low_medium_swapped=1
+                                if plustwelfe_low[10]=='.':
+                                    plustwelfe_low=(plustwelfe_low[:-8])
+                                    plustwelfe_medium = contents[i][-8:]
+                                elif plustwelfe_low[11]=='.':
+                                    plustwelfe_low=(plustwelfe_low[:-9])
+                                    plustwelfe_medium = contents[i][-9:]
+                                P_th.append(plustwelfe_medium[:-4])
+                                T_in.append('12')
+                                if (climate == 'average'):
+                                    T_out.append('30')
+                                elif (climate == 'cold'):
+                                    T_out.append('28')
+                                elif (climate == 'warm'):
+                                    T_out.append('34')
+                                Modul.append(modul[7:-1])
+                                Manufacturer.append(manufacturer[:-1])
+                                Date.append(date[:-1])
+                                Refrigerant.append(refrigerant[:-1])
+                                # SPLindoor.append(splindoor_low)
+                                SPLindoor.append(splindoor_medium)
 
+                                SPLoutdoor.append(sploutdoor_medium)
+                                Mass.append(mass[:-4])
+                                Prated.append(prated_medium)
+                                Type.append(heatpumpType)
+                                Guideline.append(guideline[:-1])
+                                Climate.append(climate)
                             P_th.append(plustwelfe_low[:-4])
                             T_in.append('12')
                             if d == 0:  # first low than medium Temperatur
@@ -853,7 +1051,8 @@ def import_heating_data():
                             if (contents[i + 2].startswith('EHPA')):  # End of page
                                 if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
                                     continue
-
+                            if (contents[i + 2].startswith('kW')):
+                                continue
                             plustwelfe_medium = contents[i + 2]
                             P_th.append(plustwelfe_medium[:-4])
                             T_in.append('12')
@@ -887,6 +1086,18 @@ def import_heating_data():
                             continue
                         if (contents[i] == 'n/a\n'):  # usless infos
                             continue
+                        if low_medium_swapped==1:
+                            
+                            
+                            COP.append(contents[i + 2][:-1])
+                            COP.append(contents[i][:-1])
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            NumberOfTestsPerNorm.append(i)
+                            NumberOfTestsPerModule.append(i)
+                            low_medium_swapped=0
+                            continue
+                        
                         COP.append(contents[i][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -897,6 +1108,7 @@ def import_heating_data():
                             continue
                         if (contents[i + 2].startswith('EHPA')):  # no medium Climate
                             continue
+                        
                         COP.append(contents[i + 2][:-1])
                         NumberOfTestsPerNorm.append(i)
                         NumberOfTestsPerModule.append(i)
@@ -964,7 +1176,6 @@ def import_heating_data():
                     Poff.append(second_poff)
                     Psb.append(psb)
                     Psb.append(psb_medium)
-
     df['Manufacturer'] = Manufacturer
     df['Model'] = Modul
     df['Date'] = Date
@@ -1009,7 +1220,7 @@ def import_heating_data():
     df['P_el [W]'] = round(df['P_th [W]'] / df['COP'])
     df['P_el [W]'] = df['P_el [W]'].fillna(0).astype(int)
     df['PSB [W]'] = df['PSB [W]'].where(df['PSB [W]'] > df['Poff [W]'],
-                                        df['Poff [W]'])  # Poff should not be bigger than PSB
+                                    df['Poff [W]'])  # Poff should not be bigger than PSB
     df.drop(columns=['Poff [W]'], inplace=True)  # not needed anymore
     filt = df['P_th [W]'] < 50  # P_th too small
     df.drop(index=df[filt].index, inplace=True)
@@ -1020,10 +1231,11 @@ def import_heating_data():
     filt = df['Type'] == 'Water/Water'
     df.loc[filt, 'T_in [°C]'] = 10
     df = df[
-        ['Manufacturer', 'Model', 'Date', 'Type', 'Refrigerant', 'Mass of Refrigerant [kg]', 'PSB [W]', 'Prated [W]',
-         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'Climate', 'T_amb [°C]', 'T_in [°C]', 'T_out [°C]', 'P_th [W]',
-         'P_el [W]', 'COP']]
-    df.sort_values(by=['Manufacturer', 'Model'], inplace=True)
+    ['Manufacturer', 'Model', 'Date', 'Type', 'Refrigerant', 'Mass of Refrigerant [kg]', 'PSB [W]', 'Prated [W]',
+            'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'Climate', 'T_amb [°C]', 'T_in [°C]', 'T_out [°C]', 'P_th [W]',
+            'P_el [W]', 'COP']]
+    df.sort_values(by=['Model'], inplace=True)
+    df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
     os.chdir("../")
     df.to_csv(r'../output/database_heating.csv', index=False)
     os.chdir('../hplib/')
@@ -1545,7 +1757,8 @@ def calculate_heating_parameters(filename):
          'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]', 'P_th_h_ref [W]', 'COP_ref',
          'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]',
          'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
-
+    table.sort_values(by=['Model'], inplace=True)
+    table.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
     table.to_csv('hplib_database_all.csv', encoding='utf-8', index=False)
     table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
     table.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
