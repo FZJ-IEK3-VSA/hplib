@@ -792,6 +792,7 @@ class Same_Built:
         """
         self.all_hp=load_all_heat_pumps()
         self.df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
+        self.same=pd.read_pickle(cwd()+r'/same_built_type.pkl')
 
     def all_to_database(self, modelname: string) -> str:
         """
@@ -821,5 +822,5 @@ class Same_Built:
         ----------
         same_built : list of all models with same fitting parameters
         """
-        same_built=pd.read_pickle(cwd()+r'/same_built_type.pkl')[modelname]
+        same_built=self.same[modelname]
         return (same_built)

@@ -1258,7 +1258,7 @@ def import_cooling_data():
     df = pd.DataFrame()
     os.chdir('../')
     root = os.getcwd()
-    Scanordner = (root + '/input/txt')
+    Scanordner = (root + '/input/txt_07_22')
     os.chdir(Scanordner)
     Scan = os.scandir(os.getcwd())
     with Scan as dir1:
@@ -1279,6 +1279,10 @@ def import_cooling_data():
                     date = '15.02.2021\n'
                 if (date.startswith('22 Feb 2021')):
                     date = '22.02.2021\n'
+                if ' Jun ' in date:
+                    date=date.replace(' Jun ','.06.')
+                if ' Jul ' in date:
+                    date=date.replace(' Jul ','.07.')
                 for lines in contents:
                     i = i + 1
                     if (lines.startswith('Name\n') == 1):
@@ -1302,9 +1306,11 @@ def import_cooling_data():
                         if (date == 'basis\n'):
                             date = contents[i - 3]
                             date = date[14:]
-                    elif (lines.startswith('Model') == 1):
+                    elif (lines.startswith('Model:') == 1):
                         modul = (contents[i - 2][7:-1])
                         temperatur2 = ''
+                        if manufacturer.startswith('Heliotherm'):
+                            modul=('1234567'+contents[i-31])    
                     elif lines.endswith('Type\n'):
                         heatpumpType = contents[i][:-1]
                         if heatpumpType.startswith('A'):
@@ -1312,18 +1318,17 @@ def import_cooling_data():
                         if heatpumpType.startswith('Eau glycol'):
                             heatpumpType = 'Brine/Water'
                     elif (lines == 'Refrigerant\n'):
-                        if (contents[i - 3] == 'Mass Of\n'):
+                        if (contents[i - 3] == 'Mass Of\n') or (contents[i - 3] == 'Mass of\n'):
                             continue
                         refrigerant = (contents[i][:-1])
-                    elif (lines.startswith('Mass Of') == 1):
-                        if (lines == 'Mass Of\n'):
+                    elif (lines.startswith('Mass Of') == 1 or lines.startswith('Mass of')):
+                        if (lines == 'Mass Of\n') or (lines == 'Mass of\n'):
                             mass = contents[i + 1][:-4]
                         elif (lines.endswith('kg\n') == 1):
                             mass = contents[i - 2]
                             mass = mass[20:-4]
                         else:
                             mass = contents[i][:-4]
-
 
                     elif lines.startswith('+'):
                         if T == 0:
@@ -1486,8 +1491,16 @@ def import_cooling_data():
 
     filt = df['EER'] == 'Cdc'  # P_th too small
     df.drop(index=df[filt].index, inplace=True)
+    filt = df['EER'] == 'Cdc Tj = 20 °C'  # No Data
+    df.drop(index=df[filt].index, inplace=True)
+    filt = df['EER'] == 'Cdc Tj = 25 °C'  # No Data
+    df.drop(index=df[filt].index, inplace=True)
+    filt = df['EER'] == 'Cdc Tj = 30 °C'  # No Data
+    df.drop(index=df[filt].index, inplace=True)
     filt = df['EER'] == 'Pdc Tj = 30°C'  # P_th too small
     df.drop(index=df[filt].index, inplace=True)
+    df.sort_values(by=['Model'], inplace=True)
+    df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
     os.chdir("../..")
     df.to_csv(os.getcwd() + r'/output/database_cooling.csv', index=False)
     os.chdir("hplib")
@@ -1896,9 +1909,9 @@ def reduce_to_unique():
     cooling_Models=df_cool['Model'].unique()
     Models = []
     built_type={}
-    unique_values = pd.unique(df['p3_P_el_h [-]']).tolist()
+    unique_values = pd.unique(df['p3_COP [-]']).tolist()
     for values in unique_values:
-        modelnames = df.loc[df['p3_P_el_h [-]'] == values, ['Model']]
+        modelnames = df.loc[df['p3_COP [-]'] == values, ['Model']]
         equal_Models=[]
         for model in (modelnames.Model.values):
             equal_Models.append(model)
@@ -1918,6 +1931,8 @@ def reduce_to_unique():
     pickle.dump(built_type,f)
     # close file
     f.close()
+    new_df.sort_values(by=['Model'], inplace=True)
+    new_df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
     new_df.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
     new_df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
