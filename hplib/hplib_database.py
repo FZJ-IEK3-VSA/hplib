@@ -1,15 +1,24 @@
-# Import packages
 import os
 import pandas as pd
 import scipy
-from scipy.optimize import curve_fit
 import hplib as hpl
 import pickle
-# Functions
 
-def import_heating_data():
-    # read in keymark data from *.txt files in /input/txt_07_22/
-    # save a dataframe to database_heating.csv in folder /output/
+
+INPUT_FOLDERS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'input')
+OUTPUT_FOLDERS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'output')
+
+
+def import_heating_data(parsed_pdf_folder = "txt_07_22", database_name = 'database_heating.csv'):
+    """
+    Reads the *.txt files in in the scan folder (parsed_pdf_folder) and saves them as a 
+    dataframe to database_name in folder
+
+    Args:
+        parsed_pdf_folder (str, optional): Path to the raw .txt files, generated from the heatpump pdfs. Defaults to "txt_07_22".
+        database_name (str, optional): Resulting database. Defaults to 'database_heating.csv'.
+    """  
+    # columns to be filled out
     Modul = []
     Manufacturer = []
     Date = []
@@ -28,13 +37,9 @@ def import_heating_data():
     P_th = []
     COP = []
     df = pd.DataFrame()
-    os.chdir('../')
-    root = os.getcwd()
-    Scanordner = (root+'/input/txt_07_22')
-    os.chdir(Scanordner)
-    Scan = os.scandir(os.getcwd())
-    with Scan as dir1:
-        for file in dir1:
+    files_in_folder = os.scandir(os.path.join(INPUT_FOLDERS, parsed_pdf_folder))
+    with files_in_folder as files_in_folder: # TODO get rid of this
+        for file in files_in_folder:
             with open(file, 'r', encoding='utf-8') as f:
                 contents = f.readlines()
                 date = 'NaN'
@@ -57,65 +62,14 @@ def import_heating_data():
                 p = 0  # -15° yes or no
                 date = contents[1]
                 date = date[61:]
-                if (date == '17 Dec 2020\n'):
-                    date = '17.12.2020\n'
-                elif (date == '18 Dec 2020\n'):
-                    date = '18.12.2020\n'
-                elif (date.startswith('5 Mar 2021')):
-                    date = '05.03.2021\n'
-                elif (date.startswith('15 Feb 2021')):
-                    date = '15.02.2021\n'
-                elif (date.startswith('22 Feb 2021')):
-                    date = '22.02.2021\n'
-                elif (date.startswith('18 Mar 2022')):
-                    date = '18.03.2022\n'
-                elif date.startswith('7 Jul 2022'):
-                    date='07.07.2022\n'
-                if ' Jun ' in date:
-                    date=date.replace(' Jun ','.06.')
-                if ' Jul ' in date:
-                    date=date.replace(' Jul ','.07.')
+                date = standardize_date(date)
                 for lines in contents:
                     i = i + 1
+                    # get manufacturer name
                     if (lines.startswith('Name\n') == 1):
-                        manufacturer = (contents[i])
-                        if (manufacturer.find('(') > 0):
-                            manufacturer = manufacturer.split('(', 1)[1].split('\n')[0]
-                        if manufacturer.endswith('GmbH\n'):
-                            manufacturer = manufacturer[:-5]
-                        if manufacturer.endswith('S.p.A.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('s.p.a.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('S.p.A\n'):
-                            manufacturer = manufacturer[:-5]
-                        if manufacturer.endswith('S.L.U.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('s.r.o.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('S.A.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('S.L.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('B.V.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('N.V.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('GmbH & Co KG\n'):
-                            manufacturer = manufacturer[:-12]
-                        elif manufacturer.startswith('NIBE'):
-                            manufacturer = 'Nibe\n'
-                        elif manufacturer.startswith('Nibe'):
-                            manufacturer = 'Nibe\n'
-                        elif manufacturer.startswith('Mitsubishi'):
-                            manufacturer = 'Mitsubishi\n'
-                        elif manufacturer.startswith('Ochsner'):
-                            manufacturer = 'Ochsner\n'
-                        elif manufacturer.startswith('OCHSNER'):
-                            manufacturer = 'Ochsner\n'
-                        elif manufacturer.startswith('Viessmann'):
-                            manufacturer = 'Viessmann\n'
+                        manufacturer = standardize_maufacturer_name(contents[i])
 
+                    # overwrite date (TODO compare with date definition above)
                     elif (lines.endswith('Date\n') == 1):
                         if contents[i-2].startswith('Phase'):
                             continue
@@ -123,251 +77,39 @@ def import_heating_data():
                         if (date == 'basis\n'):
                             date = contents[i - 3]
                             date = date[14:]
+
+
                     elif (lines.startswith('Model:') == 1):
                         modul = (contents[i - 2])
                         if manufacturer.startswith('Heliotherm'):
                             modul=('1234567'+contents[i-31])
-                        splindoor_low = 'NaN'
-                        splindoor_medium = 'NaN'
-                        sploutdoor_low = 'NaN'
-                        sploutdoor_medium = 'NaN'
+
                     elif lines.startswith('Heat Pump Type '):
                         heatpumpType=lines[15:-1]
+
                     elif lines.endswith('Type\n'):
                         heatpumpType = contents[i][:-1]
                         if heatpumpType.startswith('A'):
                             heatpumpType = 'Outdoor Air/Water'
                         if heatpumpType.startswith('Eau glycol'):
                             heatpumpType = 'Brine/Water'
-                    elif (lines.startswith('Sound power level indoor')):
+                    
+                    # Sound power level
+                    elif (lines.startswith('Sound power level indoor')
+                        or lines.startswith('Puissance acoustique intérieure') 
+                        or lines.startswith('Potencia sonora de la unidad interior')
+                        or lines.startswith('Nivel de Potência sonora interior')
+                        or lines.startswith('Livello di potenza acustica interna')):
+                        splindoor_low, splindoor_medium = extract_spl_low_medium(contents, i)
 
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
+                    elif (lines.startswith('Sound power level outdoor') 
+                        or lines.startswith('Puissance acoustique extérieure')
+                        or lines.startswith('Potencia sonora de la unidad exterior')
+                        or lines.startswith('Nivel de Potência sonora exterior')
+                        or lines.startswith('Livello di potenza acustica externa')):
+                        sploutdoor_low, sploutdoor_medium = extract_spl_low_medium(contents, i)
 
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-
-                    elif (lines.startswith('Sound power level outdoor')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-
-                    elif (lines.startswith('Puissance acoustique extérieure')):
-                        b = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Potencia sonora de la unidad interior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Potencia sonora de la unidad exterior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Nivel de Potência sonora interior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Nivel de Potência sonora exterior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Livello di potenza acustica interna')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Livello di potenza acustica externa')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
+                    # 
                     elif (lines == 'Refrigerant\n'):
                         if (contents[i - 3] == 'Mass Of\n') or (contents[i - 3] == 'Mass of\n'):
                             continue
@@ -1236,12 +978,109 @@ def import_heating_data():
             'P_el [W]', 'COP']]
     df.sort_values(by=['Model'], inplace=True)
     df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
-    os.chdir("../")
-    df.to_csv(r'../output/database_heating.csv', index=False)
-    os.chdir('../hplib/')
+
+    df.to_csv(os.path.join(OUTPUT_FOLDERS, database_name), index=False)
+
+def extract_spl_low_medium(contents, i):
+    """Extract sound pressure level (SPL)
+
+    Args:
+        contents (TODO): _description_
+        i (int): Line number
+
+    Returns:
+        spl_low, spl_medium: Sound pressure level low and medium
+    """
+
+    if (contents[i].startswith('Low')):
+        if contents[i + 2].startswith('Medium'):
+            spl_low = contents[i + 4][:-7]
+            spl_medium = contents[i + 6][:-7]
+    if contents[i].startswith('Medium'):
+        spl_medium = contents[i + 4][:-7]
+        spl_low = contents[i + 6][:-7]
+    elif (contents[i].endswith('dB(A)\n')):
+        if (contents[i - 3].startswith('Low')):
+            spl_low = contents[i][:-7]
+        if (contents[i - 3].startswith('Medium')):
+            spl_medium = contents[i][:-7]
+        if (contents[i - 6].startswith('Low')):
+            spl_low = contents[i][:-7]
+        if (contents[i - 6].startswith('Medium')):
+            spl_medium = contents[i + 2][:-7]
+        if (contents[i - 4].startswith('Low')):
+            spl_low = contents[i][:-7]
+        if (contents[i - 4].startswith('Medium')):
+            spl_medium = contents[i + 2][:-7]
+        else:
+            spl_low = contents[i][:-7]
+            spl_medium = contents[i][:-7]
+    return spl_low,spl_medium
+
+def standardize_maufacturer_name(manufacturer):
+    if (manufacturer.find('(') > 0):
+        manufacturer = manufacturer.split('(', 1)[1].split('\n')[0]
+    if manufacturer.endswith('GmbH\n'):
+        manufacturer = manufacturer[:-5]
+    if manufacturer.endswith('S.p.A.\n'):
+        manufacturer = manufacturer[:-6]
+    if manufacturer.endswith('s.p.a.\n'):
+        manufacturer = manufacturer[:-6]
+    if manufacturer.endswith('S.p.A\n'):
+        manufacturer = manufacturer[:-5]
+    if manufacturer.endswith('S.L.U.\n'):
+        manufacturer = manufacturer[:-6]
+    if manufacturer.endswith('s.r.o.\n'):
+        manufacturer = manufacturer[:-6]
+    if manufacturer.endswith('S.A.\n'):
+        manufacturer = manufacturer[:-4]
+    if manufacturer.endswith('S.L.\n'):
+        manufacturer = manufacturer[:-4]
+    if manufacturer.endswith('B.V.\n'):
+        manufacturer = manufacturer[:-4]
+    if manufacturer.endswith('N.V.\n'):
+        manufacturer = manufacturer[:-4]
+    if manufacturer.endswith('GmbH & Co KG\n'):
+        manufacturer = manufacturer[:-12]
+    elif manufacturer.startswith('NIBE'):
+        manufacturer = 'Nibe\n'
+    elif manufacturer.startswith('Nibe'):
+        manufacturer = 'Nibe\n'
+    elif manufacturer.startswith('Mitsubishi'):
+        manufacturer = 'Mitsubishi\n'
+    elif manufacturer.startswith('Ochsner'):
+        manufacturer = 'Ochsner\n'
+    elif manufacturer.startswith('OCHSNER'):
+        manufacturer = 'Ochsner\n'
+    elif manufacturer.startswith('Viessmann'):
+        manufacturer = 'Viessmann\n'
+    return manufacturer
 
 
-def import_cooling_data():
+
+def standardize_date(date):
+    if (date == '17 Dec 2020\n'):
+        date = '17.12.2020\n'
+    elif (date == '18 Dec 2020\n'):
+        date = '18.12.2020\n'
+    elif (date.startswith('5 Mar 2021')):
+        date = '05.03.2021\n'
+    elif (date.startswith('15 Feb 2021')):
+        date = '15.02.2021\n'
+    elif (date.startswith('22 Feb 2021')):
+        date = '22.02.2021\n'
+    elif (date.startswith('18 Mar 2022')):
+        date = '18.03.2022\n'
+    elif date.startswith('7 Jul 2022'):
+        date='07.07.2022\n'
+    if ' Jun ' in date:
+        date=date.replace(' Jun ','.06.')
+    if ' Jul ' in date:
+        date=date.replace(' Jul ','.07.')
+    return date
+
+
+def import_cooling_data(parsed_pdf_folder = "txt_07_22", database_name = 'database_cooling.csv'):
     # read in keymark data from *.txt files in /input/txt/
     # save a dataframe to database_heating.csv in folder /output/
     Modul = []
@@ -1256,51 +1095,21 @@ def import_cooling_data():
     PDC = []
     EER = []
     df = pd.DataFrame()
-    os.chdir('../')
-    root = os.getcwd()
-    Scanordner = (root + '/input/txt_07_22')
-    os.chdir(Scanordner)
-    Scan = os.scandir(os.getcwd())
-    with Scan as dir1:
-        for file in dir1:
+    files_in_folder = os.scandir(os.path.join(INPUT_FOLDERS, parsed_pdf_folder))
+    with files_in_folder as files_in_folder: # TODO get rid of this
+        for file in files_in_folder:
             with open(file, 'r', encoding='utf-8') as f:
                 contents = f.readlines()
                 T = 0
                 i = 1  # indicator for the line wich is read
                 date = contents[1]
                 date = date[61:]
-                if (date == '17 Dec 2020\n'):
-                    date = '17.12.2020\n'
-                if (date == '18 Dec 2020\n'):
-                    date = '18.12.2020\n'
-                if (date.startswith('5 Mar 2021')):
-                    date = '05.03.2021\n'
-                if (date.startswith('15 Feb 2021')):
-                    date = '15.02.2021\n'
-                if (date.startswith('22 Feb 2021')):
-                    date = '22.02.2021\n'
-                if ' Jun ' in date:
-                    date=date.replace(' Jun ','.06.')
-                if ' Jul ' in date:
-                    date=date.replace(' Jul ','.07.')
+                date = standardize_date(date)
                 for lines in contents:
                     i = i + 1
                     if (lines.startswith('Name\n') == 1):
                         manufacturer = (contents[i][:-1])
-                        if (manufacturer.find('(') > 0):
-                            manufacturer = manufacturer.split('(', 1)[1].split(')')[0]
-                        elif manufacturer.startswith('NIBE'):
-                            manufacturer = 'Nibe'
-                        elif manufacturer.startswith('Nibe'):
-                            manufacturer = 'Nibe'
-                        elif manufacturer.startswith('Mitsubishi'):
-                            manufacturer = 'Mitsubishi'
-                        elif manufacturer.startswith('Ochsner'):
-                            manufacturer = 'Ochsner'
-                        elif manufacturer.startswith('OCHSNER'):
-                            manufacturer = 'Ochsner'
-                        elif manufacturer.startswith('Viessmann'):
-                            manufacturer = 'Viessmann'
+                        manufacturer = standardize_maufacturer_name(manufacturer)
                     elif (lines.endswith('Date\n') == 1):
                         date = (contents[i])
                         if (date == 'basis\n'):
@@ -1501,10 +1310,8 @@ def import_cooling_data():
     df.drop(index=df[filt].index, inplace=True)
     df.sort_values(by=['Model'], inplace=True)
     df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
-    os.chdir("../..")
-    df.to_csv(os.getcwd() + r'/output/database_cooling.csv', index=False)
-    os.chdir("hplib")
 
+    df.to_csv(os.path.join(OUTPUT_FOLDERS, database_name), index=False)
 
 def reduce_heating_data(filename, climate):
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)
