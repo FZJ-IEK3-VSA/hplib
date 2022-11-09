@@ -5,3 +5,4 @@ pip
 matplotlib
 scipy
 versioneer
+pytest
