@@ -11,7 +11,7 @@ from datetime import datetime
 from csv import writer
 # Functions
 
-def import_keymark_data():
+def import_keymark_data(i=0):
     #create folder to save csv files
     month=str(datetime.now().month)
     year=str(datetime.now().year)
@@ -22,7 +22,9 @@ def import_keymark_data():
     #open main page of EHPA
     manufacturers_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/?type=109126').content, 'html.parser')
     #look for all manufacturers
-    for manufacturer_info in manufacturers_info.find_all('td'):                                                               
+    for manufacturer_info in manufacturers_info.find_all('td')[i:]:
+        i+=1                                                       
+        print('Progress: ',i, ' / ', len(manufacturers_info.find_all('td')),' In case of error: restart function with ', i, ' as input of function')        
         manufacturer=manufacturer_info.text
         models_info= BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+manufacturer_info.a.get('href')).content, 'html.parser')
         #look for models:
@@ -157,39 +159,97 @@ def reduce_heating_data():
     # climate = average, warm or cold
     df=pd.read_csv('../output/database.csv')
     df=df.loc[df['eta'].isna()==0]
-    df=df.drop_duplicates(subset=['types', 'eta', 'p_rated',
+    df=df.drop_duplicates(subset=['eta', 'p_rated',
         'scop', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
         'p_th_7', 'cop_7', 'p_th_12', 'cop_12', 'p_th_tbiv', 'cop_tbiv',
         'p_th_tol', 'cop_tol', 'wtols', 'poffs', 'ptos',
         'psbs', 'pcks', 'supp_energy_types', 'p_sups', 'p_design_cools',
         'seers', 'pdcs_35', 'eer_35', 'pdcs_30', 'eer_30', 'pdcs_25', 'eer_25',
-        'pdcs_20', 'eer_20', 'temperatures'])
+        'pdcs_20', 'eer_20', 'temperatures'])#types?
     df.sort_values(by=['manufacturers','models'], inplace=True,key=lambda col: col.str.lower())
     df=df.loc[df['temperatures']=='low'].merge(df.loc[df['temperatures']=='high'],on='titels')
+    df=df[['manufacturers_x', 'models_x', 'titels', 'dates_x', 'types_x','refrigerants_x', 'mass_of_refrigerants_x', 'spl_indoor_x','spl_outdoor_x', 'eta_x', 'p_rated_x', 'scop_x', 't_biv_x', 'tol_x','p_th_minus7_x', 'cop_minus7_x', 'p_th_2_x', 'cop_2_x', 'p_th_7_x','cop_7_x', 'p_th_12_x', 'cop_12_x', 'p_th_tbiv_x', 'cop_tbiv_x','p_th_tol_x', 'cop_tol_x', 'rated_airflows_x', 'wtols_x', 'poffs_x','ptos_x', 'psbs_x', 'pcks_x', 'supp_energy_types_x', 'p_sups_x','p_design_cools_x', 'seers_x', 'pdcs_35_x', 'eer_35_x', 'pdcs_30_x','eer_30_x', 'pdcs_25_x', 'eer_25_x', 'pdcs_20_x', 'eer_20_x', 'spl_indoor_y','spl_outdoor_y', 'eta_y', 'p_rated_y', 'p_th_minus7_y', 'cop_minus7_y', 'p_th_2_y', 'cop_2_y', 'p_th_7_y','cop_7_y', 'p_th_12_y', 'cop_12_y', 'p_th_tbiv_y', 'cop_tbiv_y','p_th_tol_y', 'cop_tol_y', 'rated_airflows_y', 'p_sups_y','p_design_cools_y', 'seers_y', 'pdcs_35_y', 'eer_35_y', 'pdcs_30_y','eer_30_y', 'pdcs_25_y', 'eer_25_y', 'pdcs_20_y', 'eer_20_y']]
+    df.rename(columns={'manufacturers_x': 'manufacturers','models_x': 'models','titels': 'titel','dates_x': 'dates','types_x': 'types','refrigerants_x': 'refrigerants','mass_of_refrigerants_x': 'mass_of_refrigerants', 'spl_indoor_x': 'spl_indoor_l','spl_outdoor_x': 'spl_outdoor_l', 'eta_x': 'eta_l', 'p_rated_x': 'p_rated_l', 'scop_x': 'scop_l', 't_biv_x': 't_biv', 'tol_x': 'tol','p_th_minus7_x': 'p_th_minus7_l', 'cop_minus7_x': 'cop_minus7_l', 'p_th_2_x': 'p_th_2_l', 'cop_2_x': 'cop_2_l', 'p_th_7_x': 'p_th_7_l','cop_7_x': 'cop_7_l', 'p_th_12_x': 'p_th_12_l', 'cop_12_x': 'cop_12_l', 'p_th_tbiv_x': 'p_th_tbiv_l', 'cop_tbiv_x': 'cop_tbiv_l','p_th_tol_x': 'p_th_tol_l', 'cop_tol_x': 'cop_tol_l', 'rated_airflows_x': 'rated_airflows_l', 'wtols_x': 'wtols', 'poffs_x': 'poffs','ptos_x': 'ptos', 'psbs_x': 'psbs', 'pcks_x': 'pcks', 'supp_energy_types_x': 'supp_energy_types', 'p_sups_x': 'p_sups_l','p_design_cools_x': 'p_design_cools_l', 'seers_x': 'seers_l', 'pdcs_35_x': 'pdcs_35_l', 'eer_35_x': 'eer_35_l','pdcs_30_x': 'pdcs_30_l','eer_30_x': 'eer_30_l', 'pdcs_25_x': 'pdcs_25_l', 'eer_25_x': 'eer_25_l', 'pdcs_20_x': 'pdcs_20_l','eer_20_x': 'eer_20_l', 'spl_indoor_y': 'spl_indoor_h','spl_outdoor_y': 'spl_outdoor_h', 'eta_y': 'eta_h', 'p_rated_y': 'p_rated_h', 'scop_y': 'scop_h', 'p_th_minus7_y': 'p_th_minus7_h', 'cop_minus7_y': 'cop_minus7_h', 'p_th_2_y': 'p_th_2_h', 'cop_2_y': 'cop_2_h', 'p_th_7_y': 'p_th_7_h','cop_7_y': 'cop_7_h', 'p_th_12_y': 'p_th_12_h', 'cop_12_y': 'cop_12_h', 'p_th_tbiv_y': 'p_th_tbiv_h', 'cop_tbiv_y': 'cop_tbiv_h','p_th_tol_y': 'p_th_tol_h', 'cop_tol_y': 'cop_tol_h', 'rated_airflows_y': 'rated_airflows_h', 'p_sups_y': 'p_sups_h','p_design_cools_y': 'p_design_cools_h', 'seers_y': 'seers_h', 'pdcs_35_y': 'pdcs_35_h', 'eer_35_y': 'eer_35_h', 'pdcs_30_y': 'pdcs_30_h','eer_30_y': 'eer_30_h', 'pdcs_25_y': 'pdcs_25_h', 'eer_25_y': 'eer_25_h', 'pdcs_20_y': 'pdcs_20_h', 'eer_20_y': 'eer_20_h'},inplace=True)
     df.to_csv('../output/database_reduced.csv',index=False)
 
 
-def normalize_heating_data(filename):
-    data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    new_df = pd.DataFrame()
-    for model in Models:
-        data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-        data = data_key.loc[((data_key['Model'] == model) & (
-                    data_key['T_out [°C]'] == 52))]  # only use data of model and ref point -7/52
-        Pel_ref = data['P_el [W]'].array[0]  # ref Point Pel
-        Pth_ref = data['P_th [W]'].array[0]  # ref Point Pth
-        data_key = data_key.loc[data_key['Model'] == model]  # only use data of model
-        data_key.loc[:, ['P_th_n']] = data_key['P_th [W]'] / Pth_ref  # get normalized Value P_th_n
-        data_key.loc[:, ['P_el_n']] = data_key['P_el [W]'] / Pel_ref  # get normalized Value P_el_n
-        new_df = pd.concat([new_df, data_key])  # merge new Dataframe with old one
-    filt1 = (new_df['P_th_n'] >= 2) & (new_df['T_out [°C]'] == 34)
-    deletemodels = new_df.loc[filt1, ['Model']].values.tolist()
-    for model in deletemodels:
-        new_df = new_df.loc[new_df['Model'] != model[0]]
+def normalize_data():
+    df=pd.read_csv('../output/database_reduced.csv')
+    #change kW to W
+    df['p_th_minus7_l']=df['p_th_minus7_l']*1000
+    df['p_th_2_l']=df['p_th_2_l']*1000
+    df['p_th_7_l']=df['p_th_7_l']*1000
+    df['p_th_12_l']=df['p_th_12_l']*1000
+    df['p_th_tbiv_l']=df['p_th_tbiv_l']*1000
+    df['p_th_tol_l']=df['p_th_tol_l']*1000
+    df['pdcs_35_l']=df['pdcs_35_l']*1000
+    df['pdcs_30_l']=df['pdcs_30_l']*1000
+    df['pdcs_25_l']=df['pdcs_25_l']*1000
+    df['pdcs_20_l']=df['pdcs_20_l']*1000
+    df['p_th_minus7_h']=df['p_th_minus7_h']*1000
+    df['p_th_2_h']=df['p_th_2_h']*1000
+    df['p_th_7_h']=df['p_th_7_h']*1000
+    df['p_th_12_h']=df['p_th_12_h']*1000
+    df['p_th_tbiv_h']=df['p_th_tbiv_h']*1000
+    df['p_th_tol_h']=df['p_th_tol_h']*1000
+    df['pdcs_35_h']=df['pdcs_35_h']*1000
+    df['pdcs_30_h']=df['pdcs_30_h']*1000
+    df['pdcs_25_h']=df['pdcs_25_h']*1000
+    df['pdcs_20_h']=df['pdcs_20_h']*1000
+    # add P_el
+    df['p_el_minus7_l'] = df['p_th_minus7_l'] / df['cop_minus7_l']
+    df['p_el_2_l'] = df['p_th_2_l'] / df['cop_2_l']
+    df['p_el_7_l'] = df['p_th_7_l'] / df['cop_7_l']
+    df['p_el_12_l'] = df['p_th_12_l'] / df['cop_12_l']
+    df['p_el_tbiv_l'] = df['p_th_tbiv_l'] / df['cop_tbiv_l']
+    df['p_el_tol_l'] = df['p_th_tol_l'] / df['cop_tol_l']
+    df['p_el_35_l'] = df['pdcs_35_l'] / df['eer_35_l']
+    df['p_el_30_l'] = df['pdcs_30_l'] / df['eer_30_l']
+    df['p_el_25_l'] = df['pdcs_25_l'] / df['eer_25_l']
+    df['p_el_20_l'] = df['pdcs_20_l'] / df['eer_20_l']
+    df['p_el_minus7_h'] = df['p_th_minus7_h'] / df['cop_minus7_h']
+    df['p_el_2_h'] = df['p_th_2_h'] / df['cop_2_h']
+    df['p_el_7_h'] = df['p_th_7_h'] / df['cop_7_h']
+    df['p_el_12_h'] = df['p_th_12_h'] / df['cop_12_h']
+    df['p_el_tbiv_h'] = df['p_th_tbiv_h'] / df['cop_tbiv_h']
+    df['p_el_tol_h'] = df['p_th_tol_h'] / df['cop_tol_h']
+    df['p_el_35_h'] = df['pdcs_35_h'] / df['eer_35_h']
+    df['p_el_30_h'] = df['pdcs_30_h'] / df['eer_30_h']
+    df['p_el_25_h'] = df['pdcs_25_h'] / df['eer_25_h']
+    df['p_el_20_h'] = df['pdcs_20_h'] / df['eer_20_h']
+    df['p_el_minus7_l_n'] = df['p_el_minus7_l'] / df['p_el_minus7_h']
+    df['p_el_2_l_n'] = df['p_el_2_l'] / df['p_el_minus7_h']
+    df['p_el_7_l_n'] = df['p_el_7_l'] / df['p_el_minus7_h']
+    df['p_el_12_l_n'] = df['p_el_12_l'] / df['p_el_minus7_h']
+    df['p_el_tbiv_l_n'] = df['p_el_tbiv_l'] / df['p_el_minus7_h']
+    df['p_el_tol_l_n'] = df['p_el_tol_l'] / df['p_el_minus7_h']
+    df['p_el_35_l_n'] = df['p_el_35_l'] / df['p_el_35_l']
+    df['p_el_30_l_n'] = df['p_el_30_l'] / df['p_el_35_l']
+    df['p_el_25_l_n'] = df['p_el_25_l'] / df['p_el_35_l']
+    df['p_el_20_l_n'] = df['p_el_20_l'] / df['p_el_35_l']
+    df['p_el_minus7_h_n'] = df['p_el_minus7_h'] / df['p_el_minus7_h']
+    df['p_el_2_h_n'] = df['p_el_2_h'] / df['p_el_minus7_h']
+    df['p_el_7_h_n'] = df['p_el_7_h'] / df['p_el_minus7_h']
+    df['p_el_12_h_n'] = df['p_el_12_h'] / df['p_el_minus7_h']
+    df['p_el_tbiv_h_n'] = df['p_el_tbiv_h'] / df['p_el_minus7_h']
+    df['p_el_tol_h_n'] = df['p_el_tol_h'] / df['p_el_minus7_h']
+    df['p_el_35_h_n'] = df['p_el_35_h'] / df['p_el_35_l']
+    df['p_el_30_h_n'] = df['p_el_30_h'] / df['p_el_35_l']
+    df['p_el_25_h_n'] = df['p_el_25_h'] / df['p_el_35_l']
+    df['p_el_20_h_n'] = df['p_el_20_h'] / df['p_el_35_l']
+    df=df.loc[df['cop_minus7_l']!=1]
+    df=df[['manufacturers', 'models', 'titel', 'dates', 'types', 'refrigerants','mass_of_refrigerants', 'spl_indoor_l', 'spl_outdoor_l', 'eta_l', 'p_rated_l', 'scop_l', 't_biv', 'tol', 'p_th_minus7_l', 'cop_minus7_l', 'p_el_minus7_l', 'p_th_2_l', 'cop_2_l', 'p_el_2_l', 'p_th_7_l', 'cop_7_l', 'p_el_7_l', 'p_th_12_l', 'cop_12_l', 'p_el_12_l',  'p_th_tbiv_l', 'cop_tbiv_l', 'p_el_tbiv_l', 'p_th_tol_l', 'cop_tol_l', 'p_el_tol_l', 'rated_airflows_l', 'wtols', 'poffs', 'ptos', 'psbs', 'pcks', 'supp_energy_types', 'p_sups_l', 'p_design_cools_l', 'seers_l', 'pdcs_35_l', 'eer_35_l', 'p_el_35_l', 'pdcs_30_l', 'eer_30_l', 'p_el_30_l', 'pdcs_25_l', 'eer_25_l', 'p_el_25_l', 'pdcs_20_l', 'eer_20_l', 'p_el_20_l', 'spl_indoor_h', 'spl_outdoor_h', 'eta_h', 'p_rated_h', 'p_th_minus7_h', 'cop_minus7_h', 'p_el_minus7_h', 'p_th_2_h', 'cop_2_h', 'p_el_2_h', 'p_th_7_h', 'cop_7_h', 'p_el_7_h', 'p_th_12_h', 'cop_12_h', 'p_el_12_h', 'p_th_tbiv_h', 'cop_tbiv_h', 'p_el_tbiv_h', 'p_th_tol_h', 'cop_tol_h', 'p_el_tol_h', 'rated_airflows_h', 'p_sups_h', 'p_design_cools_h', 'seers_h', 'pdcs_35_h', 'eer_35_h', 'p_el_35_h', 'pdcs_30_h', 'eer_30_h', 'p_el_30_h', 'pdcs_25_h', 'eer_25_h', 'p_el_25_h', 'pdcs_20_h', 'eer_20_h', 'p_el_20_h', 'p_el_minus7_l_n', 'p_el_2_l_n', 'p_el_7_l_n', 'p_el_12_l_n', 'p_el_tbiv_l_n', 'p_el_tol_l_n', 'p_el_35_l_n', 'p_el_30_l_n', 'p_el_25_l_n', 'p_el_20_l_n', 'p_el_minus7_h_n', 'p_el_2_h_n', 'p_el_7_h_n', 'p_el_12_h_n', 'p_el_tbiv_h_n', 'p_el_tol_h_n', 'p_el_35_h_n', 'p_el_30_h_n', 'p_el_25_h_n', 'p_el_20_h_n']]
+    # add second (+18/+23 °C) point for cooling based on other heat pumps 
+    df.loc[(df['eer_20_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_20_h'] = df.loc[(df['eer_20_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_20_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_20_h']/df[df['p_el_35_h_n'].isna()==0]['eer_20_l']).unique().mean()
+    df.loc[(df['eer_25_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_25_h'] = df.loc[(df['eer_25_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_25_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_25_h']/df[df['p_el_35_h_n'].isna()==0]['eer_25_l']).unique().mean()
+    df.loc[(df['eer_30_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_30_h'] = df.loc[(df['eer_30_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_30_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_30_h']/df[df['p_el_35_h_n'].isna()==0]['eer_30_l']).unique().mean()
+    df.loc[(df['eer_35_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_35_h'] = df.loc[(df['eer_35_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_35_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_35_h']/df[df['p_el_35_h_n'].isna()==0]['eer_35_l']).unique().mean()
 
-    new_df.to_csv(r'../output/' + filename[:-4] + '_normalized.csv', encoding='utf-8', index=False)
+    df.loc[(df['p_el_20_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_20_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_20_h_n'].unique().mean()
+    df.loc[(df['p_el_25_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_25_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_25_h_n'].unique().mean()
+    df.loc[(df['p_el_30_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_30_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_30_h_n'].unique().mean()
+    df.loc[(df['p_el_35_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_35_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_35_h_n'].unique().mean()
+    df.to_csv(r'../output/database_reduced_normalized.csv', encoding='utf-8', index=False)
 
 
 def get_subtype(P_th_minus7_34, P_th_2_30, P_th_7_27, P_th_12_24):
