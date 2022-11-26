@@ -1,6 +1,7 @@
 # Import packages
 import os
 import pandas as pd
+import numpy as np
 import scipy
 from scipy.optimize import curve_fit
 import hplib as hpl
@@ -8,9 +9,8 @@ import pickle
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-from csv import writer
-# Functions
 
+# Functions
 def import_keymark_data(i=0):
     #create folder to save csv files
     month=str(datetime.now().month)
@@ -36,11 +36,15 @@ def import_keymark_data(i=0):
                     continue
                 for info_col in model_info.find_all(class_='info-coll'):
                     if (info_col.find(class_='info-label').span.text)==('Refrigerant'):
-                        ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n',''))
+                        ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
                     if (info_col.find(class_='info-label').span.text)==('Mass of Refrigerant'):
                         mass_of_ref = (info_col.find(class_='info-data').text.replace('\n',''))
                     if (info_col.find(class_='info-label').span.text)==('Certification Date'):
-                        date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n',''))
+                        date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                    if (info_col.find(class_='info-label').span.text)==('Heat Pump Type'):
+                        type = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+                    if (info_col.find(class_='info-label').span.text)==('Driving energy'):
+                        energy = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
                 #choose correct export method (csv preffered) and get basic data TODO
                 for export_method in model_info.find_all('a'):
                     if export_method.text.startswith('Export'):
@@ -61,6 +65,9 @@ def import_keymark_data(i=0):
                                     f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
                                     f.write('"","Manufacturer","'+manufacturer+'","0","0","0","0"\r\n')
                                     f.write('"","Modelname","'+model.text+'","0","0","0","0"\r\n')
+                                    f.write('"","Type","'+type+'","0","0","0","0"\r\n')
+                                    f.write('"","Energy","'+energy+'","0","0","0","0"\r\n')
+
 
 def combine_raw_csv():
     df_all=pd.DataFrame()
@@ -76,6 +83,10 @@ def combine_raw_csv():
                 df.loc[df['varName']=='title']
             except:
                 continue
+            try:
+                df.loc[df['varName']=='application','value']=df.loc[df['varName']=='Type','value'].values[0]
+            except:
+                print(file)
             for model in range(1,len(df.loc[df['varName']=='title'])+1):
                 try:
                     i=(df.loc[df['varName']=='title'].index[model])
@@ -153,18 +164,18 @@ def combine_raw_csv():
     df_all['temperatures']=temperatures
     df_all.to_csv(r'../output/database.csv', index=False)
 
+
 def reduce_heating_data():
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)
     # delete redundant entries
     # climate = average, warm or cold
     df=pd.read_csv('../output/database.csv')
     df=df.loc[df['eta'].isna()==0]
-    df=df.drop_duplicates(subset=['eta', 'p_rated',
-        'scop', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
+    df=df.drop_duplicates(subset=['p_rated', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
         'p_th_7', 'cop_7', 'p_th_12', 'cop_12', 'p_th_tbiv', 'cop_tbiv',
         'p_th_tol', 'cop_tol', 'wtols', 'poffs', 'ptos',
         'psbs', 'pcks', 'supp_energy_types', 'p_sups', 'p_design_cools',
-        'seers', 'pdcs_35', 'eer_35', 'pdcs_30', 'eer_30', 'pdcs_25', 'eer_25',
+        'pdcs_35', 'eer_35', 'pdcs_30', 'eer_30', 'pdcs_25', 'eer_25',
         'pdcs_20', 'eer_20', 'temperatures'])#types?
     df.sort_values(by=['manufacturers','models'], inplace=True,key=lambda col: col.str.lower())
     df=df.loc[df['temperatures']=='low'].merge(df.loc[df['temperatures']=='high'],on='titels')
@@ -252,103 +263,37 @@ def normalize_data():
     df.to_csv(r'../output/database_reduced_normalized.csv', encoding='utf-8', index=False)
 
 
-def get_subtype(P_th_minus7_34, P_th_2_30, P_th_7_27, P_th_12_24):
-    if (P_th_minus7_34 <= P_th_2_30):
-        if (P_th_2_30 <= P_th_7_27):
-            if (P_th_7_27 <= P_th_12_24):
-                modus = 'On-Off'
-            else:
-                modus = 'Regulated'  # Inverter, 2-Stages, etc.
-        else:
-            modus = 'Regulated'  # Inverter, 2-Stages, etc.
-    else:
-        modus = 'Regulated'  # Inverter, 2-Stages, etc.
-    return modus
-
-
-def identify_subtypes(filename):
+def identify_subtypes():
     # Identify Subtype like On-Off or Regulated by comparing the thermal Power output at different temperature levels:
     # -7/34 |  2/30  |  7/27  |  12/24
     # assumptions for On-Off Heatpump: if temperature difference is bigger, thermal Power output is smaller
     # assumptions for Regulated: everythin else
+    df=pd.read_csv(r'../output/database_reduced_normalized.csv')
+    df['Subtype'] = np.where((df['p_th_minus7_l'] <= df['p_th_2_l']) & (df['p_th_2_l'] <= df['p_th_7_l'])& (df['p_th_7_l'] <= df['p_th_12_l']), 'On-Off', 'Regulated')
 
-    data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    data_keymark = data_key.rename(
-        columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out'})
-    data_keymark['deltaT'] = data_keymark['T_out'] - data_keymark['T_in']
+    filt1 = (df['types'] == 'Outdoor Air/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 1
+    filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 2
+    filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 2
+    filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 3
 
-    Subtypelist = []
-    for model in Models:
-        try:
-            P_thermal = []
-            filt1 = data_keymark['T_out'] == 34
-            Tin_minus_seven = data_keymark.loc[filt1]
-            filt2 = Tin_minus_seven['Model'] == model
-            Model_minus_seven = Tin_minus_seven[filt2]
-            P_th_minus_seven = Model_minus_seven['P_th'].array[0]
-            P_thermal.append(P_th_minus_seven)
-
-            filt1 = data_keymark['T_out'] == 30
-            T_in_plus_two = data_keymark.loc[filt1]
-            filt2 = T_in_plus_two['Model'] == model
-            Model_plus_two = T_in_plus_two[filt2]
-            P_th_plus_two = Model_plus_two['P_th'].array[0]
-            P_thermal.append(P_th_plus_two)
-
-            filt1 = data_keymark['T_out'] == 27
-            Tin_plus_seven = data_keymark.loc[filt1]
-            filt2 = Tin_plus_seven['Model'] == model
-            Model_plus_seven = Tin_plus_seven[filt2]
-            P_th_plus_seven = Model_plus_seven['P_th'].array[0]
-            P_thermal.append(P_th_plus_seven)
-
-            filt1 = data_keymark['T_out'] == 24
-            Tin_plus_twelfe = data_keymark.loc[filt1]
-            filt2 = Tin_plus_twelfe['Model'] == model
-            Model_plus_twelfe = Tin_plus_twelfe[filt2]
-            P_th_plus_twelfe = Model_plus_twelfe['P_th'].array[0]
-            P_thermal.append(P_th_plus_twelfe)
-            P_thermal
-            Modus = get_subtype(P_thermal[0], P_thermal[1], P_thermal[2], P_thermal[3])
-        except:
-            print(model)
-        Subtypelist.append(Modus)
-    Subtype_df = pd.DataFrame()
-    Subtype_df['Model'] = Models
-    Subtype_df['Subtype'] = Subtypelist
-    Subtype_df
-    data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-    data_key = data_key.merge(Subtype_df, how='inner', on='Model')
-
-    ##assign group:
-
-    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 1
-    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 2
-    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 3
-
-    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 4
-    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 5
-    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 6
-
-    data_key = data_key[
-        ['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group', 'Refrigerant', 'Mass of Refrigerant [kg]',
-         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'T_amb [°C]', 'T_in [°C]', 'T_out [°C]',
-         'P_th [W]', 'P_el [W]', 'COP', 'P_th_n', 'P_el_n']]
-    filt1 = data_key['Group'] != 7
-    data_key = data_key.loc[filt1]
-    data_key.to_csv(r'../output/' + filename[:-4] + '_subtypes.csv', encoding='utf-8', index=False)
+    filt1 = (df['types'] == 'Outdoor Air/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 4
+    filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 5
+    filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 5
+    filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 6
+    df = df.loc[df['Group'] != 7]
+    df.to_csv(r'../output/database_reduced_normalized_subtypes.csv', encoding='utf-8', index=False)
 
 
 def fit_simple(w, x, y, z):
@@ -372,19 +317,24 @@ def func_simple(para, w, x, y):
     return z
 
 
-def calculate_heating_parameters(filename):
-    # Calculate function parameters from normalized values
-    data_key = pd.read_csv('../output/' + filename)
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))  # get models
+def interpolate_t_out(t_in):
+    # Function to interpolate Temperature out at T_biv and TOL
+    t_amb=[12,7,2,-7]
+    t_out_low=[24,27,30,34]
+    t_out_high=[30,36,42,52]
+    if t_in>=7:
+        i=0
+    elif t_in<=2:
+        i=2
+    else:
+        i=1
+    t_out_l=t_out_low[i+1]-(t_out_low[i+1]-t_out_low[i])*(t_in-t_amb[i+1])/(t_amb[i]-t_amb[i+1])
+    t_out_h=t_out_high[i+1]-(t_out_high[i+1]-t_out_high[i])*(t_in-t_amb[i+1])/(t_amb[i]-t_amb[i+1])
+    return round(t_out_l,2), round(t_out_h,2)
 
-    Group = []
-    Pel_ref = []
-    Pth_ref = []
-    p1_P_th = []
-    p2_P_th = []
-    p3_P_th = []
-    p4_P_th = []
+
+def calculate_heating_parameters():
+   # Calculate function parameters from normalized values
     p1_P_el = []
     p2_P_el = []
     p3_P_el = []
@@ -393,38 +343,60 @@ def calculate_heating_parameters(filename):
     p2_COP = []
     p3_COP = []
     p4_COP = []
+    df = pd.read_csv(r'../output/database_reduced_normalized_subtypes.csv')
+    for model in df['titel']:
+        group=df.loc[df['titel']==(model),'Group'].values[0]
+        t_biv=df.loc[df['titel']==(model),'t_biv'].values[0]
+        tol=df.loc[df['titel']==(model),'tol'].values[0]
+        tol_low,tol_high=interpolate_t_out(tol)
+        t_biv_low,t_biv_high=interpolate_t_out(t_biv)
+        #Create Model DF with all important information for fitting heating parameters
+        df_model=pd.DataFrame()
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0,0,0,0,0]
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10,10,10,10,10]
+        df_model['T_amb']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[tol_low,tol_high,t_biv_low,t_biv_high,34,52,30,42,27,36,24,30]
+        df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_tol_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_tol_h_n'].values[0]),  
+                            (df.loc[df['titel']==(model),'p_el_tbiv_l_n'].values[0]),  
+                            (df.loc[df['titel']==(model),'p_el_tbiv_h_n'].values[0]),  
+                            (df.loc[df['titel']==(model),'p_el_minus7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_minus7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_h_n'].values[0]),
+                            ]
+        df_model['COP']=[(df.loc[df['titel']==(model),'cop_tol_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_tol_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_tbiv_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_tbiv_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                            ]
+        df_model.drop_duplicates(inplace=True) #if multiple data at the same point
 
-    for model in Models:
-        data_key = pd.read_csv('../output/' + filename)
-        data_key = data_key.rename(
-            columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out',
-                     'T_amb [°C]': 'T_amb'})
-        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
-        group = data_key.Group.array[0]  # get Group of model
-        if group > 1 and group != 4:  # give another point at different Temperature of Brine/Water
-            data_key1 = data_key.loc[data_key['Model'] == model]
-            data_key1['T_in'] = data_key1['T_in'] + 1
-            data_key1['T_out'] = data_key1['T_out'] + 1
-            data_key = pd.concat([data_key, data_key1])
-        Pel_REF = data_key.loc[data_key['P_el_n'] == 1, ['P_el']].values.tolist()[0][0]
-        Pth_REF = data_key.loc[data_key['P_th_n'] == 1, ['P_th']].values.tolist()[0][0]
-        data_key.fillna(0, inplace=True)
-
+        #Calculate parameters
         if group == 1 or group == 2 or group == 3:
-            data = data_key.loc[((data_key['T_amb'] != 12) & (data_key['T_amb'] != 7))]
-            P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
-            P_th_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_th_n'])
-            COP_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['COP'])
-        else:
-            P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
-            P_th_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_th_n'])
-            COP_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['COP'])
-
-        # write Parameters in List
-        p1_P_th.append(P_th_n_para_key[0])
-        p2_P_th.append(P_th_n_para_key[1])
-        p3_P_th.append(P_th_n_para_key[2])
-        p4_P_th.append(P_th_n_para_key[3])
+            df_model=df_model.loc[((df_model['T_amb'] != 12) & (df_model['T_amb'] != 7))]
+            P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
+            COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
+        elif group == 4 or group == 5 or group == 6:
+            P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
+            COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
+        #add to lists
         p1_P_el.append(P_el_n_para_key[0])
         p2_P_el.append(P_el_n_para_key[1])
         p3_P_el.append(P_el_n_para_key[2])
@@ -433,45 +405,17 @@ def calculate_heating_parameters(filename):
         p2_COP.append(COP_para_key[1])
         p3_COP.append(COP_para_key[2])
         p4_COP.append(COP_para_key[3])
-        Group.append(group)
-        Pel_ref.append(Pel_REF)
-        Pth_ref.append(Pth_REF)
+    #Add parameters to df
+    df['p1_P_el_h [1/°C]'] = p1_P_el
+    df['p2_P_el_h [1/°C]'] = p2_P_el
+    df['p3_P_el_h [-]'] = p3_P_el
+    df['p4_P_el_h [1/°C]'] = p4_P_el
+    df['p1_COP [-]'] = p1_COP
+    df['p2_COP [-]'] = p2_COP
+    df['p3_COP [-]'] = p3_COP
+    df['p4_COP [-]'] = p4_COP
+    df.to_csv(r'../output/database_reduced_normalized_subtypes_parameters.csv', encoding='utf-8', index=False)
 
-    # write List  in Dataframe
-
-    paradf = pd.DataFrame()
-    paradf['Model'] = Models
-    paradf['p1_P_th [1/°C]'] = p1_P_th
-    paradf['p2_P_th [1/°C]'] = p2_P_th
-    paradf['p3_P_th [-]'] = p3_P_th
-    paradf['p4_P_th [1/°C]'] = p4_P_th
-    paradf['p1_P_el_h [1/°C]'] = p1_P_el
-    paradf['p2_P_el_h [1/°C]'] = p2_P_el
-    paradf['p3_P_el_h [-]'] = p3_P_el
-    paradf['p4_P_el_h [1/°C]'] = p4_P_el
-    paradf['p1_COP [-]'] = p1_COP
-    paradf['p2_COP [-]'] = p2_COP
-    paradf['p3_COP [-]'] = p3_COP
-    paradf['p4_COP [-]'] = p4_COP
-    paradf['Group'] = Group
-    paradf['P_el_ref'] = Pel_ref
-    paradf['P_th_ref'] = Pth_ref
-
-
-    para = paradf
-    key = pd.read_csv('../output/' + filename)
-    key = key.loc[key['T_out [°C]'] == 52]
-    parakey = para.merge(key, how='left', on='Model')
-    parakey = parakey.rename(columns={'Group_x': 'Group', 'P_el_ref': 'P_el_h_ref [W]', 'P_th_ref': 'P_th_h_ref [W]'})
-    parakey['COP_ref'] = parakey['P_th_h_ref [W]'] / parakey['P_el_h_ref [W]']
-    table = parakey[
-        ['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group', 'Refrigerant', 'Mass of Refrigerant [kg]',
-         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]', 'P_th_h_ref [W]', 'COP_ref',
-         'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]',
-         'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
-
-    table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-    table.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
 
 
 def validation_relative_error_heating():
