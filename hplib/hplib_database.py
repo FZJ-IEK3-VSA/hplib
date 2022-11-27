@@ -251,6 +251,13 @@ def normalize_data():
     df=df.loc[df['cop_minus7_l']!=1]
     df=df[['manufacturers', 'models', 'titel', 'dates', 'types', 'refrigerants','mass_of_refrigerants', 'spl_indoor_l', 'spl_outdoor_l', 'eta_l', 'p_rated_l', 'scop_l', 't_biv', 'tol', 'p_th_minus7_l', 'cop_minus7_l', 'p_el_minus7_l', 'p_th_2_l', 'cop_2_l', 'p_el_2_l', 'p_th_7_l', 'cop_7_l', 'p_el_7_l', 'p_th_12_l', 'cop_12_l', 'p_el_12_l',  'p_th_tbiv_l', 'cop_tbiv_l', 'p_el_tbiv_l', 'p_th_tol_l', 'cop_tol_l', 'p_el_tol_l', 'rated_airflows_l', 'wtols', 'poffs', 'ptos', 'psbs', 'pcks', 'supp_energy_types', 'p_sups_l', 'p_design_cools_l', 'seers_l', 'pdcs_35_l', 'eer_35_l', 'p_el_35_l', 'pdcs_30_l', 'eer_30_l', 'p_el_30_l', 'pdcs_25_l', 'eer_25_l', 'p_el_25_l', 'pdcs_20_l', 'eer_20_l', 'p_el_20_l', 'spl_indoor_h', 'spl_outdoor_h', 'eta_h', 'p_rated_h', 'p_th_minus7_h', 'cop_minus7_h', 'p_el_minus7_h', 'p_th_2_h', 'cop_2_h', 'p_el_2_h', 'p_th_7_h', 'cop_7_h', 'p_el_7_h', 'p_th_12_h', 'cop_12_h', 'p_el_12_h', 'p_th_tbiv_h', 'cop_tbiv_h', 'p_el_tbiv_h', 'p_th_tol_h', 'cop_tol_h', 'p_el_tol_h', 'rated_airflows_h', 'p_sups_h', 'p_design_cools_h', 'seers_h', 'pdcs_35_h', 'eer_35_h', 'p_el_35_h', 'pdcs_30_h', 'eer_30_h', 'p_el_30_h', 'pdcs_25_h', 'eer_25_h', 'p_el_25_h', 'pdcs_20_h', 'eer_20_h', 'p_el_20_h', 'p_el_minus7_l_n', 'p_el_2_l_n', 'p_el_7_l_n', 'p_el_12_l_n', 'p_el_tbiv_l_n', 'p_el_tol_l_n', 'p_el_35_l_n', 'p_el_30_l_n', 'p_el_25_l_n', 'p_el_20_l_n', 'p_el_minus7_h_n', 'p_el_2_h_n', 'p_el_7_h_n', 'p_el_12_h_n', 'p_el_tbiv_h_n', 'p_el_tol_h_n', 'p_el_35_h_n', 'p_el_30_h_n', 'p_el_25_h_n', 'p_el_20_h_n']]
     # add second (+18/+23 °C) point for cooling based on other heat pumps 
+    """Overall there are not so many unique Keymark heat pumps for cooling in comparison to heating.
+
+    With our fit method it is not possible to fit only over one outflow temperature. For that reason we added another
+    set point at 18°C output temperature based on the heat pumps we had with this condition in Keymark. For that purpose, we identified multiplication factors for eletrical power and eer between 7°C and 18°C secondary output temperature. The mean value of that are used to calculate the electrical power and EER at 18°C for other heat pumps:
+    P_el at 18°C = P_el at 7°C * multiplication factor 
+    EER at 18°C = EER at 7°C * multiplication factor"""
+
     df.loc[(df['eer_20_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_20_h'] = df.loc[(df['eer_20_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_20_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_20_h']/df[df['p_el_35_h_n'].isna()==0]['eer_20_l']).unique().mean()
     df.loc[(df['eer_25_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_25_h'] = df.loc[(df['eer_25_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_25_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_25_h']/df[df['p_el_35_h_n'].isna()==0]['eer_25_l']).unique().mean()
     df.loc[(df['eer_30_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_30_h'] = df.loc[(df['eer_30_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_30_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_30_h']/df[df['p_el_35_h_n'].isna()==0]['eer_30_l']).unique().mean()
@@ -333,7 +340,7 @@ def interpolate_t_out(t_in):
     return round(t_out_l,2), round(t_out_h,2)
 
 
-def calculate_heating_parameters():
+def calculate_fitting_parameters():
    # Calculate function parameters from normalized values
     p1_P_el = []
     p2_P_el = []
@@ -343,6 +350,14 @@ def calculate_heating_parameters():
     p2_COP = []
     p3_COP = []
     p4_COP = []
+    p1_P_el_c=[]
+    p2_P_el_c=[]
+    p3_P_el_c=[]
+    p4_P_el_c=[]
+    p1_EER=[]
+    p2_EER=[]
+    p3_EER=[]
+    p4_EER=[]
     df = pd.read_csv(r'../output/database_reduced_normalized_subtypes.csv')
     for model in df['titel']:
         group=df.loc[df['titel']==(model),'Group'].values[0]
@@ -352,12 +367,6 @@ def calculate_heating_parameters():
         t_biv_low,t_biv_high=interpolate_t_out(t_biv)
         #Create Model DF with all important information for fitting heating parameters
         df_model=pd.DataFrame()
-        if group==1 or group==4: #Air/Water 
-            df_model['T_in']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
-        elif group==2 or group==5: #Brine/Water
-            df_model['T_in']=[0,0,0,0,0,0,0,0,0,0,0,0]
-        else: # Water/Water
-            df_model['T_in']=[10,10,10,10,10,10,10,10,10,10,10,10]
         df_model['T_amb']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
         df_model['T_out']=[tol_low,tol_high,t_biv_low,t_biv_high,34,52,30,42,27,36,24,30]
         df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_tol_l_n'].values[0]),
@@ -386,9 +395,22 @@ def calculate_heating_parameters():
                             (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
                             (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
                             ]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0,0,0,0,0]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10,10,10,10,10]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
         df_model.drop_duplicates(inplace=True) #if multiple data at the same point
-
-        #Calculate parameters
+        #Calculate heating parameters
         if group == 1 or group == 2 or group == 3:
             df_model=df_model.loc[((df_model['T_amb'] != 12) & (df_model['T_amb'] != 7))]
             P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
@@ -396,6 +418,41 @@ def calculate_heating_parameters():
         elif group == 4 or group == 5 or group == 6:
             P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
             COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
+        
+        #Calculate cooling parameters
+        if df.loc[df['titel']==(model),'seers_l'].isna().values[0]==0:
+            df_model=pd.DataFrame()
+            df_model['T_in']=[20,20,25,25,30,30,35,35]
+            df_model['T_amb']=[20,20,25,25,30,30,35,35]
+            df_model['T_out']=[7,18,7,18,7,18,7,18]
+            df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_20_l_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_20_h_n'].values[0]), 
+                                (df.loc[df['titel']==(model),'p_el_25_l_n'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_25_h_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_l_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_h_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_35_l_n'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_35_h_n'].values[0]),
+                                ]
+            df_model['EER']=[(df.loc[df['titel']==(model),'eer_20_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_20_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_h'].values[0]),
+                                ]
+            EER_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['EER'])
+            df_model=df_model.loc[df_model['T_in']>20]
+            P_el_n_para_key_c = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
+            
+            if group!=1: #TODO: Cooling for Brine/Water and Water/Water
+                P_el_n_para_key_c = [np.nan,np.nan,np.nan,np.nan]
+                EER_para_key = [np.nan,np.nan,np.nan,np.nan]
+        else:
+            P_el_n_para_key_c = [np.nan,np.nan,np.nan,np.nan]
+            EER_para_key = [np.nan,np.nan,np.nan,np.nan]
         #add to lists
         p1_P_el.append(P_el_n_para_key[0])
         p2_P_el.append(P_el_n_para_key[1])
@@ -405,6 +462,14 @@ def calculate_heating_parameters():
         p2_COP.append(COP_para_key[1])
         p3_COP.append(COP_para_key[2])
         p4_COP.append(COP_para_key[3])
+        p1_P_el_c.append(P_el_n_para_key_c[0])
+        p2_P_el_c.append(P_el_n_para_key_c[1])
+        p3_P_el_c.append(P_el_n_para_key_c[2])
+        p4_P_el_c.append(P_el_n_para_key_c[3])
+        p1_EER.append(EER_para_key[0])
+        p2_EER.append(EER_para_key[1])
+        p3_EER.append(EER_para_key[2])
+        p4_EER.append(EER_para_key[3])
     #Add parameters to df
     df['p1_P_el_h [1/°C]'] = p1_P_el
     df['p2_P_el_h [1/°C]'] = p2_P_el
@@ -414,8 +479,53 @@ def calculate_heating_parameters():
     df['p2_COP [-]'] = p2_COP
     df['p3_COP [-]'] = p3_COP
     df['p4_COP [-]'] = p4_COP
+    #Add cooling parameters to df
+    df['p1_P_el_c [1/°C]'] = p1_P_el_c
+    df['p2_P_el_c [1/°C]'] = p2_P_el_c
+    df['p3_P_el_c [-]'] = p3_P_el_c
+    df['p4_P_el_c [1/°C]'] = p4_P_el_c
+    df['p1_EER [-]'] = p1_COP
+    df['p2_EER [-]'] = p2_COP
+    df['p3_EER [-]'] = p3_COP
+    df['p4_EER [-]'] = p4_COP
     df.to_csv(r'../output/database_reduced_normalized_subtypes_parameters.csv', encoding='utf-8', index=False)
-
+    df.rename(columns={'manufacturers': 'Manufacturer' ,
+                        'models': 'Model' ,
+                        'titel': 'Titel' ,
+                        'dates': 'Date' ,
+                        'types': 'Type',
+                        'refrigerants': 'Refrigerant' ,
+                        'mass_of_refrigerants': 'Mass of Refrigerant [kg]' ,
+                        'spl_indoor_l': 'SPL indoor low Power [dBA]' ,
+                        'spl_outdoor_l': 'SPL outdoor low Power [dBA]' ,
+                        'eta_l': 'eta low T [%]' ,
+                        'p_rated_l': 'Rated Power low T [kW]' ,
+                        'scop_l': 'SCOP' ,
+                        't_biv': 'Bivalence temperature [°C]' ,
+                        'tol': 'Tolerance temperature [°C]' ,
+                        'wtols': 'Max. water heating temperature [°C]' ,
+                        'poffs': 'Poff [W]' ,
+                        'ptos': 'PTOS [W]' ,
+                        'psbs': 'PSB [W]',
+                        'pcks': 'PCKS [W]' ,
+                        'seers_l': 'SEER low T' ,
+                        'spl_indoor_h': 'SPL indoor high Power [dBA]' ,
+                        'spl_outdoor_h': 'SPL outdoor high Power [dBA]' ,
+                        'eta_h': 'eta medium T [%]' ,
+                        'p_rated_h': 'Rated Power medium T [kW]' ,
+                        'p_th_minus7_h': 'P_th_h_ref [W]' ,
+                        'cop_minus7_h': 'COP_ref' ,
+                        'p_el_minus7_h': 'P_el_h_ref [W]' ,
+                        'p_design_cools_h': 'P_design_h_T [kW]' ,
+                        'seers_h': 'SEER medium T' ,
+                        'pdcs_35_h': 'P_th_c_ref [W]' ,
+                        'eer_35_h': 'EER_c_ref' ,
+                        'p_el_35_h': 'P_el_c_ref [W]' ,
+                        'Subtype': 'Subtype' ,
+                        'Group': 'Group' ,
+                        }, inplace=True)
+    df=df[['Manufacturer' ,'Model' ,'Titel' ,'Date' ,'Type','Subtype' ,'Group' ,'Rated Power low T [kW]' ,'Rated Power medium T [kW]' ,'Refrigerant' ,'Mass of Refrigerant [kg]' ,'SPL indoor low Power [dBA]' ,'SPL outdoor low Power [dBA]' ,'SPL indoor high Power [dBA]' ,'SPL outdoor high Power [dBA]' ,'Bivalence temperature [°C]' ,'Tolerance temperature [°C]' ,'Max. water heating temperature [°C]' ,'Poff [W]' ,'PTOS [W]' ,'PSB [W]','PCKS [W]' ,'eta low T [%]' ,'eta medium T [%]' ,'SCOP' ,'SEER low T' ,'SEER medium T' ,'P_th_h_ref [W]' ,'P_th_c_ref [W]' ,'P_el_h_ref [W]' ,'P_el_c_ref [W]' ,'COP_ref' ,'EER_c_ref' ,'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]','p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]','p4_COP [-]','p1_P_el_c [1/°C]','p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]','p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]']]
+    df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
 def validation_relative_error_heating():
