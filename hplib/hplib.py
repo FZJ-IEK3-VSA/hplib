@@ -49,10 +49,10 @@ def get_parameters(model: str, group_id: int = 0,
         Data frame containing the model parameters.
     """
     df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
-    df = df.loc[df['Model'] == model]
+    df = df.loc[df['Titel'] == model]
     parameters = pd.DataFrame()
     parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
-    parameters['Model'] = (df['Model'].values.tolist())
+    parameters['Titel'] = (df['Titel'].values.tolist())
     try:
         parameters['MAPE_COP']=df['MAPE_COP'].values.tolist()
         parameters['MAPE_P_el']=df['MAPE_P_el'].values.tolist()
@@ -63,10 +63,6 @@ def get_parameters(model: str, group_id: int = 0,
     parameters['P_el_h_ref [W]'] = (df['P_el_h_ref [W]'].values.tolist())
     parameters['COP_ref'] = (df['COP_ref'].values.tolist())
     parameters['Group'] = (df['Group'].values.tolist())
-    parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
-    parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
-    parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
-    parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
     parameters['p1_P_el_h [1/°C]'] = (df['p1_P_el_h [1/°C]'].values.tolist())
     parameters['p2_P_el_h [1/°C]'] = (df['p2_P_el_h [1/°C]'].values.tolist())
     parameters['p3_P_el_h [-]'] = (df['p3_P_el_h [-]'].values.tolist())
@@ -78,10 +74,6 @@ def get_parameters(model: str, group_id: int = 0,
     try:
         parameters['P_th_c_ref [W]'] = (df['P_th_c_ref [W]'].values.tolist())
         parameters['P_el_c_ref [W]'] = (df['P_el_c_ref [W]'].values.tolist())
-        parameters['p1_Pdc [1/°C]'] = (df['p1_Pdc [1/°C]'].values.tolist())
-        parameters['p2_Pdc [1/°C]'] = (df['p2_Pdc [1/°C]'].values.tolist())
-        parameters['p3_Pdc [-]'] = (df['p3_Pdc [-]'].values.tolist())
-        parameters['p4_Pdc [1/°C]'] = (df['p4_Pdc [1/°C]'].values.tolist())
         parameters['p1_P_el_c [1/°C]'] = (df['p1_P_el_c [1/°C]'].values.tolist())
         parameters['p2_P_el_c [1/°C]'] = (df['p2_P_el_c [1/°C]'].values.tolist())
         parameters['p3_P_el_c [-]'] = (df['p3_P_el_c [-]'].values.tolist())
@@ -151,18 +143,14 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
         Data frame containing the model parameters.
     """
     df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
-    df = df.loc[df['Model'] == model]
+    df = df.loc[df['Titel'] == model]
     parameters = pd.DataFrame()
 
-    parameters['Model'] = (df['Model'].values.tolist())
+    parameters['Titel'] = (df['Titel'].values.tolist())
     parameters['P_th_h_ref [W]'] = (df['P_th_h_ref [W]'].values.tolist())
     parameters['P_el_h_ref [W]'] = (df['P_el_h_ref [W]'].values.tolist())
     parameters['COP_ref'] = (df['COP_ref'].values.tolist())
     parameters['Group'] = (df['Group'].values.tolist())
-    parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
-    parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
-    parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
-    parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
     parameters['p1_P_el_h [1/°C]'] = (df['p1_P_el_h [1/°C]'].values.tolist())
     parameters['p2_P_el_h [1/°C]'] = (df['p2_P_el_h [1/°C]'].values.tolist())
     parameters['p3_P_el_h [-]'] = (df['p3_P_el_h [-]'].values.tolist())
