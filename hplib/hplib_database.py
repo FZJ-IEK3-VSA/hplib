@@ -734,30 +734,12 @@ def validation_re_mape():
     df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
 
-def validation_mape_cooling():
-    #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
-    df=pd.read_csv('../output/database_cooling_reduced_normalized_validation.csv')
-    para=pd.read_csv('hplib_database.csv', delimiter=',')
-    para=para.loc[para['Model']!='Generic']
-    Models = para['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    mape_eer=[]
-    mape_pel=[]
-    mape_pdc=[]
-    for model in Models:
-        df_model=df.loc[df['Model']==model]
-        mape_pdc.append((((df_model['Pdc [W]']-df_model['Pdc_sim']).abs())/df_model['Pdc [W]']*100).mean())
-        mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
-        mape_eer.append((((df_model['EER']-df_model['EER_sim']).abs())/df_model['EER']*100).mean())
-    para['MAPE_P_el_cooling']=mape_pel
-    para['MAPE_EER']=mape_eer
-    para['MAPE_Pdc']=mape_pdc
-    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-
-
 def add_generic():
-    data_key = pd.read_csv('hplib_database.csv', delimiter=',')
-    data_key = data_key.loc[data_key['Model'] != 'Generic']
+    percent=[0,0.2,0.8,1]
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
+    df = df.loc[df['Model'] != 'Generic']
+    df=df.drop_duplicates(subset=['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]'])
+    df.index=range(len(df))
     Groups = [1, 2, 3, 4, 5, 6]
     for group in Groups:
         if group == 1:
@@ -778,47 +760,22 @@ def add_generic():
         elif group == 6:
             Type = 'Water/Water'
             modus = 'On-Off'
-
-        Group1 = data_key.loc[data_key['Group'] == group] 
-        Group1=Group1.loc[Group1['MAPE_P_el']<=25]
-        p1_P_th_average = pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
-        p2_P_th_average = pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
-        p3_P_th_average = pd.unique(Group1['p3_P_th [-]']).mean(0)
-        p4_P_th_average = pd.unique(Group1['p4_P_th [1/°C]']).mean(0)
-        p1_P_el_average = pd.unique(Group1['p1_P_el_h [1/°C]']).mean(0)
-        p2_P_el_average = pd.unique(Group1['p2_P_el_h [1/°C]']).mean(0)
-        p3_P_el_average = pd.unique(Group1['p3_P_el_h [-]']).mean(0)
-        p4_P_el_average = pd.unique(Group1['p4_P_el_h [1/°C]']).mean(0)
-        p1_COP_average = pd.unique(Group1['p1_COP [-]']).mean(0)
-        p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
-        p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
-        p4_COP_average = pd.unique(Group1['p4_COP [-]']).mean(0)
-        p1_Pdc_average = Group1['p1_Pdc [1/°C]'].mean(0)
-        p2_Pdc_average = Group1['p2_Pdc [1/°C]'].mean(0)
-        p3_Pdc_average = Group1['p3_Pdc [-]'].mean(0)
-        p4_Pdc_average = Group1['p4_Pdc [1/°C]'].mean(0)
-        p5_P_el_average = Group1['p1_P_el_c [1/°C]'].mean(0)
-        p6_P_el_average = Group1['p2_P_el_c [1/°C]'].mean(0)
-        p7_P_el_average = Group1['p3_P_el_c [-]'].mean(0)
-        p8_P_el_average = Group1['p4_P_el_c [1/°C]'].mean(0)
-        p1_EER_average = Group1['p1_EER [-]'].mean(0)
-        p2_EER_average = Group1['p2_EER [-]'].mean(0)
-        p3_EER_average = Group1['p3_EER [-]'].mean(0)
-        p4_EER_average = Group1['p4_EER [-]'].mean(0)
-        if group == 1 or group == 4:
-            COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        elif group == 2 or group == 5:
-            COP_ref = 0 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        elif group == 3 or group == 6:
-            COP_ref = 10 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        data_key.loc[len(data_key.index)] = ['Generic', 'Generic', '', Type, modus, group, '', '', '', '', '',
-                                                'average', '', '', COP_ref,'', '', p1_P_th_average, p2_P_th_average,
-                                                 p3_P_th_average, p4_P_th_average, p1_P_el_average, p2_P_el_average,
-                                                 p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
-                                                 p3_COP_average, p4_COP_average, '', '', '',
-                                                 p1_Pdc_average, p2_Pdc_average, p3_Pdc_average, p4_Pdc_average,
-                                                 p5_P_el_average,p6_P_el_average ,p7_P_el_average ,p8_P_el_average ,
-                                                 p1_EER_average,p2_EER_average ,p3_EER_average ,p4_EER_average, 
-                                                 '', '', '']
-    data_key['COP_ref'] = data_key['COP_ref'].round(2)
-    data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+        i=len((df.loc[(df['MAPE P_el']>0) &(df['MAPE P_el']<=25) & (df['Group']==group)]))
+        if i>50:
+            for j in percent:
+                if j<1:
+                    if j==0:
+                        titel='Generic_top'
+                    if j==0.2:
+                        titel='Generic_average'
+                    if j==0.8:
+                        titel='Generic_bottom'
+                    print(int(j*i),int(i*percent[percent.index(j)+1]))
+                    df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)[int(j*i):int(i*percent[percent.index(j)+1])]
+                    para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
+                    df.loc[len(df.index)]=['Generic', 'Generic', titel, '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,]
+        else:
+            df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)
+            para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
+            df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,]
+    df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
