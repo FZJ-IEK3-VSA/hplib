@@ -187,47 +187,47 @@ def reduce_heating_data():
 def normalize_data():
     df=pd.read_csv('../output/database_reduced.csv')
     #change kW to W
-    df['p_th_minus7_l']=df['p_th_minus7_l']*1000
-    df['p_th_2_l']=df['p_th_2_l']*1000
-    df['p_th_7_l']=df['p_th_7_l']*1000
-    df['p_th_12_l']=df['p_th_12_l']*1000
-    df['p_th_tbiv_l']=df['p_th_tbiv_l']*1000
-    df['p_th_tol_l']=df['p_th_tol_l']*1000
-    df['pdcs_35_l']=df['pdcs_35_l']*1000
-    df['pdcs_30_l']=df['pdcs_30_l']*1000
-    df['pdcs_25_l']=df['pdcs_25_l']*1000
-    df['pdcs_20_l']=df['pdcs_20_l']*1000
-    df['p_th_minus7_h']=df['p_th_minus7_h']*1000
-    df['p_th_2_h']=df['p_th_2_h']*1000
-    df['p_th_7_h']=df['p_th_7_h']*1000
-    df['p_th_12_h']=df['p_th_12_h']*1000
-    df['p_th_tbiv_h']=df['p_th_tbiv_h']*1000
-    df['p_th_tol_h']=df['p_th_tol_h']*1000
-    df['pdcs_35_h']=df['pdcs_35_h']*1000
-    df['pdcs_30_h']=df['pdcs_30_h']*1000
-    df['pdcs_25_h']=df['pdcs_25_h']*1000
-    df['pdcs_20_h']=df['pdcs_20_h']*1000
+    df['p_th_minus7_l']=(df['p_th_minus7_l']*1000).astype(int)
+    df['p_th_2_l']=(df['p_th_2_l']*1000).astype(int)
+    df['p_th_7_l']=(df['p_th_7_l']*1000).astype(int)
+    df['p_th_12_l']=(df['p_th_12_l']*1000).astype(int)
+    df['p_th_tbiv_l']=(df['p_th_tbiv_l']*1000).astype(int)
+    df['p_th_tol_l']=(df['p_th_tol_l']*1000).astype(int)
+    df['p_th_minus7_h']=(df['p_th_minus7_h']*1000).astype(int)
+    df['p_th_2_h']=(df['p_th_2_h']*1000).astype(int)
+    df['p_th_7_h']=(df['p_th_7_h']*1000).astype(int)
+    df['p_th_12_h']=(df['p_th_12_h']*1000).astype(int)
+    df['p_th_tbiv_h']=(df['p_th_tbiv_h']*1000).astype(int)
+    df['p_th_tol_h']=(df['p_th_tol_h']*1000).astype(int)
+    df['pdcs_35_l']=(df['pdcs_35_l']*1000)
+    df['pdcs_30_l']=(df['pdcs_30_l']*1000)
+    df['pdcs_25_l']=(df['pdcs_25_l']*1000)
+    df['pdcs_20_l']=(df['pdcs_20_l']*1000)
+    df['pdcs_35_h']=(df['pdcs_35_h']*1000)
+    df['pdcs_30_h']=(df['pdcs_30_h']*1000)
+    df['pdcs_25_h']=(df['pdcs_25_h']*1000)
+    df['pdcs_20_h']=(df['pdcs_20_h']*1000)
     # add P_el
-    df['p_el_minus7_l'] = df['p_th_minus7_l'] / df['cop_minus7_l']
-    df['p_el_2_l'] = df['p_th_2_l'] / df['cop_2_l']
-    df['p_el_7_l'] = df['p_th_7_l'] / df['cop_7_l']
-    df['p_el_12_l'] = df['p_th_12_l'] / df['cop_12_l']
-    df['p_el_tbiv_l'] = df['p_th_tbiv_l'] / df['cop_tbiv_l']
-    df['p_el_tol_l'] = df['p_th_tol_l'] / df['cop_tol_l']
-    df['p_el_35_l'] = df['pdcs_35_l'] / df['eer_35_l']
-    df['p_el_30_l'] = df['pdcs_30_l'] / df['eer_30_l']
-    df['p_el_25_l'] = df['pdcs_25_l'] / df['eer_25_l']
-    df['p_el_20_l'] = df['pdcs_20_l'] / df['eer_20_l']
-    df['p_el_minus7_h'] = df['p_th_minus7_h'] / df['cop_minus7_h']
-    df['p_el_2_h'] = df['p_th_2_h'] / df['cop_2_h']
-    df['p_el_7_h'] = df['p_th_7_h'] / df['cop_7_h']
-    df['p_el_12_h'] = df['p_th_12_h'] / df['cop_12_h']
-    df['p_el_tbiv_h'] = df['p_th_tbiv_h'] / df['cop_tbiv_h']
-    df['p_el_tol_h'] = df['p_th_tol_h'] / df['cop_tol_h']
-    df['p_el_35_h'] = df['pdcs_35_h'] / df['eer_35_h']
-    df['p_el_30_h'] = df['pdcs_30_h'] / df['eer_30_h']
-    df['p_el_25_h'] = df['pdcs_25_h'] / df['eer_25_h']
-    df['p_el_20_h'] = df['pdcs_20_h'] / df['eer_20_h']
+    df['p_el_minus7_l'] = (round(df['p_th_minus7_l'] / df['cop_minus7_l'])).astype(int)
+    df['p_el_2_l'] = (round(df['p_th_2_l'] / df['cop_2_l'])).astype(int)
+    df['p_el_7_l'] = (round(df['p_th_7_l'] / df['cop_7_l'])).astype(int)
+    df['p_el_12_l'] = (round(df['p_th_12_l'] / df['cop_12_l'])).astype(int)
+    df['p_el_tbiv_l'] = (round(df['p_th_tbiv_l'] / df['cop_tbiv_l'])).astype(int)
+    df['p_el_tol_l'] = (round(df['p_th_tol_l'] / df['cop_tol_l'])).astype(int)
+    df['p_el_minus7_h'] = (round(df['p_th_minus7_h'] / df['cop_minus7_h'])).astype(int)
+    df['p_el_2_h'] = (round(df['p_th_2_h'] / df['cop_2_h'])).astype(int)
+    df['p_el_7_h'] = (round(df['p_th_7_h'] / df['cop_7_h'])).astype(int)
+    df['p_el_12_h'] = (round(df['p_th_12_h'] / df['cop_12_h'])).astype(int)
+    df['p_el_tbiv_h'] = (round(df['p_th_tbiv_h'] / df['cop_tbiv_h'])).astype(int)
+    df['p_el_tol_h'] = (round(df['p_th_tol_h'] / df['cop_tol_h'])).astype(int)
+    df['p_el_35_l'] = (round(df['pdcs_35_l'] / df['eer_35_l']))
+    df['p_el_30_l'] = (round(df['pdcs_30_l'] / df['eer_30_l']))
+    df['p_el_25_l'] = (round(df['pdcs_25_l'] / df['eer_25_l']))
+    df['p_el_20_l'] = (round(df['pdcs_20_l'] / df['eer_20_l']))
+    df['p_el_35_h'] = (round(df['pdcs_35_h'] / df['eer_35_h']))
+    df['p_el_30_h'] = (round(df['pdcs_30_h'] / df['eer_30_h']))
+    df['p_el_25_h'] = (round(df['pdcs_25_h'] / df['eer_25_h']))
+    df['p_el_20_h'] = (round(df['pdcs_20_h'] / df['eer_20_h']))
     df['p_el_minus7_l_n'] = df['p_el_minus7_l'] / df['p_el_minus7_h']
     df['p_el_2_l_n'] = df['p_el_2_l'] / df['p_el_minus7_h']
     df['p_el_7_l_n'] = df['p_el_7_l'] / df['p_el_minus7_h']
@@ -361,12 +361,47 @@ def calculate_fitting_parameters():
     df = pd.read_csv(r'../output/database_reduced_normalized_subtypes.csv')
     for model in df['titel']:
         group=df.loc[df['titel']==(model),'Group'].values[0]
+        #Create Model DF with all important information for fitting heating parameters
+        df_model=pd.DataFrame()
+        df_model['T_amb']=[-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[34,52,30,42,27,36,24,30]
+        df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_minus7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_minus7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_h_n'].values[0]),
+                            ]
+        df_model['COP']=[(df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                            ]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        """
         t_biv=df.loc[df['titel']==(model),'t_biv'].values[0]
         tol=df.loc[df['titel']==(model),'tol'].values[0]
         tol_low,tol_high=interpolate_t_out(tol)
         t_biv_low,t_biv_high=interpolate_t_out(t_biv)
-        #Create Model DF with all important information for fitting heating parameters
-        df_model=pd.DataFrame()
         df_model['T_amb']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
         df_model['T_out']=[tol_low,tol_high,t_biv_low,t_biv_high,34,52,30,42,27,36,24,30]
         df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_tol_l_n'].values[0]),
@@ -386,7 +421,7 @@ def calculate_fitting_parameters():
                             (df.loc[df['titel']==(model),'cop_tol_h'].values[0]),
                             (df.loc[df['titel']==(model),'cop_tbiv_l'].values[0]),
                             (df.loc[df['titel']==(model),'cop_tbiv_h'].values[0]),
-                            (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
                             (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
                             (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
                             (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
@@ -409,12 +444,12 @@ def calculate_fitting_parameters():
             df_model1['T_in'] = df_model1['T_in'] + 1
             df_model1['T_out'] = df_model1['T_out'] + 1
             df_model = pd.concat([df_model, df_model1])
-        df_model.drop_duplicates(inplace=True) #if multiple data at the same point
+        df_model.drop_duplicates(inplace=True) #if multiple data at the same point"""
         #Calculate heating parameters
         if group == 1 or group == 2 or group == 3:
+            COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
             df_model=df_model.loc[((df_model['T_amb'] != 12) & (df_model['T_amb'] != 7))]
             P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
-            COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
         elif group == 4 or group == 5 or group == 6:
             P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
             COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
@@ -518,68 +553,206 @@ def calculate_fitting_parameters():
                         'p_el_minus7_h': 'P_el_h_ref [W]' ,
                         'p_design_cools_h': 'P_design_h_T [kW]' ,
                         'seers_h': 'SEER medium T' ,
-                        'pdcs_35_h': 'P_th_c_ref [W]' ,
-                        'eer_35_h': 'EER_c_ref' ,
-                        'p_el_35_h': 'P_el_c_ref [W]' ,
+                        'pdcs_35_l': 'P_th_c_ref [W]' ,
+                        'eer_35_l': 'EER_c_ref' ,
+                        'p_el_35_l': 'P_el_c_ref [W]' ,
                         'Subtype': 'Subtype' ,
                         'Group': 'Group' ,
                         }, inplace=True)
     df=df[['Manufacturer' ,'Model' ,'Titel' ,'Date' ,'Type','Subtype' ,'Group' ,'Rated Power low T [kW]' ,'Rated Power medium T [kW]' ,'Refrigerant' ,'Mass of Refrigerant [kg]' ,'SPL indoor low Power [dBA]' ,'SPL outdoor low Power [dBA]' ,'SPL indoor high Power [dBA]' ,'SPL outdoor high Power [dBA]' ,'Bivalence temperature [°C]' ,'Tolerance temperature [°C]' ,'Max. water heating temperature [°C]' ,'Poff [W]' ,'PTOS [W]' ,'PSB [W]','PCKS [W]' ,'eta low T [%]' ,'eta medium T [%]' ,'SCOP' ,'SEER low T' ,'SEER medium T' ,'P_th_h_ref [W]' ,'P_th_c_ref [W]' ,'P_el_h_ref [W]' ,'P_el_c_ref [W]' ,'COP_ref' ,'EER_c_ref' ,'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]','p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]','p4_COP [-]','p1_P_el_c [1/°C]','p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]','p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]']]
-    df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+    df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
 
-def validation_relative_error_heating():
+def validation_re_mape():
     # Simulate every set point for every heat pump and save csv file
-    df=pd.read_csv('../output/database_heating_average_normalized_subtypes.csv')
+    mape_pth=[]
+    mape_pel=[]
+    mape_cop=[]
+    mape_pdc=[]
+    mape_pel_c=[]
+    mape_eer=[]
+    df=pd.read_csv('../output/database_reduced_normalized_subtypes_parameters.csv')
+    df_re=pd.DataFrame()
     i=0
-    prev_model='first Model'
-    while i<len(df): 
-        Model=df.iloc[i,1]
-        T_amb=df.iloc[i,12]
-        T_in=df.iloc[i,13]
-        T_out=df.iloc[i,14]
-        P_th=df.iloc[i,15]
-        P_el=df.iloc[i,16]
-        COP=df.iloc[i,17] 
-        try:
-            if prev_model!=Model:
-                para=hpl.get_parameters(Model)
-            results=hpl.simulate(T_in,T_out-5,para,T_amb)
-            df.loc[i,'P_th_sim']=results.P_th[0]
-            df.loc[i,'P_el_sim']=results.P_el[0]
-            df.loc[i,'COP_sim']=results.COP[0]
-            prev_model=Model
-            i=i+1
-        except:
-            i=i+1
-            pass
-    
-    # Relative error (RE) for every set point
-    df['RE_P_th']=(df['P_th_sim']/df['P_th [W]']-1)*100
-    df['RE_P_el']=(df['P_el_sim']/df['P_el [W]']-1)*100
-    df['RE_COP']=(df['COP_sim']/df['COP']-1)*100
-    df.to_csv('../output/database_heating_average_normalized_subtypes_validation.csv', encoding='utf-8', index=False)
+    while i<len(df):
+        model=df.iloc[i:]['titel'].values[0]
+        para=hpl.get_parameters(model)
+        heatpump = hpl.HeatPump(para)
+        group=df.iloc[i:]['Group'].values[0]
+        df_model=pd.DataFrame()
+        df_model['T_amb']=[-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[34,52,30,42,27,36,24,30]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0]
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10]
+        res=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values-5,t_amb=df_model['T_in'].values)
+        res=pd.DataFrame(res)
+        res['P_th_real']=[(df.loc[df['titel']==(model),'p_th_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_h'].values[0]),
+                                    ]
+        res['P_el_real']=[(df.loc[df['titel']==(model),'p_el_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_h'].values[0]),
+                                    ]
+        res['COP_real']=[(df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                                    ]
+        """tol=df.iloc[i-1:]['tol'].values[0]
+        t_biv=df.iloc[i-1:]['t_biv'].values[0]
+        tol_low,tol_high=interpolate_t_out(tol)
+        t_biv_low,t_biv_high=interpolate_t_out(t_biv)
+        df_model=pd.DataFrame()
+        df_model['T_amb']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[tol_low,tol_high,t_biv_low,t_biv_high,34,52,30,42,27,36,24,30]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0,0,0,0,0]
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10,10,10,10,10]
+        res=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values-5,t_amb=df_model['T_in'].values)
+        res=pd.DataFrame(res)
+        res['P_th_real']=[(df.loc[df['titel']==(model),'p_th_tol_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_tol_h'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_th_tbiv_l'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_th_tbiv_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_h'].values[0]),
+                                    ]
+        res['P_el_real']=[(df.loc[df['titel']==(model),'p_el_tol_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_tol_h'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_el_tbiv_l'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_el_tbiv_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_h'].values[0]),
+                                    ]
+        res['COP_real']=[(df.loc[df['titel']==(model),'cop_tol_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_tol_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_tbiv_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_tbiv_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                                    ]"""
+        res['RE_P_th']=(res['P_th']/res['P_th_real']-1)*100
+        res['RE_P_el']=(res['P_el']/res['P_el_real']-1)*100
+        res['RE_COP']=(res['COP']/res['COP_real']-1)*100
+        mape_pth.append((((res['P_th_real']-res['P_th']).abs())/res['P_th_real']*100).mean())
+        mape_pel.append((((res['P_el_real']-res['P_el']).abs())/res['P_el_real']*100).mean())
+        mape_cop.append((((res['COP_real']-res['COP']).abs())/res['COP_real']*100).mean())
+        if (df.loc[df['titel']==(model),'seers_l'].isna().values[0]==0) & (group==1):
+            df_model=pd.DataFrame()
+            df_model['T_in']=[20,20,25,25,30,30,35,35]
+            df_model['T_amb']=[20,20,25,25,30,30,35,35]
+            df_model['T_out']=[7,18,7,18,7,18,7,18]
+            res_c=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values+5,t_amb=df_model['T_in'].values,mode=2)
+            res_c=pd.DataFrame(res_c)
+            res_c['Pdc_real']=[(df.loc[df['titel']==(model),'pdcs_20_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_20_h'].values[0]), 
+                                (df.loc[df['titel']==(model),'pdcs_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'pdcs_25_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_30_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_30_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'pdcs_35_h'].values[0]),
+                                ]
+            res_c['Pel_c_real']=[(df.loc[df['titel']==(model),'p_el_20_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_20_h'].values[0]), 
+                                (df.loc[df['titel']==(model),'p_el_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_25_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_35_h'].values[0]),
+                                ]
+            res_c['EER_real']=[(df.loc[df['titel']==(model),'eer_20_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_20_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_h'].values[0]),
+                                ]
+            res_c['RE_Pdc']=(res_c['P_th']*-1/res_c['Pdc_real']-1)*100
+            res_c['RE_Pel_c']=(res_c['P_el']/res_c['Pel_c_real']-1)*100
+            res_c['RE_EER']=(res_c['EER']/res_c['EER_real']-1)*100
+            res=pd.concat([res,res_c])
+            mape_pdc.append((((res['Pdc_real']+res['P_th']).abs())/res['Pdc_real']*100).mean())
+            mape_pel_c.append((((res['Pel_c_real']-res['P_el']).abs())/res['Pel_c_real']*100).mean())
+            mape_eer.append((((res['EER_real']-res['EER']).abs())/res['EER_real']*100).mean())
+        else:
+            mape_pdc.append(np.nan)
+            mape_pel_c.append(np.nan)
+            mape_eer.append(np.nan)
+        res['titel']=model
+        res['Group']=group
+        df_re=pd.concat([df_re,res])
+        i+=1
+    df_re.to_csv('../output/relative_error.csv', encoding='utf-8', index=False)
+    df=pd.read_csv('hplib_database.csv')
+    df['MAPE P_th']=mape_pth
+    df['MAPE P_el']=mape_pel
+    df['MAPE COP']=mape_cop
+    df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
 
-def validation_mape_heating():
+def validation_mape_cooling():
     #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
-    df=pd.read_csv('../output/database_heating_average_normalized_subtypes_validation.csv')
-    para=pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
+    df=pd.read_csv('../output/database_cooling_reduced_normalized_validation.csv')
+    para=pd.read_csv('hplib_database.csv', delimiter=',')
     para=para.loc[para['Model']!='Generic']
     Models = para['Model'].values.tolist()
     Models = list(dict.fromkeys(Models))
-    mape_cop=[]
+    mape_eer=[]
     mape_pel=[]
-    mape_pth=[]
+    mape_pdc=[]
     for model in Models:
         df_model=df.loc[df['Model']==model]
-        mape_pth.append((((df_model['P_th [W]']-df_model['P_th_sim']).abs())/df_model['P_th [W]']*100).mean())
+        mape_pdc.append((((df_model['Pdc [W]']-df_model['Pdc_sim']).abs())/df_model['Pdc [W]']*100).mean())
         mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
-        mape_cop.append((((df_model['COP']-df_model['COP_sim']).abs())/df_model['COP']*100).mean())
-    para['MAPE_P_el']=mape_pel
-    para['MAPE_COP']=mape_cop
-    para['MAPE_P_th']=mape_pth
-    para.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
+        mape_eer.append((((df_model['EER']-df_model['EER_sim']).abs())/df_model['EER']*100).mean())
+    para['MAPE_P_el_cooling']=mape_pel
+    para['MAPE_EER']=mape_eer
+    para['MAPE_Pdc']=mape_pdc
+    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
 def add_generic():
@@ -649,227 +822,3 @@ def add_generic():
                                                  '', '', '']
     data_key['COP_ref'] = data_key['COP_ref'].round(2)
     data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-
-
-def reduce_to_unique():
-    # Many heat pump models have several entries 
-    # because of different controller or storage configurations. 
-    # Reduce to unique heat pump models.
-    df = pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
-    df_cool=pd.read_csv('../output/database_cooling.csv')
-    cooling_Models=df_cool['Model'].unique()
-    Models = []
-    built_type={}
-    unique_values = pd.unique(df['p3_P_el_h [-]']).tolist()
-    for values in unique_values:
-        modelnames = df.loc[df['p3_P_el_h [-]'] == values, ['Model']]
-        equal_Models=[]
-        for model in (modelnames.Model.values):
-            equal_Models.append(model)
-            for cooling_model in cooling_Models:
-                if model==cooling_model:
-                    modelnames.Model.values[0]=model    
-        Models.append(modelnames.Model.values[0])
-        built_type[modelnames.Model.values[0]]=equal_Models
-    new_df = pd.DataFrame()
-    new_df1 = pd.DataFrame()
-    for model in Models:
-        new_df1 = df.loc[df['Model'] == model]
-        new_df = pd.concat([new_df, new_df1])
-    # create a binary pickle file 
-    f = open("same_built_type.pkl","wb")
-    # write the python object (dict) to pickle file
-    pickle.dump(built_type,f)
-    # close file
-    f.close()
-    new_df.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
-    new_df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-
-
-def reduce_cooling_data():
-    df_cool=pd.read_csv('../output/database_cooling.csv')
-    df_heat=pd.read_csv('../output/hplib_database_heating.csv')
-    df = df_cool.merge(df_heat, on='Model', how='left')#merge with the ones from heating to get Group Number
-    df=df.iloc[:,:16]
-    df['Pdc [W]']=df['Pdc [kW]']*1000#get W
-    df.drop(columns=['Pdc [kW]','Date_y','Type_y','Manufacturer_y','Subtype','Pdesignc','Refrigerant_x','Mass of Refrigerant [kg]_x','Type_x','Date_x'], inplace=True)
-    df = df.rename(columns={'Manufacturer_x': 'Manufacturer','T_out [°C]_x':'T_out [°C]'}) 
-    df=df.loc[df['Group']==1]
-    df['P_el [W]']=df['Pdc [W]']/df['EER']#add P_el
-    df.to_csv('../output/database_cooling_reduced.csv',encoding='utf-8', index=False)
-
-
-def normalize_and_add_cooling_data():
-    df = pd.read_csv(r'../output/database_cooling_reduced.csv')
-    Models = df['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    new_df = pd.DataFrame()
-    for model in Models:   
-        data_key = pd.read_csv(r'../output/database_cooling_reduced.csv')
-        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
-        group = data_key.Group.array[0]  # get Group of model
-        if len(data_key)==4:  
-            data_key1 = data_key.loc[data_key['Model'] == model]
-            data_key1['T_out [°C]'] = data_key1['T_out [°C]'] + 11#the following values are based on 3 heatpumps, which have those values in the keymark
-            data_key1.loc[data_key1['T_outside [°C]']==35,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==35,'P_el [W]'] * 0.85
-            data_key1.loc[data_key1['T_outside [°C]']==30,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==30,'P_el [W]'] * 0.82
-            data_key1.loc[data_key1['T_outside [°C]']==25,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==25,'P_el [W]'] * 0.77
-            data_key1.loc[data_key1['T_outside [°C]']==20,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==20,'P_el [W]'] * 0.63
-            data_key1.loc[data_key1['T_outside [°C]']==35,'EER']=data_key1.loc[data_key1['T_outside [°C]']==35,'EER'] * 1.21
-            data_key1.loc[data_key1['T_outside [°C]']==30,'EER']=data_key1.loc[data_key1['T_outside [°C]']==30,'EER'] * 1.21
-            data_key1.loc[data_key1['T_outside [°C]']==25,'EER']=data_key1.loc[data_key1['T_outside [°C]']==25,'EER'] * 1.20
-            data_key1.loc[data_key1['T_outside [°C]']==20,'EER']=data_key1.loc[data_key1['T_outside [°C]']==20,'EER'] * 0.95
-            data_key1['Pdc [W]']=data_key1['P_el [W]']*data_key1['EER']
-            data_key = pd.concat([data_key, data_key1])
-        df_ref_pdc=data_key.loc[(data_key['T_outside [°C]']==35) & (data_key['T_out [°C]']==7),'Pdc [W]'].values[0]
-        data_key['Pdc_n']=data_key['Pdc [W]']/df_ref_pdc
-        df_ref_p_el=data_key.loc[(data_key['T_outside [°C]']==35) & (data_key['T_out [°C]']==7),'P_el [W]'].values[0]
-        data_key['P_el_n']=data_key['P_el [W]']/df_ref_p_el
-        new_df = pd.concat([new_df, data_key])  # merge new Dataframe with old one
-    new_df.to_csv('../output/database_cooling_reduced_normalized.csv',encoding='utf-8', index=False)
-
-
-def calculate_cooling_parameters():
-    # Calculate function parameters from normalized values
-    data_key = pd.read_csv('../output/database_cooling_reduced_normalized.csv')
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))  # get models
-
-    Group = []
-    Pel_ref = []
-    Pdc_ref = []
-    p1_Pdc = []
-    p2_Pdc = []
-    p3_Pdc = []
-    p4_Pdc = []
-    p1_P_el = []
-    p2_P_el = []
-    p3_P_el = []
-    p4_P_el = []
-    p1_EER = []
-    p2_EER = []
-    p3_EER = []
-    p4_EER = []
-
-    for model in Models:
-        data_key = pd.read_csv('../output/database_cooling_reduced_normalized.csv')
-        data_key = data_key.rename(
-            columns={'P_el [W]': 'P_el', 'Pdc [W]': 'Pdc', 'T_outside [°C]': 'T_in', 'T_out [°C]': 'T_out'})
-        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
-        group = data_key.Group.array[0]  # get Group of model
-        Pel_REF = data_key.loc[data_key['P_el_n'] == 1, ['P_el']].values.tolist()[0][0]
-        Pdc_REF = data_key.loc[data_key['Pdc_n'] == 1, ['Pdc']].values.tolist()[0][0]
-        data_key.fillna(0, inplace=True)
-        data_key['T_amb']=data_key['T_in']
-        data = data_key.loc[data_key['T_in'] > 24] #& (data_key['T_in'] != ))]
-        P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
-        #P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
-        Pdc_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['Pdc_n'])
-        EER_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['EER'])
-
-        # write Parameters in List
-        p1_Pdc.append(Pdc_n_para_key[0])
-        p2_Pdc.append(Pdc_n_para_key[1])
-        p3_Pdc.append(Pdc_n_para_key[2])
-        p4_Pdc.append(Pdc_n_para_key[3])
-        p1_P_el.append(P_el_n_para_key[0])
-        p2_P_el.append(P_el_n_para_key[1])
-        p3_P_el.append(P_el_n_para_key[2])
-        p4_P_el.append(P_el_n_para_key[3])
-        p1_EER.append(EER_para_key[0])
-        p2_EER.append(EER_para_key[1])
-        p3_EER.append(EER_para_key[2])
-        p4_EER.append(EER_para_key[3])
-        Group.append(group)
-        Pel_ref.append(Pel_REF)
-        Pdc_ref.append(Pdc_REF)
-
-    # write List  in Dataframe
-
-    paradf = pd.DataFrame()
-    paradf['Model'] = Models
-    paradf['p1_Pdc [1/°C]'] = p1_Pdc
-    paradf['p2_Pdc [1/°C]'] = p2_Pdc
-    paradf['p3_Pdc [-]'] = p3_Pdc
-    paradf['p4_Pdc [1/°C]'] = p4_Pdc
-    paradf['p1_P_el_c [1/°C]'] = p1_P_el
-    paradf['p2_P_el_c [1/°C]'] = p2_P_el
-    paradf['p3_P_el_c [-]'] = p3_P_el
-    paradf['p4_P_el_c [1/°C]'] = p4_P_el
-    paradf['p1_EER [-]'] = p1_EER
-    paradf['p2_EER [-]'] = p2_EER
-    paradf['p3_EER [-]'] = p3_EER
-    paradf['p4_EER [-]'] = p4_EER
-    paradf['P_el_cooling_ref'] = Pel_ref
-    paradf['Pdc_ref'] = Pdc_ref
-    hplib=pd.read_csv('../output/hplib_database_heating.csv')
-    os.remove('../output/hplib_database_heating.csv')        
-    para = hplib.merge(paradf, how='left', on='Model')
-    para.rename(columns={'P_el_cooling_ref': 'P_el_c_ref [W]', 'Pdc_ref': 'P_th_c_ref [W]'}, inplace=True)
-    para=para[['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group',
-       'Refrigerant', 'Mass of Refrigerant [kg]', 'SPL indoor [dBA]',
-       'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]',
-       'P_th_h_ref [W]', 'COP_ref', 'P_el_c_ref [W]', 'P_th_c_ref [W]',
-       'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]',
-       'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]',
-       'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'MAPE_P_el',
-       'MAPE_COP', 'MAPE_P_th', 'p1_Pdc [1/°C]', 'p2_Pdc [1/°C]', 'p3_Pdc [-]',
-       'p4_Pdc [1/°C]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]',
-       'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]',
-       'p4_EER [-]']]
-    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-
-
-def validation_relative_error_cooling():
-    # Simulate every set point for every heat pump and save csv file
-    df=pd.read_csv('../output/database_cooling_reduced.csv')
-    i=0
-    prev_model='first Model'
-    while i<len(df): 
-        Model=df.iloc[i,1]
-        T_amb=df.iloc[i,2]
-        T_in=df.iloc[i,2]
-        T_out=df.iloc[i,3]
-        P_th=df.iloc[i,6]
-        P_el=df.iloc[i,7]
-        COP=df.iloc[i,4]
-        try:
-            if prev_model!=Model:
-                para=hpl.get_parameters(Model)
-            results=hpl.simulate(T_in,T_out+5,para,T_amb,2)
-            df.loc[i,'Pdc_sim']=-results.P_th[0]
-            df.loc[i,'P_el_sim']=results.P_el[0]
-            df.loc[i,'EER_sim']=results.EER[0]
-            prev_model=Model
-            i=i+1
-        except:
-            i=i+1
-            pass
-        
-    # Relative error (RE) for every set point
-    df['RE_Pdc']=(df['Pdc_sim']/df['Pdc [W]']-1)*100
-    df['RE_P_el']=(df['P_el_sim']/df['P_el [W]']-1)*100
-    df['RE_EER']=(df['EER_sim']/df['EER']-1)*100
-    df.to_csv('../output/database_cooling_reduced_normalized_validation.csv', encoding='utf-8', index=False)
-
-
-def validation_mape_cooling():
-    #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
-    df=pd.read_csv('../output/database_cooling_reduced_normalized_validation.csv')
-    para=pd.read_csv('hplib_database.csv', delimiter=',')
-    para=para.loc[para['Model']!='Generic']
-    Models = para['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    mape_eer=[]
-    mape_pel=[]
-    mape_pdc=[]
-    for model in Models:
-        df_model=df.loc[df['Model']==model]
-        mape_pdc.append((((df_model['Pdc [W]']-df_model['Pdc_sim']).abs())/df_model['Pdc [W]']*100).mean())
-        mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
-        mape_eer.append((((df_model['EER']-df_model['EER_sim']).abs())/df_model['EER']*100).mean())
-    para['MAPE_P_el_cooling']=mape_pel
-    para['MAPE_EER']=mape_eer
-    para['MAPE_Pdc']=mape_pdc
-    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-    
