@@ -519,10 +519,10 @@ def calculate_fitting_parameters():
     df['p2_P_el_c [1/°C]'] = p2_P_el_c
     df['p3_P_el_c [-]'] = p3_P_el_c
     df['p4_P_el_c [1/°C]'] = p4_P_el_c
-    df['p1_EER [-]'] = p1_COP
-    df['p2_EER [-]'] = p2_COP
-    df['p3_EER [-]'] = p3_COP
-    df['p4_EER [-]'] = p4_COP
+    df['p1_EER [-]'] = p1_EER
+    df['p2_EER [-]'] = p2_EER
+    df['p3_EER [-]'] = p3_EER
+    df['p4_EER [-]'] = p4_EER
     df.to_csv(r'../output/database_reduced_normalized_subtypes_parameters.csv', encoding='utf-8', index=False)
     df.rename(columns={'manufacturers': 'Manufacturer' ,
                         'models': 'Model' ,
@@ -728,9 +728,13 @@ def validation_re_mape():
         i+=1
     df_re.to_csv('../output/relative_error.csv', encoding='utf-8', index=False)
     df=pd.read_csv('hplib_database.csv')
+    df = df.loc[df['Model'] != 'Generic']
     df['MAPE P_th']=mape_pth
     df['MAPE P_el']=mape_pel
     df['MAPE COP']=mape_cop
+    df['MAPE Pdc']=mape_pdc
+    df['MAPE P_el_c']=mape_pel_c
+    df['MAPE EER']=mape_eer
     df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
 
@@ -770,12 +774,11 @@ def add_generic():
                         titel='Generic_average'
                     if j==0.8:
                         titel='Generic_bottom'
-                    print(int(j*i),int(i*percent[percent.index(j)+1]))
                     df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)[int(j*i):int(i*percent[percent.index(j)+1])]
                     para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
-                    df.loc[len(df.index)]=['Generic', 'Generic', titel, '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,]
+                    df.loc[len(df.index)]=['Generic', 'Generic', titel, '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
         else:
             df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)
             para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
-            df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,]
+            df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
     df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
