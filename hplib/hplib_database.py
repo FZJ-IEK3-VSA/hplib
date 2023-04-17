@@ -9,73 +9,69 @@ import pickle
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+import shutil
 
 # Functions
 def import_keymark_data(i=0):
     #create folder to save csv files
-    month=str(datetime.now().month)
-    year=str(datetime.now().year)
-    try:
-        os.mkdir('../input/csv_'+month+'_'+year)
-    except:
-        pass
+    foldername='csv/'
     #open main page of EHPA
     manufacturers_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/?type=109126').content, 'html.parser')
     #look for all manufacturers
-    for manufacturer_info in manufacturers_info.find_all('td')[i:]:
-        i+=1                                                       
-        print('Progress: ',i, ' / ', len(manufacturers_info.find_all('td')),' In case of error: restart function with ', i, ' as input of function')        
+    for manufacturer_info in manufacturers_info.find_all('td')[i:]:                                  
+        i+=1 
+        print('Progress: ',i, ' / ', len(manufacturers_info.find_all('td')),' In case of error: restart function with ', i-1, ' as input of function')       
         manufacturer=manufacturer_info.text
         models_info= BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+manufacturer_info.a.get('href')).content, 'html.parser')
         #look for models:
         for model in models_info.find_all('td'):
             if model.text!=manufacturer:
-                try:
-                    model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
-                except:
-                    continue
-                for info_col in model_info.find_all(class_='info-coll'):
-                    if (info_col.find(class_='info-label').span.text)==('Refrigerant'):
-                        ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
-                    if (info_col.find(class_='info-label').span.text)==('Mass of Refrigerant'):
-                        mass_of_ref = (info_col.find(class_='info-data').text.replace('\n',''))
-                    if (info_col.find(class_='info-label').span.text)==('Certification Date'):
-                        date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
-                    if (info_col.find(class_='info-label').span.text)==('Heat Pump Type'):
-                        type = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
-                    if (info_col.find(class_='info-label').span.text)==('Driving energy'):
-                        energy = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
-                #choose correct export method (csv preffered) and get basic data TODO
-                for export_method in model_info.find_all('a'):
-                    if export_method.text.startswith('Export'):
-                        soup3 = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+export_method.get('href')).content,'html.parser')
-                        #open Download link
-                        for link in soup3.find_all('a'):
-                            if link.text=='Download':
-                                #write to csv
-                                foldername='csv_'+month+'_'+year+'/'
-                                filename=manufacturer+model.text.replace('/','_')
-                                filename=filename.replace(' ','_')
-                                csv_content = requests.get('https://www.heatpumpkeymark.com/'+link.get('href')).content
-                                with open('../input/'+foldername+filename+'.csv', 'wb') as file:
-                                    file.write(csv_content)
-                                with open('../input/'+foldername+filename+'.csv', 'a') as f:
-                                    f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
-                                    f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
-                                    f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
-                                    f.write('"","Manufacturer","'+manufacturer+'","0","0","0","0"\r\n')
-                                    f.write('"","Modelname","'+model.text+'","0","0","0","0"\r\n')
-                                    f.write('"","Type","'+type+'","0","0","0","0"\r\n')
-                                    f.write('"","Energy","'+energy+'","0","0","0","0"\r\n')
+                filename=manufacturer+model.text.replace('/','_')
+                filename=filename.replace(' ','_')
+                if os.path.isfile('../input/csv/'+filename+'.csv')==0:
+                    try:
+                        model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
+                    except:
+                        continue
+                    for info_col in model_info.find_all(class_='info-coll'):
+                        if (info_col.find(class_='info-label').span.text)==('Refrigerant'):
+                            ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                        if (info_col.find(class_='info-label').span.text)==('Mass of Refrigerant'):
+                            mass_of_ref = (info_col.find(class_='info-data').text.replace('\n',''))
+                        if (info_col.find(class_='info-label').span.text)==('Certification Date'):
+                            date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                        if (info_col.find(class_='info-label').span.text)==('Heat Pump Type'):
+                            type = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+                        if (info_col.find(class_='info-label').span.text)==('Driving energy'):
+                            energy = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+                    #choose correct export method (csv preffered) and get basic data TODO
+                    for export_method in model_info.find_all('a'):
+                        if export_method.text.startswith('Export'):
+                            soup3 = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+export_method.get('href')).content,'html.parser')
+                            #open Download link
+                            for link in soup3.find_all('a'):
+                                if link.text=='Download':
+                                    #write to csv
+                                    csv_content = requests.get('https://www.heatpumpkeymark.com/'+link.get('href')).content
+                                    with open('../input/'+foldername+filename+'.csv', 'wb') as file:
+                                        file.write(csv_content)
+                                    with open('../input/'+foldername+filename+'.csv', 'a') as f:
+                                        f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
+                                        f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
+                                        f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
+                                        f.write('"","Manufacturer","'+manufacturer+'","0","0","0","0"\r\n')
+                                        f.write('"","Modelname","'+model.text+'","0","0","0","0"\r\n')
+                                        f.write('"","Type","'+type+'","0","0","0","0"\r\n')
+                                        f.write('"","Energy","'+energy+'","0","0","0","0"\r\n')
 
 
-def combine_raw_csv():
+def combine_raw_csv(foldername):
     df_all=pd.DataFrame()
-    manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures= ([] for i in range(45))
-    lists=[manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures]
-    values=['Manufacturer','Modelname','title','Date','application','Refrigerant','Mass of Refrigerant','EN12102_1_001','EN12102_1_002','EN14825_001','EN14825_002','EN14825_003','EN14825_004','EN14825_005','EN14825_008','EN14825_009','EN14825_010','EN14825_011','EN14825_012','EN14825_013','EN14825_014','EN14825_015','EN14825_016','EN14825_017','EN14825_018','EN14825_019','EN14825_020','EN14825_022','EN14825_023','EN14825_024','EN14825_025','EN14825_026','EN14825_027','EN14825_028','EN14825_030','EN14825_031','EN14825_032','EN14825_033','EN14825_034','EN14825_035','EN14825_036','EN14825_037','EN14825_038','EN14825_039']
-    general_info=['Manufacturer','Modelname','Date','Refrigerant','Mass of Refrigerant']
-    with os.scandir('../input/csv_11_2022') as dir1:
+    manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures= ([] for i in range(46))
+    lists=[manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures]
+    values=['Manufacturer','Modelname','title','Date','application','Refrigerant','Mass of Refrigerant','Energy','EN12102_1_001','EN12102_1_002','EN14825_001','EN14825_002','EN14825_003','EN14825_004','EN14825_005','EN14825_008','EN14825_009','EN14825_010','EN14825_011','EN14825_012','EN14825_013','EN14825_014','EN14825_015','EN14825_016','EN14825_017','EN14825_018','EN14825_019','EN14825_020','EN14825_022','EN14825_023','EN14825_024','EN14825_025','EN14825_026','EN14825_027','EN14825_028','EN14825_030','EN14825_031','EN14825_032','EN14825_033','EN14825_034','EN14825_035','EN14825_036','EN14825_037','EN14825_038','EN14825_039']
+    general_info=['Manufacturer','Modelname','Date','Refrigerant','Mass of Refrigerant', 'Energy']
+    with os.scandir('../input/'+ foldername) as dir1:
         for file in dir1:
             j=0 #j: start index; i: end index
             df=pd.read_csv(file)
@@ -149,6 +145,7 @@ def combine_raw_csv():
     df_all['ptos']=ptos
     df_all['psbs']=psbs
     df_all['pcks']=pcks
+    df_all['supply_energy']=supply_energy
     df_all['supp_energy_types']=supp_energy_types
     df_all['p_sups']=p_sups
     df_all['p_design_cools']=p_design_cools
@@ -171,12 +168,12 @@ def reduce_heating_data():
     # climate = average, warm or cold
     df=pd.read_csv('../output/database.csv')
     df=df.loc[df['eta'].isna()==0]
-    df=df.drop_duplicates(subset=['p_rated', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
-        'p_th_7', 'cop_7', 'p_th_12', 'cop_12', 'p_th_tbiv', 'cop_tbiv',
-        'p_th_tol', 'cop_tol', 'wtols', 'poffs', 'ptos',
-        'psbs', 'pcks', 'supp_energy_types', 'p_sups', 'p_design_cools',
-        'pdcs_35', 'eer_35', 'pdcs_30', 'eer_30', 'pdcs_25', 'eer_25',
-        'pdcs_20', 'eer_20', 'temperatures'])#types?
+    #df=df.drop_duplicates(subset=['p_rated', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
+    #    'p_th_7', 'cop_7', 'p_th_12', 'cop_12', 'p_th_tbiv', 'cop_tbiv',
+    #    'p_th_tol', 'cop_tol', 'wtols', 'poffs', 'ptos',
+    #    'psbs', 'pcks', 'supp_energy_types', 'p_sups', 'p_design_cools',
+    #    'pdcs_35', 'eer_35', 'pdcs_30', 'eer_30', 'pdcs_25', 'eer_25',
+    #    'pdcs_20', 'eer_20', 'temperatures'])#types?
     df.sort_values(by=['manufacturers','models'], inplace=True,key=lambda col: col.str.lower())
     df=df.loc[df['temperatures']=='low'].merge(df.loc[df['temperatures']=='high'],on='titels')
     df=df[['manufacturers_x', 'models_x', 'titels', 'dates_x', 'types_x','refrigerants_x', 'mass_of_refrigerants_x', 'spl_indoor_x','spl_outdoor_x', 'eta_x', 'p_rated_x', 'scop_x', 't_biv_x', 'tol_x','p_th_minus7_x', 'cop_minus7_x', 'p_th_2_x', 'cop_2_x', 'p_th_7_x','cop_7_x', 'p_th_12_x', 'cop_12_x', 'p_th_tbiv_x', 'cop_tbiv_x','p_th_tol_x', 'cop_tol_x', 'rated_airflows_x', 'wtols_x', 'poffs_x','ptos_x', 'psbs_x', 'pcks_x', 'supp_energy_types_x', 'p_sups_x','p_design_cools_x', 'seers_x', 'pdcs_35_x', 'eer_35_x', 'pdcs_30_x','eer_30_x', 'pdcs_25_x', 'eer_25_x', 'pdcs_20_x', 'eer_20_x', 'spl_indoor_y','spl_outdoor_y', 'eta_y', 'p_rated_y', 'p_th_minus7_y', 'cop_minus7_y', 'p_th_2_y', 'cop_2_y', 'p_th_7_y','cop_7_y', 'p_th_12_y', 'cop_12_y', 'p_th_tbiv_y', 'cop_tbiv_y','p_th_tol_y', 'cop_tol_y', 'rated_airflows_y', 'p_sups_y','p_design_cools_y', 'seers_y', 'pdcs_35_y', 'eer_35_y', 'pdcs_30_y','eer_30_y', 'pdcs_25_y', 'eer_25_y', 'pdcs_20_y', 'eer_20_y']]
@@ -588,7 +585,7 @@ def validation_re_mape():
             df_model['T_in']=[0,0,0,0,0,0,0,0]
         else: # Water/Water
             df_model['T_in']=[10,10,10,10,10,10,10,10]
-        res=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values-5,t_amb=df_model['T_in'].values)
+        res=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values-5,t_amb=df_model['T_amb'].values)
         res=pd.DataFrame(res)
         res['P_th_real']=[(df.loc[df['titel']==(model),'p_th_minus7_l'].values[0]),
                         (df.loc[df['titel']==(model),'p_th_minus7_h'].values[0]),
@@ -742,7 +739,7 @@ def add_generic():
     percent=[0,0.2,0.8,1]
     df = pd.read_csv('hplib_database.csv', delimiter=',')
     df = df.loc[df['Model'] != 'Generic']
-    df=df.drop_duplicates(subset=['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]'])
+    #df=df.drop_duplicates(subset=['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]'])
     df.index=range(len(df))
     Groups = [1, 2, 3, 4, 5, 6]
     for group in Groups:
