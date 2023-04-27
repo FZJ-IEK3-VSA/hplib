@@ -11,6 +11,9 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import shutil
 
+# get path to the current file
+THIS_FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
+
 # Functions
 def import_keymark_data(i=0):
     #create folder to save csv files
@@ -28,7 +31,7 @@ def import_keymark_data(i=0):
             if model.text!=manufacturer:
                 filename=manufacturer+model.text.replace('/','_')
                 filename=filename.replace(' ','_')
-                if os.path.isfile('../input/csv/'+filename+'.csv')==0:
+                if os.path.isfile(THIS_FOLDER_PATH + '/../input/csv/'+filename+'.csv')==0:
                     try:
                         model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
                     except:
@@ -53,9 +56,9 @@ def import_keymark_data(i=0):
                                 if link.text=='Download':
                                     #write to csv
                                     csv_content = requests.get('https://www.heatpumpkeymark.com/'+link.get('href')).content
-                                    with open('../input/'+foldername+filename+'.csv', 'wb') as file:
+                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'wb') as file:
                                         file.write(csv_content)
-                                    with open('../input/'+foldername+filename+'.csv', 'a') as f:
+                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'a') as f:
                                         f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
                                         f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
                                         f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
@@ -71,7 +74,7 @@ def combine_raw_csv(foldername):
     lists=[manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures]
     values=['Manufacturer','Modelname','title','Date','application','Refrigerant','Mass of Refrigerant','Energy','EN12102_1_001','EN12102_1_002','EN14825_001','EN14825_002','EN14825_003','EN14825_004','EN14825_005','EN14825_008','EN14825_009','EN14825_010','EN14825_011','EN14825_012','EN14825_013','EN14825_014','EN14825_015','EN14825_016','EN14825_017','EN14825_018','EN14825_019','EN14825_020','EN14825_022','EN14825_023','EN14825_024','EN14825_025','EN14825_026','EN14825_027','EN14825_028','EN14825_030','EN14825_031','EN14825_032','EN14825_033','EN14825_034','EN14825_035','EN14825_036','EN14825_037','EN14825_038','EN14825_039']
     general_info=['Manufacturer','Modelname','Date','Refrigerant','Mass of Refrigerant', 'Energy']
-    with os.scandir('../input/'+ foldername) as dir1:
+    with os.scandir(THIS_FOLDER_PATH + '/../input/'+ foldername) as dir1:
         for file in dir1:
             j=0 #j: start index; i: end index
             df=pd.read_csv(file)
@@ -159,14 +162,14 @@ def combine_raw_csv(foldername):
     df_all['pdcs_20']=pdcs_20
     df_all['eer_20']=eer_20
     df_all['temperatures']=temperatures
-    df_all.to_csv(r'../output/database.csv', index=False)
+    df_all.to_csv(THIS_FOLDER_PATH + '/../output/database.csv', index=False)
 
 
 def reduce_heating_data():
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)
     # delete redundant entries
     # climate = average, warm or cold
-    df=pd.read_csv('../output/database.csv')
+    df=pd.read_csv(THIS_FOLDER_PATH + '/../output/database.csv')
     df=df.loc[df['eta'].isna()==0]
     #df=df.drop_duplicates(subset=['p_rated', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
     #    'p_th_7', 'cop_7', 'p_th_12', 'cop_12', 'p_th_tbiv', 'cop_tbiv',
@@ -178,11 +181,11 @@ def reduce_heating_data():
     df=df.loc[df['temperatures']=='low'].merge(df.loc[df['temperatures']=='high'],on='titels')
     df=df[['manufacturers_x', 'models_x', 'titels', 'dates_x', 'types_x','refrigerants_x', 'mass_of_refrigerants_x', 'spl_indoor_x','spl_outdoor_x', 'eta_x', 'p_rated_x', 'scop_x', 't_biv_x', 'tol_x','p_th_minus7_x', 'cop_minus7_x', 'p_th_2_x', 'cop_2_x', 'p_th_7_x','cop_7_x', 'p_th_12_x', 'cop_12_x', 'p_th_tbiv_x', 'cop_tbiv_x','p_th_tol_x', 'cop_tol_x', 'rated_airflows_x', 'wtols_x', 'poffs_x','ptos_x', 'psbs_x', 'pcks_x', 'supp_energy_types_x', 'p_sups_x','p_design_cools_x', 'seers_x', 'pdcs_35_x', 'eer_35_x', 'pdcs_30_x','eer_30_x', 'pdcs_25_x', 'eer_25_x', 'pdcs_20_x', 'eer_20_x', 'spl_indoor_y','spl_outdoor_y', 'eta_y', 'p_rated_y', 'p_th_minus7_y', 'cop_minus7_y', 'p_th_2_y', 'cop_2_y', 'p_th_7_y','cop_7_y', 'p_th_12_y', 'cop_12_y', 'p_th_tbiv_y', 'cop_tbiv_y','p_th_tol_y', 'cop_tol_y', 'rated_airflows_y', 'p_sups_y','p_design_cools_y', 'seers_y', 'pdcs_35_y', 'eer_35_y', 'pdcs_30_y','eer_30_y', 'pdcs_25_y', 'eer_25_y', 'pdcs_20_y', 'eer_20_y']]
     df.rename(columns={'manufacturers_x': 'manufacturers','models_x': 'models','titels': 'titel','dates_x': 'dates','types_x': 'types','refrigerants_x': 'refrigerants','mass_of_refrigerants_x': 'mass_of_refrigerants', 'spl_indoor_x': 'spl_indoor_l','spl_outdoor_x': 'spl_outdoor_l', 'eta_x': 'eta_l', 'p_rated_x': 'p_rated_l', 'scop_x': 'scop_l', 't_biv_x': 't_biv', 'tol_x': 'tol','p_th_minus7_x': 'p_th_minus7_l', 'cop_minus7_x': 'cop_minus7_l', 'p_th_2_x': 'p_th_2_l', 'cop_2_x': 'cop_2_l', 'p_th_7_x': 'p_th_7_l','cop_7_x': 'cop_7_l', 'p_th_12_x': 'p_th_12_l', 'cop_12_x': 'cop_12_l', 'p_th_tbiv_x': 'p_th_tbiv_l', 'cop_tbiv_x': 'cop_tbiv_l','p_th_tol_x': 'p_th_tol_l', 'cop_tol_x': 'cop_tol_l', 'rated_airflows_x': 'rated_airflows_l', 'wtols_x': 'wtols', 'poffs_x': 'poffs','ptos_x': 'ptos', 'psbs_x': 'psbs', 'pcks_x': 'pcks', 'supp_energy_types_x': 'supp_energy_types', 'p_sups_x': 'p_sups_l','p_design_cools_x': 'p_design_cools_l', 'seers_x': 'seers_l', 'pdcs_35_x': 'pdcs_35_l', 'eer_35_x': 'eer_35_l','pdcs_30_x': 'pdcs_30_l','eer_30_x': 'eer_30_l', 'pdcs_25_x': 'pdcs_25_l', 'eer_25_x': 'eer_25_l', 'pdcs_20_x': 'pdcs_20_l','eer_20_x': 'eer_20_l', 'spl_indoor_y': 'spl_indoor_h','spl_outdoor_y': 'spl_outdoor_h', 'eta_y': 'eta_h', 'p_rated_y': 'p_rated_h', 'scop_y': 'scop_h', 'p_th_minus7_y': 'p_th_minus7_h', 'cop_minus7_y': 'cop_minus7_h', 'p_th_2_y': 'p_th_2_h', 'cop_2_y': 'cop_2_h', 'p_th_7_y': 'p_th_7_h','cop_7_y': 'cop_7_h', 'p_th_12_y': 'p_th_12_h', 'cop_12_y': 'cop_12_h', 'p_th_tbiv_y': 'p_th_tbiv_h', 'cop_tbiv_y': 'cop_tbiv_h','p_th_tol_y': 'p_th_tol_h', 'cop_tol_y': 'cop_tol_h', 'rated_airflows_y': 'rated_airflows_h', 'p_sups_y': 'p_sups_h','p_design_cools_y': 'p_design_cools_h', 'seers_y': 'seers_h', 'pdcs_35_y': 'pdcs_35_h', 'eer_35_y': 'eer_35_h', 'pdcs_30_y': 'pdcs_30_h','eer_30_y': 'eer_30_h', 'pdcs_25_y': 'pdcs_25_h', 'eer_25_y': 'eer_25_h', 'pdcs_20_y': 'pdcs_20_h', 'eer_20_y': 'eer_20_h'},inplace=True)
-    df.to_csv('../output/database_reduced.csv',index=False)
+    df.to_csv(THIS_FOLDER_PATH + '/../output/database_reduced.csv',index=False)
 
 
 def normalize_data():
-    df=pd.read_csv('../output/database_reduced.csv')
+    df=pd.read_csv(THIS_FOLDER_PATH + '/../output/database_reduced.csv')
     #change kW to W
     df['p_th_minus7_l']=(df['p_th_minus7_l']*1000).astype(int)
     df['p_th_2_l']=(df['p_th_2_l']*1000).astype(int)
@@ -264,7 +267,7 @@ def normalize_data():
     df.loc[(df['p_el_25_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_25_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_25_h_n'].unique().mean()
     df.loc[(df['p_el_30_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_30_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_30_h_n'].unique().mean()
     df.loc[(df['p_el_35_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_35_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_35_h_n'].unique().mean()
-    df.to_csv(r'../output/database_reduced_normalized.csv', encoding='utf-8', index=False)
+    df.to_csv(THIS_FOLDER_PATH + '/../output/database_reduced_normalized.csv', encoding='utf-8', index=False)
 
 
 def identify_subtypes():
@@ -272,7 +275,7 @@ def identify_subtypes():
     # -7/34 |  2/30  |  7/27  |  12/24
     # assumptions for On-Off Heatpump: if temperature difference is bigger, thermal Power output is smaller
     # assumptions for Regulated: everythin else
-    df=pd.read_csv(r'../output/database_reduced_normalized.csv')
+    df=pd.read_csv(THIS_FOLDER_PATH + '/../output/database_reduced_normalized.csv')
     df['Subtype'] = np.where((df['p_th_minus7_l'] <= df['p_th_2_l']) & (df['p_th_2_l'] <= df['p_th_7_l'])& (df['p_th_7_l'] <= df['p_th_12_l']), 'On-Off', 'Regulated')
 
     filt1 = (df['types'] == 'Outdoor Air/Water') & (df['Subtype'] == 'Regulated')
@@ -297,7 +300,7 @@ def identify_subtypes():
     filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 6
     df = df.loc[df['Group'] != 7]
-    df.to_csv(r'../output/database_reduced_normalized_subtypes.csv', encoding='utf-8', index=False)
+    df.to_csv(THIS_FOLDER_PATH + '/../output/database_reduced_normalized_subtypes.csv', encoding='utf-8', index=False)
 
 
 def fit_simple(w, x, y, z):
@@ -355,7 +358,7 @@ def calculate_fitting_parameters():
     p2_EER=[]
     p3_EER=[]
     p4_EER=[]
-    df = pd.read_csv(r'../output/database_reduced_normalized_subtypes.csv')
+    df = pd.read_csv(THIS_FOLDER_PATH + '/../output/database_reduced_normalized_subtypes.csv')
     for model in df['titel']:
         group=df.loc[df['titel']==(model),'Group'].values[0]
         #Create Model DF with all important information for fitting heating parameters
@@ -520,7 +523,7 @@ def calculate_fitting_parameters():
     df['p2_EER [-]'] = p2_EER
     df['p3_EER [-]'] = p3_EER
     df['p4_EER [-]'] = p4_EER
-    df.to_csv(r'../output/database_reduced_normalized_subtypes_parameters.csv', encoding='utf-8', index=False)
+    df.to_csv(THIS_FOLDER_PATH + '/../output/database_reduced_normalized_subtypes_parameters.csv', encoding='utf-8', index=False)
     df.rename(columns={'manufacturers': 'Manufacturer' ,
                         'models': 'Model' ,
                         'titel': 'Titel' ,
@@ -568,7 +571,7 @@ def validation_re_mape():
     mape_pdc=[]
     mape_pel_c=[]
     mape_eer=[]
-    df=pd.read_csv('../output/database_reduced_normalized_subtypes_parameters.csv')
+    df=pd.read_csv(THIS_FOLDER_PATH + '/../output/database_reduced_normalized_subtypes_parameters.csv')
     df_re=pd.DataFrame()
     i=0
     while i<len(df):
@@ -723,7 +726,7 @@ def validation_re_mape():
         res['Group']=group
         df_re=pd.concat([df_re,res])
         i+=1
-    df_re.to_csv('../output/relative_error.csv', encoding='utf-8', index=False)
+    df_re.to_csv(THIS_FOLDER_PATH + '/../output/relative_error.csv', encoding='utf-8', index=False)
     df=pd.read_csv('hplib_database.csv')
     df = df.loc[df['Model'] != 'Generic']
     df['MAPE P_th']=mape_pth

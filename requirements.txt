@@ -5,3 +5,5 @@ pip
 matplotlib
 scipy
 versioneer
+pytest
+beautifulsoup4
