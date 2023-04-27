@@ -1,1655 +1,306 @@
-# Import packages
 import os
 import pandas as pd
+import numpy as np
 import scipy
-from scipy.optimize import curve_fit
 import hplib as hpl
 import pickle
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
+import shutil
+
+
+# get path to the current file
+THIS_FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
+
+
 # Functions
+def import_keymark_data(i=0):
+    #create folder to save csv files
+    foldername='csv/'
+    #open main page of EHPA
+    manufacturers_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/?type=109126').content, 'html.parser')
+    #look for all manufacturers
+    for manufacturer_info in manufacturers_info.find_all('td')[i:]:                                  
+        i+=1 
+        print('Progress: ',i, ' / ', len(manufacturers_info.find_all('td')),' In case of error: restart function with ', i-1, ' as input of function')       
+        manufacturer=manufacturer_info.text
+        models_info= BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+manufacturer_info.a.get('href')).content, 'html.parser')
+        #look for models:
+        for model in models_info.find_all('td'):
+            if model.text!=manufacturer:
+                filename=manufacturer+model.text.replace('/','_')
+                filename=filename.replace(' ','_')
+                if os.path.isfile(THIS_FOLDER_PATH + '/../input/csv/'+filename+'.csv')==0:
+                    try:
+                        model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
+                    except:
+                        continue
+                    for info_col in model_info.find_all(class_='info-coll'):
+                        if (info_col.find(class_='info-label').span.text)==('Refrigerant'):
+                            ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                        if (info_col.find(class_='info-label').span.text)==('Mass of Refrigerant'):
+                            mass_of_ref = (info_col.find(class_='info-data').text.replace('\n',''))
+                        if (info_col.find(class_='info-label').span.text)==('Certification Date'):
+                            date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                        if (info_col.find(class_='info-label').span.text)==('Heat Pump Type'):
+                            type = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+                        if (info_col.find(class_='info-label').span.text)==('Driving energy'):
+                            energy = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+                    #choose correct export method (csv preffered) and get basic data TODO
+                    for export_method in model_info.find_all('a'):
+                        if export_method.text.startswith('Export'):
+                            soup3 = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+export_method.get('href')).content,'html.parser')
+                            #open Download link
+                            for link in soup3.find_all('a'):
+                                if link.text=='Download':
+                                    #write to csv
+                                    csv_content = requests.get('https://www.heatpumpkeymark.com/'+link.get('href')).content
+                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'wb') as file:
+                                        file.write(csv_content)
+                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'a') as f:
+                                        f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
+                                        f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
+                                        f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
+                                        f.write('"","Manufacturer","'+manufacturer+'","0","0","0","0"\r\n')
+                                        f.write('"","Modelname","'+model.text+'","0","0","0","0"\r\n')
+                                        f.write('"","Type","'+type+'","0","0","0","0"\r\n')
+                                        f.write('"","Energy","'+energy+'","0","0","0","0"\r\n')
 
-def import_heating_data():
-    # read in keymark data from *.txt files in /input/txt_07_22/
-    # save a dataframe to database_heating.csv in folder /output/
-    Modul = []
-    Manufacturer = []
-    Date = []
-    Refrigerant = []
-    Mass = []
-    Poff = []
-    Psb = []
-    Prated = []
-    SPLindoor = []
-    SPLoutdoor = []
-    Type = []
-    Climate = []
-    Guideline = []
-    T_in = []
-    T_out = []
-    P_th = []
-    COP = []
-    df = pd.DataFrame()
-    os.chdir('../')
-    root = os.getcwd()
-    Scanordner = (root+'/input/txt_07_22')
-    os.chdir(Scanordner)
-    Scan = os.scandir(os.getcwd())
-    with Scan as dir1:
+
+def combine_raw_csv(foldername):
+    df_all=pd.DataFrame()
+    manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures= ([] for i in range(46))
+    lists=[manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures]
+    values=['Manufacturer','Modelname','title','Date','application','Refrigerant','Mass of Refrigerant','Energy','EN12102_1_001','EN12102_1_002','EN14825_001','EN14825_002','EN14825_003','EN14825_004','EN14825_005','EN14825_008','EN14825_009','EN14825_010','EN14825_011','EN14825_012','EN14825_013','EN14825_014','EN14825_015','EN14825_016','EN14825_017','EN14825_018','EN14825_019','EN14825_020','EN14825_022','EN14825_023','EN14825_024','EN14825_025','EN14825_026','EN14825_027','EN14825_028','EN14825_030','EN14825_031','EN14825_032','EN14825_033','EN14825_034','EN14825_035','EN14825_036','EN14825_037','EN14825_038','EN14825_039']
+    general_info=['Manufacturer','Modelname','Date','Refrigerant','Mass of Refrigerant', 'Energy']
+    with os.scandir(THIS_FOLDER_PATH + '/../input/'+ foldername) as dir1:
         for file in dir1:
-            with open(file, 'r', encoding='utf-8') as f:
-                contents = f.readlines()
-                date = 'NaN'
-                modul = 'NaN'
-                prated_low = 'NaN'
-                prated_medium = 'NaN'
-                heatpumpType = 'NaN'
-                refrigerant = 'NaN'
-                splindoor_low = 'NaN'
-                splindoor_medium = 'NaN'
-                sploutdoor_low = 'NaN'
-                sploutdoor_medium = 'NaN'
-                poff = 'NaN'
-                climate = 'NaN'
-                NumberOfTestsPerNorm = []
-                NumberOfTestsPerModule = []
-                low_medium_swapped=0#indicator if they are swaped
-                i = 1  # indicator for the line wich is read
-                d = 0  # indicator if only medium Temperature is given
-                p = 0  # -15° yes or no
-                date = contents[1]
-                date = date[61:]
-                if (date == '17 Dec 2020\n'):
-                    date = '17.12.2020\n'
-                elif (date == '18 Dec 2020\n'):
-                    date = '18.12.2020\n'
-                elif (date.startswith('5 Mar 2021')):
-                    date = '05.03.2021\n'
-                elif (date.startswith('15 Feb 2021')):
-                    date = '15.02.2021\n'
-                elif (date.startswith('22 Feb 2021')):
-                    date = '22.02.2021\n'
-                elif (date.startswith('18 Mar 2022')):
-                    date = '18.03.2022\n'
-                elif date.startswith('7 Jul 2022'):
-                    date='07.07.2022\n'
-                if ' Jun ' in date:
-                    date=date.replace(' Jun ','.06.')
-                if ' Jul ' in date:
-                    date=date.replace(' Jul ','.07.')
-                for lines in contents:
-                    i = i + 1
-                    if (lines.startswith('Name\n') == 1):
-                        manufacturer = (contents[i])
-                        if (manufacturer.find('(') > 0):
-                            manufacturer = manufacturer.split('(', 1)[1].split('\n')[0]
-                        if manufacturer.endswith('GmbH\n'):
-                            manufacturer = manufacturer[:-5]
-                        if manufacturer.endswith('S.p.A.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('s.p.a.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('S.p.A\n'):
-                            manufacturer = manufacturer[:-5]
-                        if manufacturer.endswith('S.L.U.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('s.r.o.\n'):
-                            manufacturer = manufacturer[:-6]
-                        if manufacturer.endswith('S.A.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('S.L.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('B.V.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('N.V.\n'):
-                            manufacturer = manufacturer[:-4]
-                        if manufacturer.endswith('GmbH & Co KG\n'):
-                            manufacturer = manufacturer[:-12]
-                        elif manufacturer.startswith('NIBE'):
-                            manufacturer = 'Nibe\n'
-                        elif manufacturer.startswith('Nibe'):
-                            manufacturer = 'Nibe\n'
-                        elif manufacturer.startswith('Mitsubishi'):
-                            manufacturer = 'Mitsubishi\n'
-                        elif manufacturer.startswith('Ochsner'):
-                            manufacturer = 'Ochsner\n'
-                        elif manufacturer.startswith('OCHSNER'):
-                            manufacturer = 'Ochsner\n'
-                        elif manufacturer.startswith('Viessmann'):
-                            manufacturer = 'Viessmann\n'
-
-                    elif (lines.endswith('Date\n') == 1):
-                        if contents[i-2].startswith('Phase'):
-                            continue
-                        date = (contents[i])
-                        if (date == 'basis\n'):
-                            date = contents[i - 3]
-                            date = date[14:]
-                    elif (lines.startswith('Model:') == 1):
-                        modul = (contents[i - 2])
-                        if manufacturer.startswith('Heliotherm'):
-                            modul=('1234567'+contents[i-31])
-                        splindoor_low = 'NaN'
-                        splindoor_medium = 'NaN'
-                        sploutdoor_low = 'NaN'
-                        sploutdoor_medium = 'NaN'
-                    elif lines.startswith('Heat Pump Type '):
-                        heatpumpType=lines[15:-1]
-                    elif lines.endswith('Type\n'):
-                        heatpumpType = contents[i][:-1]
-                        if heatpumpType.startswith('A'):
-                            heatpumpType = 'Outdoor Air/Water'
-                        if heatpumpType.startswith('Eau glycol'):
-                            heatpumpType = 'Brine/Water'
-                    elif (lines.startswith('Sound power level indoor')):
-
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-
-                    elif (lines.startswith('Sound power level outdoor')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-
-                    elif (lines.startswith('Puissance acoustique extérieure')):
-                        b = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Potencia sonora de la unidad interior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Potencia sonora de la unidad exterior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Nivel de Potência sonora interior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Nivel de Potência sonora exterior')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Livello di potenza acustica interna')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                splindoor_low = contents[i + 4][:-7]
-                                splindoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            splindoor_medium = contents[i + 4][:-7]
-                            splindoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                splindoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                splindoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                splindoor_medium = contents[i + 2][:-7]
-                            else:
-                                splindoor_low = contents[i][:-7]
-                                splindoor_medium = contents[i][:-7]
-                    elif (lines.startswith('Livello di potenza acustica externa')):
-                        SPL = 1
-                        if (contents[i].startswith('Low')):
-                            if contents[i + 2].startswith('Medium'):
-                                sploutdoor_low = contents[i + 4][:-7]
-                                sploutdoor_medium = contents[i + 6][:-7]
-                        if contents[i].startswith('Medium'):
-                            sploutdoor_medium = contents[i + 4][:-7]
-                            sploutdoor_low = contents[i + 6][:-7]
-                        elif (contents[i].endswith('dB(A)\n')):
-                            if (contents[i - 3].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 3].startswith('Medium')):
-                                sploutdoor_medium = contents[i][:-7]
-                            if (contents[i - 6].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 6].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            if (contents[i - 4].startswith('Low')):
-                                sploutdoor_low = contents[i][:-7]
-                            if (contents[i - 4].startswith('Medium')):
-                                sploutdoor_medium = contents[i + 2][:-7]
-                            else:
-                                sploutdoor_low = contents[i][:-7]
-                                sploutdoor_medium = contents[i][:-7]
-                    elif (lines == 'Refrigerant\n'):
-                        if (contents[i - 3] == 'Mass Of\n') or (contents[i - 3] == 'Mass of\n'):
-                            continue
-                        refrigerant = (contents[i])
-                    elif (lines.startswith('Mass Of') == 1 or lines.startswith('Mass of')):
-                        if (lines == 'Mass Of\n') or (lines == 'Mass of\n'):
-                            mass = contents[i + 1]                    
-                        elif (lines.endswith('kg\n') == 1):
-                            mass = contents[i - 2]
-                            mass = mass[20:]
+            j=0 #j: start index; i: end index
+            df=pd.read_csv(file)
+            try:
+                df.loc[df['varName']=='title']
+            except:
+                continue
+            try:
+                df.loc[df['varName']=='application','value']=df.loc[df['varName']=='Type','value'].values[0]
+            except:
+                print(file)
+            for model in range(1,len(df.loc[df['varName']=='title'])+1):
+                try:
+                    i=(df.loc[df['varName']=='title'].index[model])
+                except:
+                    i=len(df)
+                #df1 is dataframe of each model
+                df1=(df.iloc[j:i])
+                j=i
+                for temperature in ['low','high']:
+                    #df2 is dataframe of each climate and temperature
+                    df2=df1.loc[(df1['climate']>=3) & (df1['climate']<=4)]
+                    if temperature=='low':
+                        df2.loc[df2['temperature']==4,'temperature']=6
+                        df2=df2.loc[(df2['temperature']==6)]
+                        temperatures.append('low')
+                    else:
+                        df2.loc[(df2['temperature']==5),'temperature']=7
+                        df2=df2.loc[(df2['temperature']==7)]
+                        temperatures.append('high')
+                    for value, lst in zip(values,lists):
+                        if value in general_info:
+                            read_value=df.loc[df['varName']==value,'value'].values[0]
+                        elif (value=='title') or (value=='application'):
+                            read_value=df1.loc[df1['varName']==value,'value'].values[0]
                         else:
-                            mass = contents[i]
-
-                    elif lines.startswith('Average'):
-                        climate = 'average'
-                    elif lines.startswith('Cold'):
-                        climate = 'cold'
-                    elif lines.startswith('Warmer Climate'):
-                        climate = 'warm'
-
-                    elif (lines.startswith('EN') == 1):
-                        if (p == 1):
-                            Poff.append(poff)
-                            Psb.append(psb)
-                        if (p == 2):
-                            Poff.append(poff)
-                            Poff.append(poff)
-                            Psb.append(psb)
-                            Psb.append(psb_medium)
-                        guideline = (contents[i - 2])
-                        d = 0  # Medium or Low Content
-                        p = 0  # -15 yes or no
-
-                        NumberOfTestsPerNorm = []
-                        if (contents[i - 1].startswith('Low') == 1):
-                            d = 0
-                            continue
-                        if (contents[i - 1] == '\n'):
-                            continue
-                        if (contents[i - 1].startswith('Medium')):
-                            d = 1
-                        else:
-                            d = 0
-                    if lines.startswith('Prated'):
-                        prated_low = contents[i][:-4]
-                        if (contents[i + 2].endswith('kW\n')):
-                            prated_medium = contents[i + 2][:-4]
-
-
-                    elif (lines.startswith('Pdh Tj = -15°C') == 1):  # check
-                        if (contents[i].startswith('Cdh') == 1):  # wrong content
-                            continue
-                        if (contents[i].startswith('EHPA') == 1):  # wrong content
-                            continue
-                        if (contents[i].endswith('Cdh\n') == 1):  # wrong content
-                            continue
-                        elif (contents[i] == '\n'):  # no content
-                            continue
-                        else:
-                            minusfifteen_low = contents[i]
-                            if minusfifteen_low.endswith('kW'):
-                                P_th.append(minusfifteen_low[:-4])
-                            else:
-                                P_th.append(minusfifteen_low)
-                            T_in.append('-15')
-                            if d == 0:  # first low than medium Temperatur
-                                if (climate == 'average'):
-                                    T_out.append('35')
-                                elif (climate == 'cold'):
-                                    T_out.append('32')
-                                elif (climate == 'warm'):
-                                    T_out.append('35')
-
-                            if d == 1:  # first medium Temperature
-                                if (climate == 'average'):
-                                    T_out.append('55')
-                                elif (climate == 'cold'):
-                                    T_out.append('49')
-                                elif (climate == 'warm'):
-                                    T_out.append('55')
-
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_low)
-                            SPLindoor.append(splindoor_low)
-                            # SPLindoor.append(splindoor_medium)
-                            SPLoutdoor.append(sploutdoor_low)
-                            # SPLoutdoor.append(sploutdoor_medium)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                            Type.append(heatpumpType)
-                            if (contents[i + 2].startswith('COP')):  # for PDF without medium heat
-                                continue
-                            elif (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
-                                continue
-                            elif (contents[i + 2].startswith('EHPA')):  # End of page
-                                if (len(contents)- i)<10:
-                                    continue
-                                elif (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
-                                    continue
-                            minusfifteen_medium = contents[i + 2]
-                            if minusfifteen_medium.endswith('kW'):
-                                P_th.append(minusfifteen_medium[:-4])
-                            else:
-                                P_th.append(minusfifteen_medium)
-                            T_in.append('-15')
-                            if (climate == 'average'):
-                                T_out.append('55')
-                            elif (climate == 'cold'):
-                                T_out.append('49')
-                            elif (climate == 'warm'):
-                                T_out.append('55')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-                            # SPLoutdoor.append(sploutdoor_low)
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                    elif (lines.startswith('COP Tj = -15°C')):
-                        if (contents[i] == '\n'):
-                            continue
-                        if (contents[i].startswith('EHPA')):
-                            continue
-
-                        COP.append(contents[i][:-1])
-                        
-                        NumberOfTestsPerModule.append(i)
-                        p = 1
-
-                        if (contents[i + 2].startswith('Pdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('Cdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('EHPA')):  # no medium Climate
-                            continue
-                        
-                        COP.append(contents[i + 2][:-1])
-                        NumberOfTestsPerModule.append(i)
-                        p = 2
-
-
-                    elif (lines.startswith('Pdh Tj = -7°C') == 1):  # check
-                        minusseven_low = contents[i]
-                        if 'k' in minusseven_low[:-4]:
-                            low_medium_swapped=1
-                            if minusseven_low[10]=='.':
-                                minusseven_low=(minusseven_low[:-8])
-                                minusseven_medium = contents[i][-8:]
-                                prated_medium=prated_medium[-4:]
-                                prated_low=prated_low[:4]
-                            elif minusseven_low[11]=='.':
-                                minusseven_low=(minusseven_low[:-9])
-                                minusseven_medium = contents[i][-9:]
-                                prated_medium=prated_medium[-4:]
-                                prated_low=prated_low[:4]
-                            P_th.append(minusseven_medium[:-4])
-                            T_in.append('-7')
-                            if (climate == 'average'):
-                                T_out.append('52')
-                            elif (climate == 'cold'):
-                                T_out.append('44')
-                            elif (climate == 'warm'):
-                                T_out.append('55')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-                            # SPLoutdoor.append(sploutdoor_low)
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-                        P_th.append(minusseven_low[:-4])
-                        T_in.append('-7')
-                        if d == 0:  # first low than medium Temperatur
-                            if (climate == 'average'):
-                                T_out.append('34')
-                            elif (climate == 'cold'):
-                                T_out.append('30')
-                            elif (climate == 'warm'):
-                                T_out.append('35')
-
-                        if d == 1:  # first medium Temperature
-                            if (climate == 'average'):
-                                T_out.append('52')
-                            elif (climate == 'cold'):
-                                T_out.append('44')
-                            elif (climate == 'warm'):
-                                T_out.append('55')
-                        
-                        Modul.append(modul[7:-1])
-                        Manufacturer.append(manufacturer[:-1])
-                        Date.append(date[:-1])
-                        Refrigerant.append(refrigerant[:-1])
-                        Mass.append(mass[:-4])
-                        Prated.append(prated_low)
-                        SPLindoor.append(splindoor_low)
-                        # SPLindoor.append(splindoor_medium)
-                        SPLoutdoor.append(sploutdoor_low)
-                        # SPLoutdoor.append(sploutdoor_medium)
-                        Type.append(heatpumpType)
-                        Guideline.append(guideline[:-1])
-                        Climate.append(climate)
-
-                        if (contents[i+2].startswith('EHPA')):  # wrong content
-                            continue
-                        if (contents[i + 2].startswith('COP') == 1):
-                                continue
-                        elif (contents[i + 2].startswith('kW')):
-                                continue
-                        else:
-                            minusseven_medium = contents[i + 2]
-                            P_th.append(minusseven_medium[:-4])
-                            T_in.append('-7')
-                            if (climate == 'average'):
-                                T_out.append('52')
-                            elif (climate == 'cold'):
-                                T_out.append('44')
-                            elif (climate == 'warm'):
-                                T_out.append('55')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-                            # SPLoutdoor.append(sploutdoor_low)
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                    elif (lines.startswith('COP Tj = -7°C')):
-                        if low_medium_swapped==1:
-                            
-                            
-                            COP.append(contents[i + 2][:-1])
-                            COP.append(contents[i][:-1])
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            low_medium_swapped=0
-                            continue
-                        
-                        COP.append(contents[i][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-                        if (contents[i + 2].startswith('EHPA')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('Pdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('Cdh')):  # no medium Climate
-                            continue
-                        
-                        COP.append(contents[i + 2][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-
-                    elif (lines.startswith('Pdh Tj = +2°C') == 1):
-                        if (contents[i].endswith('Cdh\n') == 1):  # wrong content
-                            continue
-                        if (contents[i] == '\n'):  # no content
-                            continue
-                        else:
-                            plustwo_low = contents[i]
-                            if 'k' in plustwo_low[:-4]:
-                                low_medium_swapped=1
-                                if plustwo_low[10]=='.':
-                                    plustwo_low=(plustwo_low[:-8])
-                                    plustwo_medium = contents[i][-8:]
-                                elif plustwo_low[11]=='.':
-                                    plustwo_low=(plustwo_low[:-9])
-                                    plustwo_medium = contents[i][-9:]
-                                P_th.append(plustwo_medium[:-4])
-                                T_in.append('2')
-                                if (climate == 'average'):
-                                    T_out.append('42')
-                                elif (climate == 'cold'):
-                                    T_out.append('37')
-                                elif (climate == 'warm'):
-                                    T_out.append('55')
-                                Modul.append(modul[7:-1])
-                                Manufacturer.append(manufacturer[:-1])
-                                Date.append(date[:-1])
-                                Refrigerant.append(refrigerant[:-1])
-                                # SPLindoor.append(splindoor_low)
-                                SPLindoor.append(splindoor_medium)
-                                # SPLoutdoor.append(sploutdoor_low)
-                                SPLoutdoor.append(sploutdoor_medium)
-                                Mass.append(mass[:-4])
-                                Prated.append(prated_medium)
-                                Type.append(heatpumpType)
-                                Guideline.append(guideline[:-1])
-                                Climate.append(climate)
-                            P_th.append(plustwo_low[:-4])
-                            T_in.append('2')
-                            if d == 0:  # first low than medium Temperatur
-                                if (climate == 'average'):
-                                    T_out.append('30')
-                                elif (climate == 'cold'):
-                                    T_out.append('27')
-                                elif (climate == 'warm'):
-                                    T_out.append('35')
-
-                            if d == 1:  # first medium Temperature
-                                if (climate == 'average'):
-                                    T_out.append('42')
-                                elif (climate == 'cold'):
-                                    T_out.append('37')
-                                elif (climate == 'warm'):
-                                    T_out.append('55')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            SPLindoor.append(splindoor_low)
-                            # SPLindoor.append(splindoor_medium)
-                            SPLoutdoor.append(sploutdoor_low)
-                            # SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_low)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                            if (contents[i + 2].startswith('COP')):  # for PDF without medium heat
-                                continue
-                            if (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
-                                continue
-                            if (contents[i + 2].startswith('EHPA')):  # End of page
-                                if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
-                                    continue
-                            if (contents[i + 2].startswith('kW')):
-                                continue
-                            plustwo_medium = contents[i + 2]
-                            # if(plustwo_low[:-1].endswith('kW')==0):#test
-                            # print(plustwo_low[:-1])
-                            # if(plustwo_medium[:-1].endswith('kW')==0):#test
-                            # print(file.name)#plustwo_medium[:-1]
-
-                            P_th.append(plustwo_medium[:-4])
-                            T_in.append('2')
-                            if (climate == 'average'):
-                                T_out.append('42')
-                            elif (climate == 'cold'):
-                                T_out.append('37')
-                            elif (climate == 'warm'):
-                                T_out.append('55')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-                            # SPLoutdoor.append(sploutdoor_low)
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                    elif (lines.startswith('COP Tj = +2°C')):  # check
-                        if (contents[i] == '\n'):  # no infos
-                            continue
-                        if (contents[i].startswith('EHPA')):  # end of page
-                            print(file.name)
-                            continue
-                        if (contents[i + 2].startswith('Warmer')):  # usless infos
-                            continue
-                        if (contents[i] == 'n/a\n'):  # usless infos
-                            continue
-                        if low_medium_swapped==1:
-                            
-                            COP.append(contents[i + 2][:-1])
-                            
-                            COP.append(contents[i][:-1])
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            low_medium_swapped=0
-                            continue
-                        
-                        COP.append(contents[i][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-                        if (contents[i + 2].startswith('Pdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('Cdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('EHPA')):  # no medium Climate
-                            continue
-                        
-                        COP.append(contents[i + 2][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-
-                    elif (lines.startswith('Pdh Tj = +7°C') == 1):
-                        if (contents[i].endswith('Cdh\n') == 1):  # wrong content
-                            continue
-                        if (contents[i] == '\n'):  # no content
-                            continue
-                        else:
-                            plusseven_low = contents[i]
-                            if 'k' in plusseven_low[:-4]:
-                                low_medium_swapped=1
-                                if plusseven_low[10]=='.':
-                                    plusseven_low=(plusseven_low[:-8])
-                                    pluseven_medium = contents[i][-8:]
-                                elif plusseven_low[11]=='.':
-                                    plusseven_low=(plusseven_low[:-9])
-                                    pluseven_medium = contents[i][-9:]
-                                P_th.append(plusseven_medium[:-4])
-                                T_in.append('7')
-                                if (climate == 'average'):
-                                    T_out.append('36')
-                                elif (climate == 'cold'):
-                                    T_out.append('32')
-                                elif (climate == 'warm'):
-                                    T_out.append('46')
-
-                                Modul.append(modul[7:-1])
-                                Manufacturer.append(manufacturer[:-1])
-                                Date.append(date[:-1])
-                                Refrigerant.append(refrigerant[:-1])
-                                # SPLindoor.append(splindoor_low)
-                                SPLindoor.append(splindoor_medium)
-                                # SPLoutdoor.append(sploutdoor_low)
-                                SPLoutdoor.append(sploutdoor_medium)
-                                Mass.append(mass[:-4])
-                                Prated.append(prated_medium)
-                                Type.append(heatpumpType)
-                                Guideline.append(guideline[:-1])
-                                Climate.append(climate)
-                            P_th.append(plusseven_low[:-4])
-                            T_in.append('7')
-                            if d == 0:  # first low than medium Temperatur
-                                if (climate == 'average'):
-                                    T_out.append('27')
-                                elif (climate == 'cold'):
-                                    T_out.append('25')
-                                elif (climate == 'warm'):
-                                    T_out.append('31')
-
-                            if d == 1:  # first medium Temperature
-                                if (climate == 'average'):
-                                    T_out.append('36')
-                                elif (climate == 'cold'):
-                                    T_out.append('32')
-                                elif (climate == 'warm'):
-                                    T_out.append('46')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            SPLindoor.append(splindoor_low)
-                            # SPLindoor.append(splindoor_medium)
-                            SPLoutdoor.append(sploutdoor_low)
-                            # SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_low)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                            if (contents[i + 2].startswith('COP')):  # for PDF without medium heat
-                                continue
-                            if (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
-                                continue
-                            if (contents[i + 2].startswith('EHPA')):  # End of page
-                                if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
-                                    continue
-                            if (contents[i + 2].startswith('kW')):
-                                continue
-                            plusseven_medium = contents[i + 2]
-
-                            P_th.append(plusseven_medium[:-4])
-                            T_in.append('7')
-                            if (climate == 'average'):
-                                T_out.append('36')
-                            elif (climate == 'cold'):
-                                T_out.append('32')
-                            elif (climate == 'warm'):
-                                T_out.append('46')
-
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-                            # SPLoutdoor.append(sploutdoor_low)
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                    elif (lines.startswith('COP Tj = +7°C')):  # check
-                        if (contents[i] == '\n'):  # no infos
-                            continue
-                        if (contents[i].startswith('EHPA')):  # end of page
-                            continue
-                        if (contents[i + 2].startswith('Warmer')):  # usless infos
-                            continue
-                        if (contents[i] == 'n/a\n'):  # usless infos
-                            continue
-                        if low_medium_swapped==1:
-                            COP.append(contents[i + 2][:-1])
-                            
-                            
-                            COP.append(contents[i][:-1])
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            low_medium_swapped=0
-                            continue
-                        
-                        COP.append(contents[i][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-                        if (contents[i + 2].startswith('Pdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('Cdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('EHPA')):  # no medium Climate
-                            continue
-                        
-                        COP.append(contents[i + 2][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-
-                    elif (lines.startswith('Pdh Tj = 12°C') == 1):
-
-                        if (contents[i].endswith('Cdh\n') == 1):  # wrong content
-                            continue
-                        if (contents[i] == '\n'):  # no content
-                            continue
-                        if (contents[i].startswith('EHPA Secretariat') == 1):
-                            plustwelfe_low = (contents[i - 11])
-
-                            P_th.append(plustwelfe_low[:-4])
-                            T_in.append('12')
-                            if (climate == 'average'):
-                                T_out.append('24')
-                            elif (climate == 'cold'):
-                                T_out.append('24')
-                            elif (climate == 'warm'):
-                                T_out.append('26')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            SPLindoor.append(splindoor_low)
-                            # SPLindoor.append(splindoor_medium)
-                            SPLoutdoor.append(sploutdoor_low)
-                            # SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_low)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                            plustwelfe_medium = (contents[i - 9])
-
-                            P_th.append(plustwelfe_medium[:-4])
-                            T_in.append('12')
-                            if (climate == 'average'):
-                                T_out.append('30')
-                            elif (climate == 'cold'):
-                                T_out.append('28')
-                            elif (climate == 'warm'):
-                                T_out.append('34')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-                            # SPLoutdoor.append(sploutdoor_low)
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                        else:
-                            plustwelfe_low = contents[i]
-                            if 'k' in plustwelfe_low[:-4]:
-                                low_medium_swapped=1
-                                if plustwelfe_low[10]=='.':
-                                    plustwelfe_low=(plustwelfe_low[:-8])
-                                    plustwelfe_medium = contents[i][-8:]
-                                elif plustwelfe_low[11]=='.':
-                                    plustwelfe_low=(plustwelfe_low[:-9])
-                                    plustwelfe_medium = contents[i][-9:]
-                                P_th.append(plustwelfe_medium[:-4])
-                                T_in.append('12')
-                                if (climate == 'average'):
-                                    T_out.append('30')
-                                elif (climate == 'cold'):
-                                    T_out.append('28')
-                                elif (climate == 'warm'):
-                                    T_out.append('34')
-                                Modul.append(modul[7:-1])
-                                Manufacturer.append(manufacturer[:-1])
-                                Date.append(date[:-1])
-                                Refrigerant.append(refrigerant[:-1])
-                                # SPLindoor.append(splindoor_low)
-                                SPLindoor.append(splindoor_medium)
-
-                                SPLoutdoor.append(sploutdoor_medium)
-                                Mass.append(mass[:-4])
-                                Prated.append(prated_medium)
-                                Type.append(heatpumpType)
-                                Guideline.append(guideline[:-1])
-                                Climate.append(climate)
-                            P_th.append(plustwelfe_low[:-4])
-                            T_in.append('12')
-                            if d == 0:  # first low than medium Temperatur
-                                if (climate == 'average'):
-                                    T_out.append('24')
-                                elif (climate == 'cold'):
-                                    T_out.append('24')
-                                elif (climate == 'warm'):
-                                    T_out.append('26')
-
-                            if d == 1:  # first medium Temperature
-                                if (climate == 'average'):
-                                    T_out.append('30')
-                                elif (climate == 'cold'):
-                                    T_out.append('28')
-                                elif (climate == 'warm'):
-                                    T_out.append('34')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            SPLindoor.append(splindoor_low)
-
-                            SPLoutdoor.append(sploutdoor_low)
-
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_low)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                            if (contents[i + 2].startswith('COP')):  # for PDF without medium heat
-                                continue
-                            if (contents[i + 2].startswith('Disclaimer')):  # for PDF without medium heat
-                                continue
-                            if (contents[i + 2].startswith('EHPA')):  # End of page
-                                if (contents[i + 8].startswith('COP')):  # end of page plus no medium heat
-                                    continue
-                            if (contents[i + 2].startswith('kW')):
-                                continue
-                            plustwelfe_medium = contents[i + 2]
-                            P_th.append(plustwelfe_medium[:-4])
-                            T_in.append('12')
-                            if (climate == 'average'):
-                                T_out.append('30')
-                            elif (climate == 'cold'):
-                                T_out.append('28')
-                            elif (climate == 'warm'):
-                                T_out.append('34')
-                            Modul.append(modul[7:-1])
-                            Manufacturer.append(manufacturer[:-1])
-                            Date.append(date[:-1])
-                            Refrigerant.append(refrigerant[:-1])
-                            # SPLindoor.append(splindoor_low)
-                            SPLindoor.append(splindoor_medium)
-
-                            SPLoutdoor.append(sploutdoor_medium)
-                            Mass.append(mass[:-4])
-                            Prated.append(prated_medium)
-                            Type.append(heatpumpType)
-                            Guideline.append(guideline[:-1])
-                            Climate.append(climate)
-
-                    elif (lines.startswith('COP Tj = 12°C')):  # check
-                        if (contents[i] == '\n'):  # no infos
-                            continue
-                        if (contents[i].startswith('EHPA')):  # end of page
-                            print('W')
-                            continue
-                        if (contents[i + 2].startswith('Warmer')):  # usless infos
-                            continue
-                        if (contents[i] == 'n/a\n'):  # usless infos
-                            continue
-                        if low_medium_swapped==1:
-                            
-                            
-                            COP.append(contents[i + 2][:-1])
-                            COP.append(contents[i][:-1])
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            NumberOfTestsPerNorm.append(i)
-                            NumberOfTestsPerModule.append(i)
-                            low_medium_swapped=0
-                            continue
-                        
-                        COP.append(contents[i][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-                        if (contents[i + 2].startswith('Pdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('Cdh')):  # no medium Climate
-                            continue
-                        if (contents[i + 2].startswith('EHPA')):  # no medium Climate
-                            continue
-                        
-                        COP.append(contents[i + 2][:-1])
-                        NumberOfTestsPerNorm.append(i)
-                        NumberOfTestsPerModule.append(i)
-
-
-                    elif (lines.startswith('Poff')):
-                        l = 0  # l shows if Poff Medium is different to Poff Low Temperature
-                        c = 2  # c is just an iterator to print every second Poff
-                        poff = contents[i][:-2]
-                        if poff.endswith(' '):
-                            poff = poff[:-1]
-                            if poff.endswith('.00'):
-                                poff = poff[:-3]
-                        second_poff = contents[i + 2][:-2]
-                        if second_poff.endswith(' '):
-                            second_poff = second_poff[:-1]
-                            if second_poff.endswith('.00'):
-                                second_poff = second_poff[:-3]
-                        if (poff != second_poff):  # see if Poff Medium to Poff low
-                            if (contents[i + 2].endswith('W\n')):
-                                if (contents[i + 2] != 'W\n'):
-                                    l = 1
-                        for Tests in NumberOfTestsPerNorm:
-                            if l == 0:
-                                Poff.append(poff)
-                            if l == 1:
-                                c += 1
-                                if c % 2 == 1:
-                                    Poff.append(poff)
-                                if c % 2 == 0:
-                                    Poff.append(second_poff)
-                    elif (lines.startswith('PSB')):
-                        l = 0  # l shows if Poff Medium is different to Poff Low Temperature
-                        c = 2  # c is just an iterator to print every second Poff
-                        psb = contents[i][:-2]
-                        if psb.endswith(' '):
-                            psb = psb[:-1]
-                            if psb.endswith('.00'):
-                                psb = psb[:-3]
-                        psb_medium = contents[i + 2][:-2]
-                        if psb_medium.endswith(' '):
-                            psb_medium = psb_medium[:-1]
-                            if psb_medium.endswith('.00'):
-                                psb_medium = psb_medium[:-3]
-                        if (psb != psb_medium):  # see if Poff Medium to Poff low
-                            if (contents[i + 2].endswith('W\n')):
-                                if (contents[i + 2] != 'W\n'):
-                                    l = 1
-
-                        for Tests in NumberOfTestsPerNorm:
-                            if l == 0:
-                                Psb.append(psb)
-                            if l == 1:
-                                c += 1
-                                if c % 2 == 1:
-                                    Psb.append(psb)
-                                if c % 2 == 0:
-                                    Psb.append(psb_medium)
-
-                if p == 1:
-                    Poff.append(poff)
-                    Psb.append(psb)
-                if p == 2:
-                    Poff.append(poff)
-                    Poff.append(second_poff)
-                    Psb.append(psb)
-                    Psb.append(psb_medium)
-    df['Manufacturer'] = Manufacturer
-    df['Model'] = Modul
-    df['Date'] = Date
-    df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y')
-    df['Type'] = Type
-    df['SPL indoor [dBA]'] = SPLindoor
-    df['SPL outdoor [dBA]'] = SPLoutdoor
-    df['Refrigerant'] = Refrigerant
-    df['Mass of Refrigerant [kg]'] = Mass
-    df['Poff [W]'] = Poff
-    df['Poff [W]'] = df['Poff [W]'].astype(int)
-    df['PSB [W]'] = Psb
-    df['PSB [W]'] = df['PSB [W]'].astype(int)
-    df['Prated [W]'] = Prated
-
-    df['Guideline'] = Guideline
-    df['Climate'] = Climate
-    df['T_in [°C]'] = T_in
-    df['T_in [°C]'] = df['T_in [°C]'].astype(int)
-    df['T_out [°C]'] = T_out
-    df['T_out [°C]'] = df['T_out [°C]'].astype(int)
-    """  
-    T_out for Low Temperature
-            T-in:   -15 -7  2   7   12
-
-    Cold Climate    32  30  27  25  24
-    Average Climate 35  34  30  27  24
-    Warm Climate    35  35  35  31  26    
-
-
-    T_out for Medium Temperature
-            T-in:   -15 -7  2   7   12
-
-    Cold Climate    49  44  37  32  28
-    Average Climate 55  52  42  36  30
-    Warm Climate    55  55  55  46  34                    
-    """
-    df['P_th [W]'] = P_th
-    df['P_th [W]'] = ((df['P_th [W]'].astype(float)) * 1000).astype(int)
-    df['COP'] = COP
-    df['COP'] = round(df['COP'].astype(float), 2)
-    df['P_el [W]'] = round(df['P_th [W]'] / df['COP'])
-    df['P_el [W]'] = df['P_el [W]'].fillna(0).astype(int)
-    df['PSB [W]'] = df['PSB [W]'].where(df['PSB [W]'] > df['Poff [W]'],
-                                    df['Poff [W]'])  # Poff should not be bigger than PSB
-    df.drop(columns=['Poff [W]'], inplace=True)  # not needed anymore
-    filt = df['P_th [W]'] < 50  # P_th too small
-    df.drop(index=df[filt].index, inplace=True)
-    # add T_amb and change T_in to right values
-    df['T_amb [°C]'] = df['T_in [°C]']
-    filt = df['Type'] == 'Brine/Water'
-    df.loc[filt, 'T_in [°C]'] = 0
-    filt = df['Type'] == 'Water/Water'
-    df.loc[filt, 'T_in [°C]'] = 10
-    df = df[
-    ['Manufacturer', 'Model', 'Date', 'Type', 'Refrigerant', 'Mass of Refrigerant [kg]', 'PSB [W]', 'Prated [W]',
-            'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'Climate', 'T_amb [°C]', 'T_in [°C]', 'T_out [°C]', 'P_th [W]',
-            'P_el [W]', 'COP']]
-    df.sort_values(by=['Model'], inplace=True)
-    df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
-    os.chdir("../")
-    df.to_csv(r'../output/database_heating.csv', index=False)
-    os.chdir('../hplib/')
-
-
-def import_cooling_data():
-    # read in keymark data from *.txt files in /input/txt/
-    # save a dataframe to database_heating.csv in folder /output/
-    Modul = []
-    Manufacturer = []
-    Date = []
-    Refrigerant = []
-    Mass = []
-    Type = []
-    Pdesignc = []
-    Temperatur = []
-    T_outside = []
-    PDC = []
-    EER = []
-    df = pd.DataFrame()
-    os.chdir('../')
-    root = os.getcwd()
-    Scanordner = (root + '/input/txt_07_22')
-    os.chdir(Scanordner)
-    Scan = os.scandir(os.getcwd())
-    with Scan as dir1:
-        for file in dir1:
-            with open(file, 'r', encoding='utf-8') as f:
-                contents = f.readlines()
-                T = 0
-                i = 1  # indicator for the line wich is read
-                date = contents[1]
-                date = date[61:]
-                if (date == '17 Dec 2020\n'):
-                    date = '17.12.2020\n'
-                if (date == '18 Dec 2020\n'):
-                    date = '18.12.2020\n'
-                if (date.startswith('5 Mar 2021')):
-                    date = '05.03.2021\n'
-                if (date.startswith('15 Feb 2021')):
-                    date = '15.02.2021\n'
-                if (date.startswith('22 Feb 2021')):
-                    date = '22.02.2021\n'
-                if ' Jun ' in date:
-                    date=date.replace(' Jun ','.06.')
-                if ' Jul ' in date:
-                    date=date.replace(' Jul ','.07.')
-                for lines in contents:
-                    i = i + 1
-                    if (lines.startswith('Name\n') == 1):
-                        manufacturer = (contents[i][:-1])
-                        if (manufacturer.find('(') > 0):
-                            manufacturer = manufacturer.split('(', 1)[1].split(')')[0]
-                        elif manufacturer.startswith('NIBE'):
-                            manufacturer = 'Nibe'
-                        elif manufacturer.startswith('Nibe'):
-                            manufacturer = 'Nibe'
-                        elif manufacturer.startswith('Mitsubishi'):
-                            manufacturer = 'Mitsubishi'
-                        elif manufacturer.startswith('Ochsner'):
-                            manufacturer = 'Ochsner'
-                        elif manufacturer.startswith('OCHSNER'):
-                            manufacturer = 'Ochsner'
-                        elif manufacturer.startswith('Viessmann'):
-                            manufacturer = 'Viessmann'
-                    elif (lines.endswith('Date\n') == 1):
-                        date = (contents[i])
-                        if (date == 'basis\n'):
-                            date = contents[i - 3]
-                            date = date[14:]
-                    elif (lines.startswith('Model:') == 1):
-                        modul = (contents[i - 2][7:-1])
-                        temperatur2 = ''
-                        if manufacturer.startswith('Heliotherm'):
-                            modul=('1234567'+contents[i-31])    
-                    elif lines.endswith('Type\n'):
-                        heatpumpType = contents[i][:-1]
-                        if heatpumpType.startswith('A'):
-                            heatpumpType = 'Outdoor Air/Water'
-                        if heatpumpType.startswith('Eau glycol'):
-                            heatpumpType = 'Brine/Water'
-                    elif (lines == 'Refrigerant\n'):
-                        if (contents[i - 3] == 'Mass Of\n') or (contents[i - 3] == 'Mass of\n'):
-                            continue
-                        refrigerant = (contents[i][:-1])
-                    elif (lines.startswith('Mass Of') == 1 or lines.startswith('Mass of')):
-                        if (lines == 'Mass Of\n') or (lines == 'Mass of\n'):
-                            mass = contents[i + 1][:-4]
-                        elif (lines.endswith('kg\n') == 1):
-                            mass = contents[i - 2]
-                            mass = mass[20:-4]
-                        else:
-                            mass = contents[i][:-4]
-
-                    elif lines.startswith('+'):
-                        if T == 0:
-                            temperatur1 = contents[i - 2][:-1]
-                            if (contents[i].startswith('+')):
-                                temperatur2 = contents[i][:-1]
-                                T = 1
-                                temperatur2 = (temperatur2[1:3])
-                            temperatur1 = (temperatur1[1:2])
-                        else:
-                            T = 0
-                    elif lines.startswith('Pdesignc'):
-                        pdesignc1 = contents[i][:-4]
-                        if temperatur2 != '':
-                            pdesignc2 = contents[i + 2][:-4]
-
-                    elif lines.startswith('Pdc Tj = 30°C'):
-                        pdcT1_30 = contents[i][:-4]
-
-                        if contents[i + 2].endswith('W\n'):
-                            pdcT2_30 = contents[i + 2][:-4]
-
-
-                    elif lines.startswith('EER Tj = 30°C'):
-
-                        eerT1_30 = (contents[i][:-1])
-                        EER.append(eerT1_30)
-                        PDC.append(pdcT1_30)
-                        T_outside.append('30')
-                        Pdesignc.append(pdesignc1)
-                        Temperatur.append(temperatur1)
-                        Modul.append(modul)
-                        Manufacturer.append(manufacturer)
-                        Date.append(date)
-                        Refrigerant.append(refrigerant)
-                        Mass.append(mass)
-                        Type.append(heatpumpType)
-
-                        if temperatur2 != '':
-                            eerT2_30 = contents[i + 2][:-1]
-                            EER.append(eerT2_30)
-                            PDC.append(pdcT2_30)
-                            T_outside.append('30')
-                            Pdesignc.append(pdesignc2)
-                            Temperatur.append(temperatur2)
-                            Modul.append(modul)
-                            Manufacturer.append(manufacturer)
-                            Date.append(date)
-                            Refrigerant.append(refrigerant)
-                            Mass.append(mass)
-                            Type.append(heatpumpType)
-
-                    elif lines.startswith('Pdc Tj = 35°C'):
-                        pdcT1_35 = contents[i][:-4]
-                        if contents[i + 2].endswith('W\n'):
-                            pdcT2_35 = contents[i + 2][:-4]
-
-                    elif lines.startswith('EER Tj = 35°C'):
-                        eerT1_35 = (contents[i][:-1])
-                        EER.append(eerT1_35)
-                        PDC.append(pdcT1_35)
-                        T_outside.append('35')
-                        Pdesignc.append(pdesignc1)
-                        Temperatur.append(temperatur1)
-                        Modul.append(modul)
-                        Manufacturer.append(manufacturer)
-                        Date.append(date)
-                        Refrigerant.append(refrigerant)
-                        Mass.append(mass)
-                        Type.append(heatpumpType)
-                        if temperatur2 != '':
-                            eerT2_35 = contents[i + 2][:-1]
-                            EER.append(eerT2_35)
-                            PDC.append(pdcT2_35)
-                            T_outside.append('35')
-                            Pdesignc.append(pdesignc2)
-                            Temperatur.append(temperatur2)
-                            Modul.append(modul)
-                            Manufacturer.append(manufacturer)
-                            Date.append(date)
-                            Refrigerant.append(refrigerant)
-                            Mass.append(mass)
-                            Type.append(heatpumpType)
-                    elif lines.startswith('Pdc Tj = 25°C'):
-                        pdcT1_25 = contents[i][:-4]
-                        if contents[i + 2].endswith('W\n'):
-                            pdcT2_25 = contents[i + 2][:-4]
-
-                    elif lines.startswith('EER Tj = 25°C'):
-                        eerT1_25 = (contents[i][:-1])
-                        EER.append(eerT1_25)
-                        PDC.append(pdcT1_25)
-                        T_outside.append('25')
-                        Pdesignc.append(pdesignc1)
-                        Temperatur.append(temperatur1)
-                        Modul.append(modul)
-                        Manufacturer.append(manufacturer)
-                        Date.append(date)
-                        Refrigerant.append(refrigerant)
-                        Mass.append(mass)
-                        Type.append(heatpumpType)
-                        if temperatur2 != '':
-                            eerT2_25 = contents[i + 2][:-1]
-                            EER.append(eerT2_25)
-                            PDC.append(pdcT2_25)
-                            T_outside.append('25')
-                            Pdesignc.append(pdesignc2)
-                            Temperatur.append(temperatur2)
-                            Modul.append(modul)
-                            Manufacturer.append(manufacturer)
-                            Date.append(date)
-                            Refrigerant.append(refrigerant)
-                            Mass.append(mass)
-                            Type.append(heatpumpType)
-
-                    elif lines.startswith('Pdc Tj = 20°C'):
-                        pdcT1_20 = contents[i][:-4]
-                        if contents[i + 2].endswith('W\n'):
-                            pdcT2_20 = contents[i + 2][:-4]
-
-                    elif lines.startswith('EER Tj = 20°C'):
-                        eerT1_20 = (contents[i][:-1])
-                        EER.append(eerT1_20)
-                        PDC.append(pdcT1_20)
-                        T_outside.append('20')
-                        Pdesignc.append(pdesignc1)
-                        Temperatur.append(temperatur1)
-                        Modul.append(modul)
-                        Manufacturer.append(manufacturer)
-                        Date.append(date)
-                        Refrigerant.append(refrigerant)
-                        Mass.append(mass)
-                        Type.append(heatpumpType)
-                        if temperatur2 != '':
-                            eerT2_20 = contents[i + 2][:-1]
-                            EER.append(eerT2_20)
-                            PDC.append(pdcT2_20)
-                            T_outside.append('20')
-                            Pdesignc.append(pdesignc2)
-                            Temperatur.append(temperatur2)
-                            Modul.append(modul)
-                            Manufacturer.append(manufacturer)
-                            Date.append(date)
-                            Refrigerant.append(refrigerant)
-                            Mass.append(mass)
-                            Type.append(heatpumpType)
-    df['Manufacturer'] = Manufacturer
-    df['Model'] = Modul
-    df['Date'] = Date
-    df['Date'] = pd.to_datetime(df['Date'], format='%d.%m.%Y\n')
-    df['Type'] = Type
-    df['Refrigerant'] = Refrigerant
-    df['Mass of Refrigerant [kg]'] = Mass
-    df['Pdesignc'] = Pdesignc
-    df['T_outside [°C]'] = T_outside
-    df['T_out [°C]'] = Temperatur
-
-    df['Pdc [kW]'] = PDC
-    df['EER'] = EER
-
-    filt = df['EER'] == 'Cdc'  # P_th too small
-    df.drop(index=df[filt].index, inplace=True)
-    filt = df['EER'] == 'Cdc Tj = 20 °C'  # No Data
-    df.drop(index=df[filt].index, inplace=True)
-    filt = df['EER'] == 'Cdc Tj = 25 °C'  # No Data
-    df.drop(index=df[filt].index, inplace=True)
-    filt = df['EER'] == 'Cdc Tj = 30 °C'  # No Data
-    df.drop(index=df[filt].index, inplace=True)
-    filt = df['EER'] == 'Pdc Tj = 30°C'  # P_th too small
-    df.drop(index=df[filt].index, inplace=True)
-    df.sort_values(by=['Model'], inplace=True)
-    df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
-    os.chdir("../..")
-    df.to_csv(os.getcwd() + r'/output/database_cooling.csv', index=False)
-    os.chdir("hplib")
-
-
-def reduce_heating_data(filename, climate):
+                            try:
+                                read_value=df2.loc[df2['varName']==value,'value'].values[0]
+                            except:
+                                read_value=''
+                        lst.append(read_value)
+    df_all['manufacturers']=manufacturers
+    df_all['models']=models
+    df_all['titels']=titels
+    df_all['dates']=dates
+    df_all['types']=types
+    df_all['refrigerants']=refrigerants
+    df_all['mass_of_refrigerants']=mass_of_refrigerants
+    df_all['spl_indoor']=spl_indoors
+    df_all['spl_outdoor']=spl_outdoors
+    df_all['eta']=eta
+    df_all['p_rated']=p_rated
+    df_all['scop']=scop
+    df_all['t_biv']=t_biv
+    df_all['tol']=tol
+    df_all['p_th_minus7']=p_th_minus7
+    df_all['cop_minus7']=cop_minus7
+    df_all['p_th_2']=p_th_2
+    df_all['cop_2']=cop_2
+    df_all['p_th_7']=p_th_7
+    df_all['cop_7']=cop_7
+    df_all['p_th_12']=p_th_12
+    df_all['cop_12']=cop_12
+    df_all['p_th_tbiv']=p_th_tbiv
+    df_all['cop_tbiv']=cop_tbiv
+    df_all['p_th_tol']=p_th_tol
+    df_all['cop_tol']=cop_tol
+    df_all['rated_airflows']=rated_airflows
+    df_all['wtols']=wtols
+    df_all['poffs']=poffs
+    df_all['ptos']=ptos
+    df_all['psbs']=psbs
+    df_all['pcks']=pcks
+    df_all['supply_energy']=supply_energy
+    df_all['supp_energy_types']=supp_energy_types
+    df_all['p_sups']=p_sups
+    df_all['p_design_cools']=p_design_cools
+    df_all['seers']=seers
+    df_all['pdcs_35']=pdcs_35
+    df_all['eer_35']=eer_35
+    df_all['pdcs_30']=pdcs_30
+    df_all['eer_30']=eer_30
+    df_all['pdcs_25']=pdcs_25
+    df_all['eer_25']=eer_25
+    df_all['pdcs_20']=pdcs_20
+    df_all['eer_20']=eer_20
+    df_all['temperatures']=temperatures
+    df_all.to_csv(r'../output/database.csv', index=False)
+
+
+def reduce_heating_data():
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)
     # delete redundant entries
     # climate = average, warm or cold
-    df = pd.read_csv(r'../output/' + filename)
-    data_key = df.loc[df['Climate'] == climate]
-    delete = []
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    for model in Models:
-        Modeldf = data_key.loc[data_key['Model'] == model, :]
-        if Modeldf.shape[0] != 8:  # Models with more ar less than 8 datapoints are deleted
-            delete.append('delete')
-        else:
-            delete.append('keep')
-    deletemodels = pd.DataFrame()
-    deletemodels['delete'] = delete
-    deletemodels['Model'] = Models
-    data_key = data_key.merge(deletemodels, how='inner', on='Model')
-    data_key = data_key.loc[data_key['delete'] == 'keep']
-    data_key.drop(columns=['delete'], inplace=True)
-    data_key.to_csv(r'../output/database_heating_' + climate + '.csv', index=False)
+    df=pd.read_csv('../output/database.csv')
+    df=df.loc[df['eta'].isna()==0]
+    #df=df.drop_duplicates(subset=['p_rated', 't_biv', 'tol', 'p_th_minus7', 'cop_minus7', 'p_th_2', 'cop_2',
+    #    'p_th_7', 'cop_7', 'p_th_12', 'cop_12', 'p_th_tbiv', 'cop_tbiv',
+    #    'p_th_tol', 'cop_tol', 'wtols', 'poffs', 'ptos',
+    #    'psbs', 'pcks', 'supp_energy_types', 'p_sups', 'p_design_cools',
+    #    'pdcs_35', 'eer_35', 'pdcs_30', 'eer_30', 'pdcs_25', 'eer_25',
+    #    'pdcs_20', 'eer_20', 'temperatures'])#types?
+    df.sort_values(by=['manufacturers','models'], inplace=True,key=lambda col: col.str.lower())
+    df=df.loc[df['temperatures']=='low'].merge(df.loc[df['temperatures']=='high'],on='titels')
+    df=df[['manufacturers_x', 'models_x', 'titels', 'dates_x', 'types_x','refrigerants_x', 'mass_of_refrigerants_x', 'spl_indoor_x','spl_outdoor_x', 'eta_x', 'p_rated_x', 'scop_x', 't_biv_x', 'tol_x','p_th_minus7_x', 'cop_minus7_x', 'p_th_2_x', 'cop_2_x', 'p_th_7_x','cop_7_x', 'p_th_12_x', 'cop_12_x', 'p_th_tbiv_x', 'cop_tbiv_x','p_th_tol_x', 'cop_tol_x', 'rated_airflows_x', 'wtols_x', 'poffs_x','ptos_x', 'psbs_x', 'pcks_x', 'supp_energy_types_x', 'p_sups_x','p_design_cools_x', 'seers_x', 'pdcs_35_x', 'eer_35_x', 'pdcs_30_x','eer_30_x', 'pdcs_25_x', 'eer_25_x', 'pdcs_20_x', 'eer_20_x', 'spl_indoor_y','spl_outdoor_y', 'eta_y', 'p_rated_y', 'p_th_minus7_y', 'cop_minus7_y', 'p_th_2_y', 'cop_2_y', 'p_th_7_y','cop_7_y', 'p_th_12_y', 'cop_12_y', 'p_th_tbiv_y', 'cop_tbiv_y','p_th_tol_y', 'cop_tol_y', 'rated_airflows_y', 'p_sups_y','p_design_cools_y', 'seers_y', 'pdcs_35_y', 'eer_35_y', 'pdcs_30_y','eer_30_y', 'pdcs_25_y', 'eer_25_y', 'pdcs_20_y', 'eer_20_y']]
+    df.rename(columns={'manufacturers_x': 'manufacturers','models_x': 'models','titels': 'titel','dates_x': 'dates','types_x': 'types','refrigerants_x': 'refrigerants','mass_of_refrigerants_x': 'mass_of_refrigerants', 'spl_indoor_x': 'spl_indoor_l','spl_outdoor_x': 'spl_outdoor_l', 'eta_x': 'eta_l', 'p_rated_x': 'p_rated_l', 'scop_x': 'scop_l', 't_biv_x': 't_biv', 'tol_x': 'tol','p_th_minus7_x': 'p_th_minus7_l', 'cop_minus7_x': 'cop_minus7_l', 'p_th_2_x': 'p_th_2_l', 'cop_2_x': 'cop_2_l', 'p_th_7_x': 'p_th_7_l','cop_7_x': 'cop_7_l', 'p_th_12_x': 'p_th_12_l', 'cop_12_x': 'cop_12_l', 'p_th_tbiv_x': 'p_th_tbiv_l', 'cop_tbiv_x': 'cop_tbiv_l','p_th_tol_x': 'p_th_tol_l', 'cop_tol_x': 'cop_tol_l', 'rated_airflows_x': 'rated_airflows_l', 'wtols_x': 'wtols', 'poffs_x': 'poffs','ptos_x': 'ptos', 'psbs_x': 'psbs', 'pcks_x': 'pcks', 'supp_energy_types_x': 'supp_energy_types', 'p_sups_x': 'p_sups_l','p_design_cools_x': 'p_design_cools_l', 'seers_x': 'seers_l', 'pdcs_35_x': 'pdcs_35_l', 'eer_35_x': 'eer_35_l','pdcs_30_x': 'pdcs_30_l','eer_30_x': 'eer_30_l', 'pdcs_25_x': 'pdcs_25_l', 'eer_25_x': 'eer_25_l', 'pdcs_20_x': 'pdcs_20_l','eer_20_x': 'eer_20_l', 'spl_indoor_y': 'spl_indoor_h','spl_outdoor_y': 'spl_outdoor_h', 'eta_y': 'eta_h', 'p_rated_y': 'p_rated_h', 'scop_y': 'scop_h', 'p_th_minus7_y': 'p_th_minus7_h', 'cop_minus7_y': 'cop_minus7_h', 'p_th_2_y': 'p_th_2_h', 'cop_2_y': 'cop_2_h', 'p_th_7_y': 'p_th_7_h','cop_7_y': 'cop_7_h', 'p_th_12_y': 'p_th_12_h', 'cop_12_y': 'cop_12_h', 'p_th_tbiv_y': 'p_th_tbiv_h', 'cop_tbiv_y': 'cop_tbiv_h','p_th_tol_y': 'p_th_tol_h', 'cop_tol_y': 'cop_tol_h', 'rated_airflows_y': 'rated_airflows_h', 'p_sups_y': 'p_sups_h','p_design_cools_y': 'p_design_cools_h', 'seers_y': 'seers_h', 'pdcs_35_y': 'pdcs_35_h', 'eer_35_y': 'eer_35_h', 'pdcs_30_y': 'pdcs_30_h','eer_30_y': 'eer_30_h', 'pdcs_25_y': 'pdcs_25_h', 'eer_25_y': 'eer_25_h', 'pdcs_20_y': 'pdcs_20_h', 'eer_20_y': 'eer_20_h'},inplace=True)
+    df.to_csv('../output/database_reduced.csv',index=False)
 
 
-def normalize_heating_data(filename):
-    data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    new_df = pd.DataFrame()
-    for model in Models:
-        data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-        data = data_key.loc[((data_key['Model'] == model) & (
-                    data_key['T_out [°C]'] == 52))]  # only use data of model and ref point -7/52
-        Pel_ref = data['P_el [W]'].array[0]  # ref Point Pel
-        Pth_ref = data['P_th [W]'].array[0]  # ref Point Pth
-        data_key = data_key.loc[data_key['Model'] == model]  # only use data of model
-        data_key.loc[:, ['P_th_n']] = data_key['P_th [W]'] / Pth_ref  # get normalized Value P_th_n
-        data_key.loc[:, ['P_el_n']] = data_key['P_el [W]'] / Pel_ref  # get normalized Value P_el_n
-        new_df = pd.concat([new_df, data_key])  # merge new Dataframe with old one
-    filt1 = (new_df['P_th_n'] >= 2) & (new_df['T_out [°C]'] == 34)
-    deletemodels = new_df.loc[filt1, ['Model']].values.tolist()
-    for model in deletemodels:
-        new_df = new_df.loc[new_df['Model'] != model[0]]
+def normalize_data():
+    df=pd.read_csv('../output/database_reduced.csv')
+    #change kW to W
+    df['p_th_minus7_l']=(df['p_th_minus7_l']*1000).astype(int)
+    df['p_th_2_l']=(df['p_th_2_l']*1000).astype(int)
+    df['p_th_7_l']=(df['p_th_7_l']*1000).astype(int)
+    df['p_th_12_l']=(df['p_th_12_l']*1000).astype(int)
+    df['p_th_tbiv_l']=(df['p_th_tbiv_l']*1000).astype(int)
+    df['p_th_tol_l']=(df['p_th_tol_l']*1000).astype(int)
+    df['p_th_minus7_h']=(df['p_th_minus7_h']*1000).astype(int)
+    df['p_th_2_h']=(df['p_th_2_h']*1000).astype(int)
+    df['p_th_7_h']=(df['p_th_7_h']*1000).astype(int)
+    df['p_th_12_h']=(df['p_th_12_h']*1000).astype(int)
+    df['p_th_tbiv_h']=(df['p_th_tbiv_h']*1000).astype(int)
+    df['p_th_tol_h']=(df['p_th_tol_h']*1000).astype(int)
+    df['pdcs_35_l']=(df['pdcs_35_l']*1000)
+    df['pdcs_30_l']=(df['pdcs_30_l']*1000)
+    df['pdcs_25_l']=(df['pdcs_25_l']*1000)
+    df['pdcs_20_l']=(df['pdcs_20_l']*1000)
+    df['pdcs_35_h']=(df['pdcs_35_h']*1000)
+    df['pdcs_30_h']=(df['pdcs_30_h']*1000)
+    df['pdcs_25_h']=(df['pdcs_25_h']*1000)
+    df['pdcs_20_h']=(df['pdcs_20_h']*1000)
+    # add P_el
+    df['p_el_minus7_l'] = (round(df['p_th_minus7_l'] / df['cop_minus7_l'])).astype(int)
+    df['p_el_2_l'] = (round(df['p_th_2_l'] / df['cop_2_l'])).astype(int)
+    df['p_el_7_l'] = (round(df['p_th_7_l'] / df['cop_7_l'])).astype(int)
+    df['p_el_12_l'] = (round(df['p_th_12_l'] / df['cop_12_l'])).astype(int)
+    df['p_el_tbiv_l'] = (round(df['p_th_tbiv_l'] / df['cop_tbiv_l'])).astype(int)
+    df['p_el_tol_l'] = (round(df['p_th_tol_l'] / df['cop_tol_l'])).astype(int)
+    df['p_el_minus7_h'] = (round(df['p_th_minus7_h'] / df['cop_minus7_h'])).astype(int)
+    df['p_el_2_h'] = (round(df['p_th_2_h'] / df['cop_2_h'])).astype(int)
+    df['p_el_7_h'] = (round(df['p_th_7_h'] / df['cop_7_h'])).astype(int)
+    df['p_el_12_h'] = (round(df['p_th_12_h'] / df['cop_12_h'])).astype(int)
+    df['p_el_tbiv_h'] = (round(df['p_th_tbiv_h'] / df['cop_tbiv_h'])).astype(int)
+    df['p_el_tol_h'] = (round(df['p_th_tol_h'] / df['cop_tol_h'])).astype(int)
+    df['p_el_35_l'] = (round(df['pdcs_35_l'] / df['eer_35_l']))
+    df['p_el_30_l'] = (round(df['pdcs_30_l'] / df['eer_30_l']))
+    df['p_el_25_l'] = (round(df['pdcs_25_l'] / df['eer_25_l']))
+    df['p_el_20_l'] = (round(df['pdcs_20_l'] / df['eer_20_l']))
+    df['p_el_35_h'] = (round(df['pdcs_35_h'] / df['eer_35_h']))
+    df['p_el_30_h'] = (round(df['pdcs_30_h'] / df['eer_30_h']))
+    df['p_el_25_h'] = (round(df['pdcs_25_h'] / df['eer_25_h']))
+    df['p_el_20_h'] = (round(df['pdcs_20_h'] / df['eer_20_h']))
+    df['p_el_minus7_l_n'] = df['p_el_minus7_l'] / df['p_el_minus7_h']
+    df['p_el_2_l_n'] = df['p_el_2_l'] / df['p_el_minus7_h']
+    df['p_el_7_l_n'] = df['p_el_7_l'] / df['p_el_minus7_h']
+    df['p_el_12_l_n'] = df['p_el_12_l'] / df['p_el_minus7_h']
+    df['p_el_tbiv_l_n'] = df['p_el_tbiv_l'] / df['p_el_minus7_h']
+    df['p_el_tol_l_n'] = df['p_el_tol_l'] / df['p_el_minus7_h']
+    df['p_el_35_l_n'] = df['p_el_35_l'] / df['p_el_35_l']
+    df['p_el_30_l_n'] = df['p_el_30_l'] / df['p_el_35_l']
+    df['p_el_25_l_n'] = df['p_el_25_l'] / df['p_el_35_l']
+    df['p_el_20_l_n'] = df['p_el_20_l'] / df['p_el_35_l']
+    df['p_el_minus7_h_n'] = df['p_el_minus7_h'] / df['p_el_minus7_h']
+    df['p_el_2_h_n'] = df['p_el_2_h'] / df['p_el_minus7_h']
+    df['p_el_7_h_n'] = df['p_el_7_h'] / df['p_el_minus7_h']
+    df['p_el_12_h_n'] = df['p_el_12_h'] / df['p_el_minus7_h']
+    df['p_el_tbiv_h_n'] = df['p_el_tbiv_h'] / df['p_el_minus7_h']
+    df['p_el_tol_h_n'] = df['p_el_tol_h'] / df['p_el_minus7_h']
+    df['p_el_35_h_n'] = df['p_el_35_h'] / df['p_el_35_l']
+    df['p_el_30_h_n'] = df['p_el_30_h'] / df['p_el_35_l']
+    df['p_el_25_h_n'] = df['p_el_25_h'] / df['p_el_35_l']
+    df['p_el_20_h_n'] = df['p_el_20_h'] / df['p_el_35_l']
+    df=df.loc[df['cop_minus7_l']!=1]
+    df=df[['manufacturers', 'models', 'titel', 'dates', 'types', 'refrigerants','mass_of_refrigerants', 'spl_indoor_l', 'spl_outdoor_l', 'eta_l', 'p_rated_l', 'scop_l', 't_biv', 'tol', 'p_th_minus7_l', 'cop_minus7_l', 'p_el_minus7_l', 'p_th_2_l', 'cop_2_l', 'p_el_2_l', 'p_th_7_l', 'cop_7_l', 'p_el_7_l', 'p_th_12_l', 'cop_12_l', 'p_el_12_l',  'p_th_tbiv_l', 'cop_tbiv_l', 'p_el_tbiv_l', 'p_th_tol_l', 'cop_tol_l', 'p_el_tol_l', 'rated_airflows_l', 'wtols', 'poffs', 'ptos', 'psbs', 'pcks', 'supp_energy_types', 'p_sups_l', 'p_design_cools_l', 'seers_l', 'pdcs_35_l', 'eer_35_l', 'p_el_35_l', 'pdcs_30_l', 'eer_30_l', 'p_el_30_l', 'pdcs_25_l', 'eer_25_l', 'p_el_25_l', 'pdcs_20_l', 'eer_20_l', 'p_el_20_l', 'spl_indoor_h', 'spl_outdoor_h', 'eta_h', 'p_rated_h', 'p_th_minus7_h', 'cop_minus7_h', 'p_el_minus7_h', 'p_th_2_h', 'cop_2_h', 'p_el_2_h', 'p_th_7_h', 'cop_7_h', 'p_el_7_h', 'p_th_12_h', 'cop_12_h', 'p_el_12_h', 'p_th_tbiv_h', 'cop_tbiv_h', 'p_el_tbiv_h', 'p_th_tol_h', 'cop_tol_h', 'p_el_tol_h', 'rated_airflows_h', 'p_sups_h', 'p_design_cools_h', 'seers_h', 'pdcs_35_h', 'eer_35_h', 'p_el_35_h', 'pdcs_30_h', 'eer_30_h', 'p_el_30_h', 'pdcs_25_h', 'eer_25_h', 'p_el_25_h', 'pdcs_20_h', 'eer_20_h', 'p_el_20_h', 'p_el_minus7_l_n', 'p_el_2_l_n', 'p_el_7_l_n', 'p_el_12_l_n', 'p_el_tbiv_l_n', 'p_el_tol_l_n', 'p_el_35_l_n', 'p_el_30_l_n', 'p_el_25_l_n', 'p_el_20_l_n', 'p_el_minus7_h_n', 'p_el_2_h_n', 'p_el_7_h_n', 'p_el_12_h_n', 'p_el_tbiv_h_n', 'p_el_tol_h_n', 'p_el_35_h_n', 'p_el_30_h_n', 'p_el_25_h_n', 'p_el_20_h_n']]
+    # add second (+18/+23 °C) point for cooling based on other heat pumps 
+    """Overall there are not so many unique Keymark heat pumps for cooling in comparison to heating.
 
-    new_df.to_csv(r'../output/' + filename[:-4] + '_normalized.csv', encoding='utf-8', index=False)
+    With our fit method it is not possible to fit only over one outflow temperature. For that reason we added another
+    set point at 18°C output temperature based on the heat pumps we had with this condition in Keymark. For that purpose, we identified multiplication factors for eletrical power and eer between 7°C and 18°C secondary output temperature. The mean value of that are used to calculate the electrical power and EER at 18°C for other heat pumps:
+    P_el at 18°C = P_el at 7°C * multiplication factor 
+    EER at 18°C = EER at 7°C * multiplication factor"""
+
+    df.loc[(df['eer_20_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_20_h'] = df.loc[(df['eer_20_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_20_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_20_h']/df[df['p_el_35_h_n'].isna()==0]['eer_20_l']).unique().mean()
+    df.loc[(df['eer_25_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_25_h'] = df.loc[(df['eer_25_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_25_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_25_h']/df[df['p_el_35_h_n'].isna()==0]['eer_25_l']).unique().mean()
+    df.loc[(df['eer_30_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_30_h'] = df.loc[(df['eer_30_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_30_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_30_h']/df[df['p_el_35_h_n'].isna()==0]['eer_30_l']).unique().mean()
+    df.loc[(df['eer_35_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_35_h'] = df.loc[(df['eer_35_l'].isna()==0)&(df['p_el_35_h_n'].isna()),'eer_35_l']*(df[df['p_el_35_h_n'].isna()==0]['eer_35_h']/df[df['p_el_35_h_n'].isna()==0]['eer_35_l']).unique().mean()
+
+    df.loc[(df['p_el_20_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_20_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_20_h_n'].unique().mean()
+    df.loc[(df['p_el_25_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_25_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_25_h_n'].unique().mean()
+    df.loc[(df['p_el_30_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_30_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_30_h_n'].unique().mean()
+    df.loc[(df['p_el_35_l_n'].isna()==0)&(df['p_el_35_h_n'].isna()),'p_el_35_h_n'] = df[df['p_el_35_h_n'].isna()==0]['p_el_35_h_n'].unique().mean()
+    df.to_csv(r'../output/database_reduced_normalized.csv', encoding='utf-8', index=False)
 
 
-def get_subtype(P_th_minus7_34, P_th_2_30, P_th_7_27, P_th_12_24):
-    if (P_th_minus7_34 <= P_th_2_30):
-        if (P_th_2_30 <= P_th_7_27):
-            if (P_th_7_27 <= P_th_12_24):
-                modus = 'On-Off'
-            else:
-                modus = 'Regulated'  # Inverter, 2-Stages, etc.
-        else:
-            modus = 'Regulated'  # Inverter, 2-Stages, etc.
-    else:
-        modus = 'Regulated'  # Inverter, 2-Stages, etc.
-    return modus
-
-
-def identify_subtypes(filename):
+def identify_subtypes():
     # Identify Subtype like On-Off or Regulated by comparing the thermal Power output at different temperature levels:
     # -7/34 |  2/30  |  7/27  |  12/24
     # assumptions for On-Off Heatpump: if temperature difference is bigger, thermal Power output is smaller
     # assumptions for Regulated: everythin else
+    df=pd.read_csv(r'../output/database_reduced_normalized.csv')
+    df['Subtype'] = np.where((df['p_th_minus7_l'] <= df['p_th_2_l']) & (df['p_th_2_l'] <= df['p_th_7_l'])& (df['p_th_7_l'] <= df['p_th_12_l']), 'On-Off', 'Regulated')
 
-    data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    data_keymark = data_key.rename(
-        columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out'})
-    data_keymark['deltaT'] = data_keymark['T_out'] - data_keymark['T_in']
+    filt1 = (df['types'] == 'Outdoor Air/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 1
+    filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 2
+    filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 2
+    filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 3
 
-    Subtypelist = []
-    for model in Models:
-        try:
-            P_thermal = []
-            filt1 = data_keymark['T_out'] == 34
-            Tin_minus_seven = data_keymark.loc[filt1]
-            filt2 = Tin_minus_seven['Model'] == model
-            Model_minus_seven = Tin_minus_seven[filt2]
-            P_th_minus_seven = Model_minus_seven['P_th'].array[0]
-            P_thermal.append(P_th_minus_seven)
-
-            filt1 = data_keymark['T_out'] == 30
-            T_in_plus_two = data_keymark.loc[filt1]
-            filt2 = T_in_plus_two['Model'] == model
-            Model_plus_two = T_in_plus_two[filt2]
-            P_th_plus_two = Model_plus_two['P_th'].array[0]
-            P_thermal.append(P_th_plus_two)
-
-            filt1 = data_keymark['T_out'] == 27
-            Tin_plus_seven = data_keymark.loc[filt1]
-            filt2 = Tin_plus_seven['Model'] == model
-            Model_plus_seven = Tin_plus_seven[filt2]
-            P_th_plus_seven = Model_plus_seven['P_th'].array[0]
-            P_thermal.append(P_th_plus_seven)
-
-            filt1 = data_keymark['T_out'] == 24
-            Tin_plus_twelfe = data_keymark.loc[filt1]
-            filt2 = Tin_plus_twelfe['Model'] == model
-            Model_plus_twelfe = Tin_plus_twelfe[filt2]
-            P_th_plus_twelfe = Model_plus_twelfe['P_th'].array[0]
-            P_thermal.append(P_th_plus_twelfe)
-            P_thermal
-            Modus = get_subtype(P_thermal[0], P_thermal[1], P_thermal[2], P_thermal[3])
-        except:
-            print(model)
-        Subtypelist.append(Modus)
-    Subtype_df = pd.DataFrame()
-    Subtype_df['Model'] = Models
-    Subtype_df['Subtype'] = Subtypelist
-    Subtype_df
-    data_key = pd.read_csv(r'../output/' + filename)  # read Dataframe of all models
-    data_key = data_key.merge(Subtype_df, how='inner', on='Model')
-
-    ##assign group:
-
-    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 1
-    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 2
-    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype'] == 'Regulated')
-    data_key.loc[filt1, 'Group'] = 3
-
-    filt1 = (data_key['Type'] == 'Outdoor Air/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 4
-    filt1 = (data_key['Type'] == 'Exhaust Air/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 7
-    filt1 = (data_key['Type'] == 'Brine/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 5
-    filt1 = (data_key['Type'] == 'Water/Water') & (data_key['Subtype'] == 'On-Off')
-    data_key.loc[filt1, 'Group'] = 6
-
-    data_key = data_key[
-        ['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group', 'Refrigerant', 'Mass of Refrigerant [kg]',
-         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'T_amb [°C]', 'T_in [°C]', 'T_out [°C]',
-         'P_th [W]', 'P_el [W]', 'COP', 'P_th_n', 'P_el_n']]
-    filt1 = data_key['Group'] != 7
-    data_key = data_key.loc[filt1]
-    data_key.to_csv(r'../output/' + filename[:-4] + '_subtypes.csv', encoding='utf-8', index=False)
+    filt1 = (df['types'] == 'Outdoor Air/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 4
+    filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 5
+    filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 5
+    filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 6
+    df = df.loc[df['Group'] != 7]
+    df.to_csv(r'../output/database_reduced_normalized_subtypes.csv', encoding='utf-8', index=False)
 
 
 def fit_simple(w, x, y, z):
@@ -1673,19 +324,24 @@ def func_simple(para, w, x, y):
     return z
 
 
-def calculate_heating_parameters(filename):
-    # Calculate function parameters from normalized values
-    data_key = pd.read_csv('../output/' + filename)
-    Models = data_key['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))  # get models
+def interpolate_t_out(t_in):
+    # Function to interpolate Temperature out at T_biv and TOL
+    t_amb=[12,7,2,-7]
+    t_out_low=[24,27,30,34]
+    t_out_high=[30,36,42,52]
+    if t_in>=7:
+        i=0
+    elif t_in<=2:
+        i=2
+    else:
+        i=1
+    t_out_l=t_out_low[i+1]-(t_out_low[i+1]-t_out_low[i])*(t_in-t_amb[i+1])/(t_amb[i]-t_amb[i+1])
+    t_out_h=t_out_high[i+1]-(t_out_high[i+1]-t_out_high[i])*(t_in-t_amb[i+1])/(t_amb[i]-t_amb[i+1])
+    return round(t_out_l,2), round(t_out_h,2)
 
-    Group = []
-    Pel_ref = []
-    Pth_ref = []
-    p1_P_th = []
-    p2_P_th = []
-    p3_P_th = []
-    p4_P_th = []
+
+def calculate_fitting_parameters():
+   # Calculate function parameters from normalized values
     p1_P_el = []
     p2_P_el = []
     p3_P_el = []
@@ -1694,38 +350,145 @@ def calculate_heating_parameters(filename):
     p2_COP = []
     p3_COP = []
     p4_COP = []
-
-    for model in Models:
-        data_key = pd.read_csv('../output/' + filename)
-        data_key = data_key.rename(
-            columns={'P_el [W]': 'P_el', 'P_th [W]': 'P_th', 'T_in [°C]': 'T_in', 'T_out [°C]': 'T_out',
-                     'T_amb [°C]': 'T_amb'})
-        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
-        group = data_key.Group.array[0]  # get Group of model
-        if group > 1 and group != 4:  # give another point at different Temperature of Brine/Water
-            data_key1 = data_key.loc[data_key['Model'] == model]
-            data_key1['T_in'] = data_key1['T_in'] + 1
-            data_key1['T_out'] = data_key1['T_out'] + 1
-            data_key = pd.concat([data_key, data_key1])
-        Pel_REF = data_key.loc[data_key['P_el_n'] == 1, ['P_el']].values.tolist()[0][0]
-        Pth_REF = data_key.loc[data_key['P_th_n'] == 1, ['P_th']].values.tolist()[0][0]
-        data_key.fillna(0, inplace=True)
-
+    p1_P_el_c=[]
+    p2_P_el_c=[]
+    p3_P_el_c=[]
+    p4_P_el_c=[]
+    p1_EER=[]
+    p2_EER=[]
+    p3_EER=[]
+    p4_EER=[]
+    df = pd.read_csv(r'../output/database_reduced_normalized_subtypes.csv')
+    for model in df['titel']:
+        group=df.loc[df['titel']==(model),'Group'].values[0]
+        #Create Model DF with all important information for fitting heating parameters
+        df_model=pd.DataFrame()
+        df_model['T_amb']=[-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[34,52,30,42,27,36,24,30]
+        df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_minus7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_minus7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_h_n'].values[0]),
+                            ]
+        df_model['COP']=[(df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                            ]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        """
+        t_biv=df.loc[df['titel']==(model),'t_biv'].values[0]
+        tol=df.loc[df['titel']==(model),'tol'].values[0]
+        tol_low,tol_high=interpolate_t_out(tol)
+        t_biv_low,t_biv_high=interpolate_t_out(t_biv)
+        df_model['T_amb']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[tol_low,tol_high,t_biv_low,t_biv_high,34,52,30,42,27,36,24,30]
+        df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_tol_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_tol_h_n'].values[0]),  
+                            (df.loc[df['titel']==(model),'p_el_tbiv_l_n'].values[0]),  
+                            (df.loc[df['titel']==(model),'p_el_tbiv_h_n'].values[0]),  
+                            (df.loc[df['titel']==(model),'p_el_minus7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_minus7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_2_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_7_h_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_l_n'].values[0]),
+                            (df.loc[df['titel']==(model),'p_el_12_h_n'].values[0]),
+                            ]
+        df_model['COP']=[(df.loc[df['titel']==(model),'cop_tol_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_tol_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_tbiv_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_tbiv_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                            (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                            ]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0,0,0,0,0]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10,10,10,10,10]
+            df_model1=df_model.copy()
+            df_model1['T_in'] = df_model1['T_in'] + 1
+            df_model1['T_out'] = df_model1['T_out'] + 1
+            df_model = pd.concat([df_model, df_model1])
+        df_model.drop_duplicates(inplace=True) #if multiple data at the same point"""
+        #Calculate heating parameters
         if group == 1 or group == 2 or group == 3:
-            data = data_key.loc[((data_key['T_amb'] != 12) & (data_key['T_amb'] != 7))]
-            P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
-            P_th_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_th_n'])
-            COP_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['COP'])
+            COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
+            df_model=df_model.loc[((df_model['T_amb'] != 12) & (df_model['T_amb'] != 7))]
+            P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
+        elif group == 4 or group == 5 or group == 6:
+            P_el_n_para_key=fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
+            COP_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['COP'])
+        
+        #Calculate cooling parameters
+        if df.loc[df['titel']==(model),'seers_l'].isna().values[0]==0:
+            df_model=pd.DataFrame()
+            df_model['T_in']=[20,20,25,25,30,30,35,35]
+            df_model['T_amb']=[20,20,25,25,30,30,35,35]
+            df_model['T_out']=[7,18,7,18,7,18,7,18]
+            df_model['P_el']=[(df.loc[df['titel']==(model),'p_el_20_l_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_20_h_n'].values[0]), 
+                                (df.loc[df['titel']==(model),'p_el_25_l_n'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_25_h_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_l_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_h_n'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_35_l_n'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_35_h_n'].values[0]),
+                                ]
+            df_model['EER']=[(df.loc[df['titel']==(model),'eer_20_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_20_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_h'].values[0]),
+                                ]
+            EER_para_key = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['EER'])
+            df_model=df_model.loc[df_model['T_in']>20]
+            P_el_n_para_key_c = fit_simple(df_model['T_in'], df_model['T_out'], df_model['T_amb'], df_model['P_el'])
+            
+            if group!=1: #TODO: Cooling for Brine/Water and Water/Water
+                P_el_n_para_key_c = [np.nan,np.nan,np.nan,np.nan]
+                EER_para_key = [np.nan,np.nan,np.nan,np.nan]
         else:
-            P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
-            P_th_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_th_n'])
-            COP_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['COP'])
-
-        # write Parameters in List
-        p1_P_th.append(P_th_n_para_key[0])
-        p2_P_th.append(P_th_n_para_key[1])
-        p3_P_th.append(P_th_n_para_key[2])
-        p4_P_th.append(P_th_n_para_key[3])
+            P_el_n_para_key_c = [np.nan,np.nan,np.nan,np.nan]
+            EER_para_key = [np.nan,np.nan,np.nan,np.nan]
+        #add to lists
         p1_P_el.append(P_el_n_para_key[0])
         p2_P_el.append(P_el_n_para_key[1])
         p3_P_el.append(P_el_n_para_key[2])
@@ -1734,106 +497,253 @@ def calculate_heating_parameters(filename):
         p2_COP.append(COP_para_key[1])
         p3_COP.append(COP_para_key[2])
         p4_COP.append(COP_para_key[3])
-        Group.append(group)
-        Pel_ref.append(Pel_REF)
-        Pth_ref.append(Pth_REF)
+        p1_P_el_c.append(P_el_n_para_key_c[0])
+        p2_P_el_c.append(P_el_n_para_key_c[1])
+        p3_P_el_c.append(P_el_n_para_key_c[2])
+        p4_P_el_c.append(P_el_n_para_key_c[3])
+        p1_EER.append(EER_para_key[0])
+        p2_EER.append(EER_para_key[1])
+        p3_EER.append(EER_para_key[2])
+        p4_EER.append(EER_para_key[3])
+    #Add parameters to df
+    df['p1_P_el_h [1/°C]'] = p1_P_el
+    df['p2_P_el_h [1/°C]'] = p2_P_el
+    df['p3_P_el_h [-]'] = p3_P_el
+    df['p4_P_el_h [1/°C]'] = p4_P_el
+    df['p1_COP [-]'] = p1_COP
+    df['p2_COP [-]'] = p2_COP
+    df['p3_COP [-]'] = p3_COP
+    df['p4_COP [-]'] = p4_COP
+    #Add cooling parameters to df
+    df['p1_P_el_c [1/°C]'] = p1_P_el_c
+    df['p2_P_el_c [1/°C]'] = p2_P_el_c
+    df['p3_P_el_c [-]'] = p3_P_el_c
+    df['p4_P_el_c [1/°C]'] = p4_P_el_c
+    df['p1_EER [-]'] = p1_EER
+    df['p2_EER [-]'] = p2_EER
+    df['p3_EER [-]'] = p3_EER
+    df['p4_EER [-]'] = p4_EER
+    df.to_csv(r'../output/database_reduced_normalized_subtypes_parameters.csv', encoding='utf-8', index=False)
+    df.rename(columns={'manufacturers': 'Manufacturer' ,
+                        'models': 'Model' ,
+                        'titel': 'Titel' ,
+                        'dates': 'Date' ,
+                        'types': 'Type',
+                        'refrigerants': 'Refrigerant' ,
+                        'mass_of_refrigerants': 'Mass of Refrigerant [kg]' ,
+                        'spl_indoor_l': 'SPL indoor low Power [dBA]' ,
+                        'spl_outdoor_l': 'SPL outdoor low Power [dBA]' ,
+                        'eta_l': 'eta low T [%]' ,
+                        'p_rated_l': 'Rated Power low T [kW]' ,
+                        'scop_l': 'SCOP' ,
+                        't_biv': 'Bivalence temperature [°C]' ,
+                        'tol': 'Tolerance temperature [°C]' ,
+                        'wtols': 'Max. water heating temperature [°C]' ,
+                        'poffs': 'Poff [W]' ,
+                        'ptos': 'PTOS [W]' ,
+                        'psbs': 'PSB [W]',
+                        'pcks': 'PCKS [W]' ,
+                        'seers_l': 'SEER low T' ,
+                        'spl_indoor_h': 'SPL indoor high Power [dBA]' ,
+                        'spl_outdoor_h': 'SPL outdoor high Power [dBA]' ,
+                        'eta_h': 'eta medium T [%]' ,
+                        'p_rated_h': 'Rated Power medium T [kW]' ,
+                        'p_th_minus7_h': 'P_th_h_ref [W]' ,
+                        'cop_minus7_h': 'COP_ref' ,
+                        'p_el_minus7_h': 'P_el_h_ref [W]' ,
+                        'p_design_cools_h': 'P_design_h_T [kW]' ,
+                        'seers_h': 'SEER medium T' ,
+                        'pdcs_35_l': 'P_th_c_ref [W]' ,
+                        'eer_35_l': 'EER_c_ref' ,
+                        'p_el_35_l': 'P_el_c_ref [W]' ,
+                        'Subtype': 'Subtype' ,
+                        'Group': 'Group' ,
+                        }, inplace=True)
+    df=df[['Manufacturer' ,'Model' ,'Titel' ,'Date' ,'Type','Subtype' ,'Group' ,'Rated Power low T [kW]' ,'Rated Power medium T [kW]' ,'Refrigerant' ,'Mass of Refrigerant [kg]' ,'SPL indoor low Power [dBA]' ,'SPL outdoor low Power [dBA]' ,'SPL indoor high Power [dBA]' ,'SPL outdoor high Power [dBA]' ,'Bivalence temperature [°C]' ,'Tolerance temperature [°C]' ,'Max. water heating temperature [°C]' ,'Poff [W]' ,'PTOS [W]' ,'PSB [W]','PCKS [W]' ,'eta low T [%]' ,'eta medium T [%]' ,'SCOP' ,'SEER low T' ,'SEER medium T' ,'P_th_h_ref [W]' ,'P_th_c_ref [W]' ,'P_el_h_ref [W]' ,'P_el_c_ref [W]' ,'COP_ref' ,'EER_c_ref' ,'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]','p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]','p4_COP [-]','p1_P_el_c [1/°C]','p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]','p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]']]
+    df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
-    # write List  in Dataframe
 
-    paradf = pd.DataFrame()
-    paradf['Model'] = Models
-    paradf['p1_P_th [1/°C]'] = p1_P_th
-    paradf['p2_P_th [1/°C]'] = p2_P_th
-    paradf['p3_P_th [-]'] = p3_P_th
-    paradf['p4_P_th [1/°C]'] = p4_P_th
-    paradf['p1_P_el_h [1/°C]'] = p1_P_el
-    paradf['p2_P_el_h [1/°C]'] = p2_P_el
-    paradf['p3_P_el_h [-]'] = p3_P_el
-    paradf['p4_P_el_h [1/°C]'] = p4_P_el
-    paradf['p1_COP [-]'] = p1_COP
-    paradf['p2_COP [-]'] = p2_COP
-    paradf['p3_COP [-]'] = p3_COP
-    paradf['p4_COP [-]'] = p4_COP
-    paradf['Group'] = Group
-    paradf['P_el_ref'] = Pel_ref
-    paradf['P_th_ref'] = Pth_ref
-
-
-    para = paradf
-    key = pd.read_csv('../output/' + filename)
-    key = key.loc[key['T_out [°C]'] == 52]
-    parakey = para.merge(key, how='left', on='Model')
-    parakey = parakey.rename(columns={'Group_x': 'Group', 'P_el_ref': 'P_el_h_ref [W]', 'P_th_ref': 'P_th_h_ref [W]'})
-    parakey['COP_ref'] = parakey['P_th_h_ref [W]'] / parakey['P_el_h_ref [W]']
-    table = parakey[
-        ['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group', 'Refrigerant', 'Mass of Refrigerant [kg]',
-         'SPL indoor [dBA]', 'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]', 'P_th_h_ref [W]', 'COP_ref',
-         'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]', 'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]',
-         'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]']]
-    table.sort_values(by=['Model'], inplace=True)
-    table.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
-    table.to_csv('hplib_database_all.csv', encoding='utf-8', index=False)
-    table.to_csv('hplib_database.csv', encoding='utf-8', index=False)
-    table.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
-
-
-def validation_relative_error_heating():
+def validation_re_mape():
     # Simulate every set point for every heat pump and save csv file
-    df=pd.read_csv('../output/database_heating_average_normalized_subtypes.csv')
-    i=0
-    prev_model='first Model'
-    while i<len(df): 
-        Model=df.iloc[i,1]
-        T_amb=df.iloc[i,12]
-        T_in=df.iloc[i,13]
-        T_out=df.iloc[i,14]
-        P_th=df.iloc[i,15]
-        P_el=df.iloc[i,16]
-        COP=df.iloc[i,17] 
-        try:
-            if prev_model!=Model:
-                para=hpl.get_parameters(Model)
-            results=hpl.simulate(T_in,T_out-5,para,T_amb)
-            df.loc[i,'P_th_sim']=results.P_th[0]
-            df.loc[i,'P_el_sim']=results.P_el[0]
-            df.loc[i,'COP_sim']=results.COP[0]
-            prev_model=Model
-            i=i+1
-        except:
-            i=i+1
-            pass
-    
-    # Relative error (RE) for every set point
-    df['RE_P_th']=(df['P_th_sim']/df['P_th [W]']-1)*100
-    df['RE_P_el']=(df['P_el_sim']/df['P_el [W]']-1)*100
-    df['RE_COP']=(df['COP_sim']/df['COP']-1)*100
-    df.to_csv('../output/database_heating_average_normalized_subtypes_validation.csv', encoding='utf-8', index=False)
-
-
-def validation_mape_heating():
-    #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
-    df=pd.read_csv('../output/database_heating_average_normalized_subtypes_validation.csv')
-    para=pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
-    para=para.loc[para['Model']!='Generic']
-    Models = para['Model'].values.tolist()
-    Models = list(dict.fromkeys(Models))
-    mape_cop=[]
-    mape_pel=[]
     mape_pth=[]
-    for model in Models:
-        df_model=df.loc[df['Model']==model]
-        mape_pth.append((((df_model['P_th [W]']-df_model['P_th_sim']).abs())/df_model['P_th [W]']*100).mean())
-        mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
-        mape_cop.append((((df_model['COP']-df_model['COP_sim']).abs())/df_model['COP']*100).mean())
-    para['MAPE_P_el']=mape_pel
-    para['MAPE_COP']=mape_cop
-    para['MAPE_P_th']=mape_pth
-    para.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
+    mape_pel=[]
+    mape_cop=[]
+    mape_pdc=[]
+    mape_pel_c=[]
+    mape_eer=[]
+    df=pd.read_csv('../output/database_reduced_normalized_subtypes_parameters.csv')
+    df_re=pd.DataFrame()
+    i=0
+    while i<len(df):
+        model=df.iloc[i:]['titel'].values[0]
+        para=hpl.get_parameters(model)
+        heatpump = hpl.HeatPump(para)
+        group=df.iloc[i:]['Group'].values[0]
+        df_model=pd.DataFrame()
+        df_model['T_amb']=[-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[34,52,30,42,27,36,24,30]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0]
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10]
+        res=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values-5,t_amb=df_model['T_amb'].values)
+        res=pd.DataFrame(res)
+        res['P_th_real']=[(df.loc[df['titel']==(model),'p_th_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_h'].values[0]),
+                                    ]
+        res['P_el_real']=[(df.loc[df['titel']==(model),'p_el_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_h'].values[0]),
+                                    ]
+        res['COP_real']=[(df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                                    ]
+        """tol=df.iloc[i-1:]['tol'].values[0]
+        t_biv=df.iloc[i-1:]['t_biv'].values[0]
+        tol_low,tol_high=interpolate_t_out(tol)
+        t_biv_low,t_biv_high=interpolate_t_out(t_biv)
+        df_model=pd.DataFrame()
+        df_model['T_amb']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        df_model['T_out']=[tol_low,tol_high,t_biv_low,t_biv_high,34,52,30,42,27,36,24,30]
+        if group==1 or group==4: #Air/Water 
+            df_model['T_in']=[tol,tol,t_biv,t_biv,-7,-7,2,2,7,7,12,12]
+        elif group==2 or group==5: #Brine/Water
+            df_model['T_in']=[0,0,0,0,0,0,0,0,0,0,0,0]
+        else: # Water/Water
+            df_model['T_in']=[10,10,10,10,10,10,10,10,10,10,10,10]
+        res=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values-5,t_amb=df_model['T_in'].values)
+        res=pd.DataFrame(res)
+        res['P_th_real']=[(df.loc[df['titel']==(model),'p_th_tol_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_tol_h'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_th_tbiv_l'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_th_tbiv_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_th_12_h'].values[0]),
+                                    ]
+        res['P_el_real']=[(df.loc[df['titel']==(model),'p_el_tol_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_tol_h'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_el_tbiv_l'].values[0]),  
+                        (df.loc[df['titel']==(model),'p_el_tbiv_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'p_el_12_h'].values[0]),
+                                    ]
+        res['COP_real']=[(df.loc[df['titel']==(model),'cop_tol_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_tol_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_tbiv_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_tbiv_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_minus7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_minus7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_2_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_7_h'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_l'].values[0]),
+                        (df.loc[df['titel']==(model),'cop_12_h'].values[0]),
+                                    ]"""
+        res['RE_P_th']=(res['P_th']/res['P_th_real']-1)*100
+        res['RE_P_el']=(res['P_el']/res['P_el_real']-1)*100
+        res['RE_COP']=(res['COP']/res['COP_real']-1)*100
+        mape_pth.append((((res['P_th_real']-res['P_th']).abs())/res['P_th_real']*100).mean())
+        mape_pel.append((((res['P_el_real']-res['P_el']).abs())/res['P_el_real']*100).mean())
+        mape_cop.append((((res['COP_real']-res['COP']).abs())/res['COP_real']*100).mean())
+        if (df.loc[df['titel']==(model),'seers_l'].isna().values[0]==0) & (group==1):
+            df_model=pd.DataFrame()
+            df_model['T_in']=[20,20,25,25,30,30,35,35]
+            df_model['T_amb']=[20,20,25,25,30,30,35,35]
+            df_model['T_out']=[7,18,7,18,7,18,7,18]
+            res_c=heatpump.simulate(t_in_primary=df_model['T_in'].values,t_in_secondary=df_model['T_out'].values+5,t_amb=df_model['T_in'].values,mode=2)
+            res_c=pd.DataFrame(res_c)
+            res_c['Pdc_real']=[(df.loc[df['titel']==(model),'pdcs_20_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_20_h'].values[0]), 
+                                (df.loc[df['titel']==(model),'pdcs_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'pdcs_25_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_30_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_30_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'pdcs_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'pdcs_35_h'].values[0]),
+                                ]
+            res_c['Pel_c_real']=[(df.loc[df['titel']==(model),'p_el_20_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_20_h'].values[0]), 
+                                (df.loc[df['titel']==(model),'p_el_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_25_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_l'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_30_h'].values[0]),  
+                                (df.loc[df['titel']==(model),'p_el_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'p_el_35_h'].values[0]),
+                                ]
+            res_c['EER_real']=[(df.loc[df['titel']==(model),'eer_20_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_20_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_25_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_30_h'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_l'].values[0]),
+                                (df.loc[df['titel']==(model),'eer_35_h'].values[0]),
+                                ]
+            res_c['RE_Pdc']=(res_c['P_th']*-1/res_c['Pdc_real']-1)*100
+            res_c['RE_Pel_c']=(res_c['P_el']/res_c['Pel_c_real']-1)*100
+            res_c['RE_EER']=(res_c['EER']/res_c['EER_real']-1)*100
+            res=pd.concat([res,res_c])
+            mape_pdc.append((((res['Pdc_real']+res['P_th']).abs())/res['Pdc_real']*100).mean())
+            mape_pel_c.append((((res['Pel_c_real']-res['P_el']).abs())/res['Pel_c_real']*100).mean())
+            mape_eer.append((((res['EER_real']-res['EER']).abs())/res['EER_real']*100).mean())
+        else:
+            mape_pdc.append(np.nan)
+            mape_pel_c.append(np.nan)
+            mape_eer.append(np.nan)
+        res['titel']=model
+        res['Group']=group
+        df_re=pd.concat([df_re,res])
+        i+=1
+    df_re.to_csv('../output/relative_error.csv', encoding='utf-8', index=False)
+    df=pd.read_csv('hplib_database.csv')
+    df = df.loc[df['Model'] != 'Generic']
+    df['MAPE P_th']=mape_pth
+    df['MAPE P_el']=mape_pel
+    df['MAPE COP']=mape_cop
+    df['MAPE Pdc']=mape_pdc
+    df['MAPE P_el_c']=mape_pel_c
+    df['MAPE EER']=mape_eer
+    df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
 
 def add_generic():
-    data_key = pd.read_csv('hplib_database.csv', delimiter=',')
-    data_key = data_key.loc[data_key['Model'] != 'Generic']
+    percent=[0,0.2,0.8,1]
+    df = pd.read_csv('hplib_database.csv', delimiter=',')
+    df = df.loc[df['Model'] != 'Generic']
+    #df=df.drop_duplicates(subset=['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]'])
+    df.index=range(len(df))
     Groups = [1, 2, 3, 4, 5, 6]
     for group in Groups:
         if group == 1:
@@ -1854,50 +764,24 @@ def add_generic():
         elif group == 6:
             Type = 'Water/Water'
             modus = 'On-Off'
-
-        Group1 = data_key.loc[data_key['Group'] == group] 
-        Group1=Group1.loc[Group1['MAPE_P_el']<=25]
-        p1_P_th_average = pd.unique(Group1['p1_P_th [1/°C]']).mean(0)
-        p2_P_th_average = pd.unique(Group1['p2_P_th [1/°C]']).mean(0)
-        p3_P_th_average = pd.unique(Group1['p3_P_th [-]']).mean(0)
-        p4_P_th_average = pd.unique(Group1['p4_P_th [1/°C]']).mean(0)
-        p1_P_el_average = pd.unique(Group1['p1_P_el_h [1/°C]']).mean(0)
-        p2_P_el_average = pd.unique(Group1['p2_P_el_h [1/°C]']).mean(0)
-        p3_P_el_average = pd.unique(Group1['p3_P_el_h [-]']).mean(0)
-        p4_P_el_average = pd.unique(Group1['p4_P_el_h [1/°C]']).mean(0)
-        p1_COP_average = pd.unique(Group1['p1_COP [-]']).mean(0)
-        p2_COP_average = pd.unique(Group1['p2_COP [-]']).mean(0)
-        p3_COP_average = pd.unique(Group1['p3_COP [-]']).mean(0)
-        p4_COP_average = pd.unique(Group1['p4_COP [-]']).mean(0)
-        p1_Pdc_average = Group1['p1_Pdc [1/°C]'].mean(0)
-        p2_Pdc_average = Group1['p2_Pdc [1/°C]'].mean(0)
-        p3_Pdc_average = Group1['p3_Pdc [-]'].mean(0)
-        p4_Pdc_average = Group1['p4_Pdc [1/°C]'].mean(0)
-        p5_P_el_average = Group1['p1_P_el_c [1/°C]'].mean(0)
-        p6_P_el_average = Group1['p2_P_el_c [1/°C]'].mean(0)
-        p7_P_el_average = Group1['p3_P_el_c [-]'].mean(0)
-        p8_P_el_average = Group1['p4_P_el_c [1/°C]'].mean(0)
-        p1_EER_average = Group1['p1_EER [-]'].mean(0)
-        p2_EER_average = Group1['p2_EER [-]'].mean(0)
-        p3_EER_average = Group1['p3_EER [-]'].mean(0)
-        p4_EER_average = Group1['p4_EER [-]'].mean(0)
-        if group == 1 or group == 4:
-            COP_ref = -7 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        elif group == 2 or group == 5:
-            COP_ref = 0 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        elif group == 3 or group == 6:
-            COP_ref = 10 * p1_COP_average + 52 * p2_COP_average + p3_COP_average - 7 * p4_COP_average
-        data_key.loc[len(data_key.index)] = ['Generic', 'Generic', '', Type, modus, group, '', '', '', '', '',
-                                                'average', '', '', COP_ref,'', '', p1_P_th_average, p2_P_th_average,
-                                                 p3_P_th_average, p4_P_th_average, p1_P_el_average, p2_P_el_average,
-                                                 p3_P_el_average, p4_P_el_average, p1_COP_average, p2_COP_average,
-                                                 p3_COP_average, p4_COP_average, '', '', '',
-                                                 p1_Pdc_average, p2_Pdc_average, p3_Pdc_average, p4_Pdc_average,
-                                                 p5_P_el_average,p6_P_el_average ,p7_P_el_average ,p8_P_el_average ,
-                                                 p1_EER_average,p2_EER_average ,p3_EER_average ,p4_EER_average, 
-                                                 '', '', '']
-    data_key['COP_ref'] = data_key['COP_ref'].round(2)
-    data_key.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+        i=len((df.loc[(df['MAPE P_el']>0) &(df['MAPE P_el']<=25) & (df['Group']==group)]))
+        if i>50:
+            for j in percent:
+                if j<1:
+                    if j==0:
+                        titel='Generic_top'
+                    if j==0.2:
+                        titel='Generic_average'
+                    if j==0.8:
+                        titel='Generic_bottom'
+                    df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)[int(j*i):int(i*percent[percent.index(j)+1])]
+                    para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
+                    df.loc[len(df.index)]=['Generic', 'Generic', titel, '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
+        else:
+            df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)
+            para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
+            df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
+    df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
 def reduce_to_unique():

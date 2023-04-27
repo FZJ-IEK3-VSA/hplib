@@ -58,66 +58,22 @@ def get_parameters(model: str, group_id: int = 0,
 
     Returns
     -------
-    parameters : pd.DataFrame
+    df : pd.DataFrame
         Data frame containing the model parameters.
     """
     df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
-    df = df.loc[df['Model'] == model]
-    parameters = pd.DataFrame()
-    parameters['Manufacturer']=(df['Manufacturer'].values.tolist())
-    parameters['Model'] = (df['Model'].values.tolist())
-    try:
-        parameters['MAPE_COP']=df['MAPE_COP'].values.tolist()
-        parameters['MAPE_P_el']=df['MAPE_P_el'].values.tolist()
-        parameters['MAPE_P_th']=df['MAPE_P_th'].values.tolist()
-    except:
-        pass
-    parameters['P_th_h_ref [W]'] = (df['P_th_h_ref [W]'].values.tolist())
-    parameters['P_el_h_ref [W]'] = (df['P_el_h_ref [W]'].values.tolist())
-    parameters['COP_ref'] = (df['COP_ref'].values.tolist())
-    parameters['Group'] = (df['Group'].values.tolist())
-    parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
-    parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
-    parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
-    parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
-    parameters['p1_P_el_h [1/°C]'] = (df['p1_P_el_h [1/°C]'].values.tolist())
-    parameters['p2_P_el_h [1/°C]'] = (df['p2_P_el_h [1/°C]'].values.tolist())
-    parameters['p3_P_el_h [-]'] = (df['p3_P_el_h [-]'].values.tolist())
-    parameters['p4_P_el_h [1/°C]'] = (df['p4_P_el_h [1/°C]'].values.tolist())
-    parameters['p1_COP [-]'] = (df['p1_COP [-]'].values.tolist())
-    parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
-    parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
-    parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
-    try:
-        parameters['P_th_c_ref [W]'] = (df['P_th_c_ref [W]'].values.tolist())
-        parameters['P_el_c_ref [W]'] = (df['P_el_c_ref [W]'].values.tolist())
-        parameters['p1_Pdc [1/°C]'] = (df['p1_Pdc [1/°C]'].values.tolist())
-        parameters['p2_Pdc [1/°C]'] = (df['p2_Pdc [1/°C]'].values.tolist())
-        parameters['p3_Pdc [-]'] = (df['p3_Pdc [-]'].values.tolist())
-        parameters['p4_Pdc [1/°C]'] = (df['p4_Pdc [1/°C]'].values.tolist())
-        parameters['p1_P_el_c [1/°C]'] = (df['p1_P_el_c [1/°C]'].values.tolist())
-        parameters['p2_P_el_c [1/°C]'] = (df['p2_P_el_c [1/°C]'].values.tolist())
-        parameters['p3_P_el_c [-]'] = (df['p3_P_el_c [-]'].values.tolist())
-        parameters['p4_P_el_c [1/°C]'] = (df['p4_P_el_c [1/°C]'].values.tolist())
-        parameters['p1_EER [-]'] = (df['p1_EER [-]'].values.tolist())
-        parameters['p2_EER [-]'] = (df['p2_EER [-]'].values.tolist())
-        parameters['p3_EER [-]'] = (df['p3_EER [-]'].values.tolist())
-        parameters['p4_EER [-]'] = (df['p4_EER [-]'].values.tolist())
-    except:
-        pass
-
-    if model == 'Generic':
-        parameters = parameters.iloc[group_id - 1:group_id]
-        
-        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th)
-        parameters.loc[:, 'P_th_h_ref [W]'] = p_th_ref
+    df = df.loc[df['Titel'] == model]
+    if model.startswith('Generic'):
+        df = df.loc[df['Group']==group_id]
+        p_th_ref = fit_p_th_ref(t_in, t_out, group_id, p_th, model)
+        df.loc[:, 'P_th_h_ref [W]'] = p_th_ref
         t_in_hp = [-7,0,10] # air/water, brine/water, water/water
         t_out_fix = 52
         t_amb_fix = -7
-        p1_cop = parameters['p1_COP [-]'].array[0]
-        p2_cop = parameters['p2_COP [-]'].array[0]
-        p3_cop = parameters['p3_COP [-]'].array[0]
-        p4_cop = parameters['p4_COP [-]'].array[0]
+        p1_cop = df['p1_COP [-]'].array[0]
+        p2_cop = df['p2_COP [-]'].array[0]
+        p3_cop = df['p3_COP [-]'].array[0]
+        p4_cop = df['p4_COP [-]'].array[0]
         if (p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb_fix)<=1.0:
             raise ValueError('COP too low! Increase t_in or decrease t_out.')
         if group_id == 1 or group_id == 4:
@@ -128,21 +84,21 @@ def get_parameters(model: str, group_id: int = 0,
             t_in_fix = t_in_hp[2]    
         cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
         p_el_ref = p_th_ref / cop_ref
-        parameters.loc[:, 'P_el_h_ref [W]'] = p_el_ref
-        parameters.loc[:, 'COP_ref'] = cop_ref
+        df.loc[:, 'P_el_h_ref [W]'] = p_el_ref
+        df.loc[:, 'COP_ref'] = cop_ref
         if group_id==1:
             try:
-                p1_eer = parameters['p1_EER [-]'].array[0]
-                p2_eer = parameters['p2_EER [-]'].array[0]
-                p3_eer = parameters['p3_EER [-]'].array[0]
-                p4_eer = parameters['p4_EER [-]'].array[0]
+                p1_eer = df['p1_EER [-]'].array[0]
+                p2_eer = df['p2_EER [-]'].array[0]
+                p3_eer = df['p3_EER [-]'].array[0]
+                p4_eer = df['p4_EER [-]'].array[0]
                 eer_ref = p1_eer * 35 + p2_eer * 7 + p3_eer + p4_eer * 35
-                parameters.loc[:,'P_th_c_ref [W]'] = p_el_ref * 0.6852 * eer_ref
-                parameters['P_el_c_ref [W]'] = p_el_ref * 0.6852 #average value from real Heatpumps (P_el35/7 to P_el-7/52) 
-                parameters.loc[:, 'EER_ref'] = eer_ref        
+                df.loc[:,'P_th_c_ref [W]'] = p_el_ref * 0.6852 * eer_ref
+                df['P_el_c_ref [W]'] = p_el_ref * 0.6852 #average value from real Heatpumps (P_el35/7 to P_el-7/52) 
+                df.loc[:, 'EER_ref'] = eer_ref        
             except:
                 pass
-    return parameters
+    return df
 
 
 def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataFrame:
@@ -164,37 +120,18 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
         Data frame containing the model parameters.
     """
     df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
-    df = df.loc[df['Model'] == model]
-    parameters = pd.DataFrame()
-
-    parameters['Model'] = (df['Model'].values.tolist())
-    parameters['P_th_h_ref [W]'] = (df['P_th_h_ref [W]'].values.tolist())
-    parameters['P_el_h_ref [W]'] = (df['P_el_h_ref [W]'].values.tolist())
-    parameters['COP_ref'] = (df['COP_ref'].values.tolist())
-    parameters['Group'] = (df['Group'].values.tolist())
-    parameters['p1_P_th [1/°C]'] = (df['p1_P_th [1/°C]'].values.tolist())
-    parameters['p2_P_th [1/°C]'] = (df['p2_P_th [1/°C]'].values.tolist())
-    parameters['p3_P_th [-]'] = (df['p3_P_th [-]'].values.tolist())
-    parameters['p4_P_th [1/°C]'] = (df['p4_P_th [1/°C]'].values.tolist())
-    parameters['p1_P_el_h [1/°C]'] = (df['p1_P_el_h [1/°C]'].values.tolist())
-    parameters['p2_P_el_h [1/°C]'] = (df['p2_P_el_h [1/°C]'].values.tolist())
-    parameters['p3_P_el_h [-]'] = (df['p3_P_el_h [-]'].values.tolist())
-    parameters['p4_P_el_h [1/°C]'] = (df['p4_P_el_h [1/°C]'].values.tolist())
-    parameters['p1_COP [-]'] = (df['p1_COP [-]'].values.tolist())
-    parameters['p2_COP [-]'] = (df['p2_COP [-]'].values.tolist())
-    parameters['p3_COP [-]'] = (df['p3_COP [-]'].values.tolist())
-    parameters['p4_COP [-]'] = (df['p4_COP [-]'].values.tolist())
+    df = df.loc[df['Titel'] == model]
     
-    if model == 'Generic':
-        parameters = parameters.iloc[group_id - 1:group_id]
-        parameters.loc[:, 'P_th_h_ref [W]'] = p_th
+    if model.startswith('Generic'):
+        df = df.loc[df['Group']==group_id]
+        df.loc[:, 'P_th_h_ref [W]'] = p_th
         t_in_hp = [-7,0,10] # air/water, brine/water, water/water
         t_out_fix = 52
         t_amb_fix = -7
-        p1_cop = parameters['p1_COP [-]'].array[0]
-        p2_cop = parameters['p2_COP [-]'].array[0]
-        p3_cop = parameters['p3_COP [-]'].array[0]
-        p4_cop = parameters['p4_COP [-]'].array[0]
+        p1_cop = df['p1_COP [-]'].array[0]
+        p2_cop = df['p2_COP [-]'].array[0]
+        p3_cop = df['p3_COP [-]'].array[0]
+        p4_cop = df['p4_COP [-]'].array[0]
         if group_id == 1 or group_id == 4:
             t_in_fix = t_in_hp[0]
         if group_id == 2 or group_id == 5:
@@ -203,12 +140,12 @@ def get_parameters_fit(model: str, group_id: int = 0, p_th: int = 0) -> pd.DataF
             t_in_fix = t_in_hp[2]  
         cop_ref = p1_cop * t_in_fix + p2_cop * t_out_fix + p3_cop + p4_cop * t_amb_fix
         p_el_ref = p_th / cop_ref
-        parameters.loc[:, 'P_el_h_ref [W]'] = p_el_ref
-        parameters.loc[:, 'COP_ref'] = cop_ref
-    return parameters
+        df.loc[:, 'P_el_h_ref [W]'] = p_el_ref
+        df.loc[:, 'COP_ref'] = cop_ref
+    return df
 
 
-def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> Any:
+def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int, model: str) -> Any:
     """
     Determine the thermal output power in [W] at reference conditions (T_in = [-7, 0, 10] , 
     T_out=52, T_amb=-7) for a given set point for a generic heat pump, using a least-square method.
@@ -223,6 +160,8 @@ def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> A
         Group ID for a parameter set which represents an average heat pump of its group.
     p_th_set_point : numeric
         Thermal output power. [W]
+    model : str
+        define wich generic heatpump [one of 'Generic_top', 'Generic_average' or 'Generic_bottom'].
 
     Returns
     -------
@@ -230,12 +169,12 @@ def fit_p_th_ref(t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> A
         Thermal output power. [W]
     """
     P_0 = [1000]  # starting values
-    a = (t_in, t_out, group_id, p_th_set_point)
+    a = (t_in, t_out, group_id, p_th_set_point, model)
     p_th, _ = scipy.optimize.leastsq(fit_func_p_th_ref, P_0, args=a)
     return p_th
 
 
-def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set_point: int) -> int:
+def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set_point: int, model: str) -> int:
     """
     Helper function to determine difference between given and calculated 
     thermal output power in [W].
@@ -252,6 +191,8 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
         Group ID for a parameter set which represents an average heat pump of its group.
     p_th_set_point : numeric
         Thermal output power. [W]
+    model : str
+        define wich generic heatpump [one of 'Generic_top', 'Generic_average' or 'Generic_bottom'].
 
     Returns
     -------
@@ -262,7 +203,7 @@ def fit_func_p_th_ref(p_th:  int, t_in: int, t_out: int, group_id: int, p_th_set
         t_amb = t_in
     else:
         t_amb = -7
-    parameters = get_parameters_fit(model='Generic', group_id=group_id, p_th=p_th)
+    parameters = get_parameters_fit(model = model, group_id = group_id, p_th = p_th)
     df = simulate(t_in, t_out - 5, parameters, t_amb)
     p_th_calc=df.P_th.values[0]
     p_th_diff = p_th_calc - p_th_set_point
@@ -473,20 +414,6 @@ def simulate(t_in_primary: Union[float,np.ndarray], t_in_secondary: Union[float,
     result['m_dot']= [m_dot]
     return result
 
-def same_built_type(modelname: string) -> list:
-    """
-    Returns all models which have the same parameters. But different names.
-
-    Parameters
-    ----------
-    modelname : the modelname which is in the hplib_database.csv
-
-    Returns
-    ----------
-    same_built : list of all models with same fitting parameters
-    """
-    same_built=pd.read_pickle(cwd()+r'/same_built_type.pkl')[modelname]
-    return (same_built)
 
 def cwd():
     """
