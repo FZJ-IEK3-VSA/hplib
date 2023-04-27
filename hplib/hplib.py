@@ -23,19 +23,6 @@ def load_database() -> pd.DataFrame:
     return df
 
 
-def load_all_heat_pumps() -> pd.DataFrame:
-    """
-    Loads data from all heat pumps for heating.
-
-    Returns
-    -------
-    df : pd.DataFrame
-        Content of the database
-    """
-    df = pd.read_csv(cwd()+r'/hplib_database_all.csv')
-    return df
-
-
 def get_parameters(model: str, group_id: int = 0,
                    t_in: int = 0, t_out: int = 0, p_th: int = 0) -> pd.DataFrame:
     """
@@ -708,46 +695,3 @@ class HeatingSystem:
         t_dist = [t_hf, t_hr]
         
         return t_dist
-
-class Same_Built:
-    def __init__(self):
-        """
-        Init function to load Database.
-
-        Parameters:
-        ----------
-        """
-        self.all_hp=load_all_heat_pumps()
-        self.df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
-        self.same=pd.read_pickle(cwd()+r'/same_built_type.pkl')
-
-    def all_to_database(self, modelname: string) -> str:
-        """
-        If the heatpump is in hplib/hplib_database_all.csv but not in hplib/hplib_database.csv use this function to find the heatpump with equivalent fitting parameters.
-
-        Parameters
-        ----------
-        modelname : the modelname which is in the hplib_database_all.csv
-
-        Returns
-        ----------
-        same_built : modelname of the model in hplib_database.csv
-        """
-        model=self.df.loc[self.df['p3_P_el_h [-]']==(self.all_hp.loc[self.all_hp['Model']==modelname,'p3_P_el_h [-]'][self.all_hp.loc[self.all_hp['Model']==modelname].index[0]]),'Model'].values[0]
-        return model
-
-    def database_to_all(self, modelname: string) -> list:
-        """
-        If the heatpump is in hplib/hplib_database.csv use this function to find the heatpumps with equivalent fitting parameters.
-        Returns all models which have the same parameters. But different names.
-
-        Parameters
-        ----------
-        modelname : the modelname which is in the hplib_database.csv
-
-        Returns
-        ----------
-        same_built : list of all models with same fitting parameters
-        """
-        same_built=self.same[modelname]
-        return (same_built)

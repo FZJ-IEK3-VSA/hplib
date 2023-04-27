@@ -18,7 +18,7 @@ For the simulation, it is possible to calculate outputs of a **specific manufact
 
 ## Documentation
 
-If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](http://htmlpreview.github.io/?https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.html) or [Jupyter-Notebook](https://github.com/RE-Lab-Projects/hplib/blob/main/docs/documentation.ipynb). There you also find a **simulation examples** and a **validation**.
+If you're interested in how the database and parameters were calclulated, have a look into the Documentation [HTML](http://htmlpreview.github.io/?https://github.com/FZJ-IEK3-VSA/hplib/blob/main/notebooks/documentation.html) or [Jupyter-Notebook](https://github.com/FZJ-IEK3-VSA/hplib/blob/main/notebooks/documentation.ipynb). There you also find a **simulation examples** and a **validation**.
 
 
 
