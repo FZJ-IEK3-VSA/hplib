@@ -779,3 +779,229 @@ def add_generic():
             para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
             df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
     df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+
+
+def reduce_to_unique():
+    # Many heat pump models have several entries 
+    # because of different controller or storage configurations. 
+    # Reduce to unique heat pump models.
+    df = pd.read_csv('../output/hplib_database_heating.csv', delimiter=',')
+    df_cool=pd.read_csv('../output/database_cooling.csv')
+    cooling_Models=df_cool['Model'].unique()
+    Models = []
+    built_type={}
+    unique_values = pd.unique(df['p3_COP [-]']).tolist()
+    for values in unique_values:
+        modelnames = df.loc[df['p3_COP [-]'] == values, ['Model']]
+        equal_Models=[]
+        for model in (modelnames.Model.values):
+            equal_Models.append(model)
+            for cooling_model in cooling_Models:
+                if model==cooling_model:
+                    modelnames.Model.values[0]=model    
+        Models.append(modelnames.Model.values[0])
+        built_type[modelnames.Model.values[0]]=equal_Models
+    new_df = pd.DataFrame()
+    new_df1 = pd.DataFrame()
+    for model in Models:
+        new_df1 = df.loc[df['Model'] == model]
+        new_df = pd.concat([new_df, new_df1])
+    # create a binary pickle file 
+    f = open("same_built_type.pkl","wb")
+    # write the python object (dict) to pickle file
+    pickle.dump(built_type,f)
+    # close file
+    f.close()
+    new_df.sort_values(by=['Model'], inplace=True)
+    new_df.sort_values(by=['Manufacturer'], inplace=True,key=lambda col: col.str.lower())
+    new_df.to_csv('../output/hplib_database_heating.csv', encoding='utf-8', index=False)
+    new_df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+
+
+def reduce_cooling_data():
+    df_cool=pd.read_csv('../output/database_cooling.csv')
+    df_heat=pd.read_csv('../output/hplib_database_heating.csv')
+    df = df_cool.merge(df_heat, on='Model', how='left')#merge with the ones from heating to get Group Number
+    df=df.iloc[:,:16]
+    df['Pdc [W]']=df['Pdc [kW]']*1000#get W
+    df.drop(columns=['Pdc [kW]','Date_y','Type_y','Manufacturer_y','Subtype','Pdesignc','Refrigerant_x','Mass of Refrigerant [kg]_x','Type_x','Date_x'], inplace=True)
+    df = df.rename(columns={'Manufacturer_x': 'Manufacturer','T_out [°C]_x':'T_out [°C]'}) 
+    df=df.loc[df['Group']==1]
+    df['P_el [W]']=df['Pdc [W]']/df['EER']#add P_el
+    df.to_csv('../output/database_cooling_reduced.csv',encoding='utf-8', index=False)
+
+
+def normalize_and_add_cooling_data():
+    df = pd.read_csv(r'../output/database_cooling_reduced.csv')
+    Models = df['Model'].values.tolist()
+    Models = list(dict.fromkeys(Models))
+    new_df = pd.DataFrame()
+    for model in Models:   
+        data_key = pd.read_csv(r'../output/database_cooling_reduced.csv')
+        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
+        group = data_key.Group.array[0]  # get Group of model
+        if len(data_key)==4:  
+            data_key1 = data_key.loc[data_key['Model'] == model]
+            data_key1['T_out [°C]'] = data_key1['T_out [°C]'] + 11#the following values are based on 3 heatpumps, which have those values in the keymark
+            data_key1.loc[data_key1['T_outside [°C]']==35,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==35,'P_el [W]'] * 0.85
+            data_key1.loc[data_key1['T_outside [°C]']==30,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==30,'P_el [W]'] * 0.82
+            data_key1.loc[data_key1['T_outside [°C]']==25,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==25,'P_el [W]'] * 0.77
+            data_key1.loc[data_key1['T_outside [°C]']==20,'P_el [W]']=data_key1.loc[data_key1['T_outside [°C]']==20,'P_el [W]'] * 0.63
+            data_key1.loc[data_key1['T_outside [°C]']==35,'EER']=data_key1.loc[data_key1['T_outside [°C]']==35,'EER'] * 1.21
+            data_key1.loc[data_key1['T_outside [°C]']==30,'EER']=data_key1.loc[data_key1['T_outside [°C]']==30,'EER'] * 1.21
+            data_key1.loc[data_key1['T_outside [°C]']==25,'EER']=data_key1.loc[data_key1['T_outside [°C]']==25,'EER'] * 1.20
+            data_key1.loc[data_key1['T_outside [°C]']==20,'EER']=data_key1.loc[data_key1['T_outside [°C]']==20,'EER'] * 0.95
+            data_key1['Pdc [W]']=data_key1['P_el [W]']*data_key1['EER']
+            data_key = pd.concat([data_key, data_key1])
+        df_ref_pdc=data_key.loc[(data_key['T_outside [°C]']==35) & (data_key['T_out [°C]']==7),'Pdc [W]'].values[0]
+        data_key['Pdc_n']=data_key['Pdc [W]']/df_ref_pdc
+        df_ref_p_el=data_key.loc[(data_key['T_outside [°C]']==35) & (data_key['T_out [°C]']==7),'P_el [W]'].values[0]
+        data_key['P_el_n']=data_key['P_el [W]']/df_ref_p_el
+        new_df = pd.concat([new_df, data_key])  # merge new Dataframe with old one
+    new_df.to_csv('../output/database_cooling_reduced_normalized.csv',encoding='utf-8', index=False)
+
+
+def calculate_cooling_parameters():
+    # Calculate function parameters from normalized values
+    data_key = pd.read_csv('../output/database_cooling_reduced_normalized.csv')
+    Models = data_key['Model'].values.tolist()
+    Models = list(dict.fromkeys(Models))  # get models
+
+    Group = []
+    Pel_ref = []
+    Pdc_ref = []
+    p1_Pdc = []
+    p2_Pdc = []
+    p3_Pdc = []
+    p4_Pdc = []
+    p1_P_el = []
+    p2_P_el = []
+    p3_P_el = []
+    p4_P_el = []
+    p1_EER = []
+    p2_EER = []
+    p3_EER = []
+    p4_EER = []
+
+    for model in Models:
+        data_key = pd.read_csv('../output/database_cooling_reduced_normalized.csv')
+        data_key = data_key.rename(
+            columns={'P_el [W]': 'P_el', 'Pdc [W]': 'Pdc', 'T_outside [°C]': 'T_in', 'T_out [°C]': 'T_out'})
+        data_key = data_key.loc[data_key['Model'] == model]  # get data of model
+        group = data_key.Group.array[0]  # get Group of model
+        Pel_REF = data_key.loc[data_key['P_el_n'] == 1, ['P_el']].values.tolist()[0][0]
+        Pdc_REF = data_key.loc[data_key['Pdc_n'] == 1, ['Pdc']].values.tolist()[0][0]
+        data_key.fillna(0, inplace=True)
+        data_key['T_amb']=data_key['T_in']
+        data = data_key.loc[data_key['T_in'] > 24] #& (data_key['T_in'] != ))]
+        P_el_n_para_key = fit_simple(data['T_in'], data['T_out'], data['T_amb'], data['P_el_n'])
+        #P_el_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['P_el_n'])
+        Pdc_n_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['Pdc_n'])
+        EER_para_key = fit_simple(data_key['T_in'], data_key['T_out'], data_key['T_amb'], data_key['EER'])
+
+        # write Parameters in List
+        p1_Pdc.append(Pdc_n_para_key[0])
+        p2_Pdc.append(Pdc_n_para_key[1])
+        p3_Pdc.append(Pdc_n_para_key[2])
+        p4_Pdc.append(Pdc_n_para_key[3])
+        p1_P_el.append(P_el_n_para_key[0])
+        p2_P_el.append(P_el_n_para_key[1])
+        p3_P_el.append(P_el_n_para_key[2])
+        p4_P_el.append(P_el_n_para_key[3])
+        p1_EER.append(EER_para_key[0])
+        p2_EER.append(EER_para_key[1])
+        p3_EER.append(EER_para_key[2])
+        p4_EER.append(EER_para_key[3])
+        Group.append(group)
+        Pel_ref.append(Pel_REF)
+        Pdc_ref.append(Pdc_REF)
+
+    # write List  in Dataframe
+
+    paradf = pd.DataFrame()
+    paradf['Model'] = Models
+    paradf['p1_Pdc [1/°C]'] = p1_Pdc
+    paradf['p2_Pdc [1/°C]'] = p2_Pdc
+    paradf['p3_Pdc [-]'] = p3_Pdc
+    paradf['p4_Pdc [1/°C]'] = p4_Pdc
+    paradf['p1_P_el_c [1/°C]'] = p1_P_el
+    paradf['p2_P_el_c [1/°C]'] = p2_P_el
+    paradf['p3_P_el_c [-]'] = p3_P_el
+    paradf['p4_P_el_c [1/°C]'] = p4_P_el
+    paradf['p1_EER [-]'] = p1_EER
+    paradf['p2_EER [-]'] = p2_EER
+    paradf['p3_EER [-]'] = p3_EER
+    paradf['p4_EER [-]'] = p4_EER
+    paradf['P_el_cooling_ref'] = Pel_ref
+    paradf['Pdc_ref'] = Pdc_ref
+    hplib=pd.read_csv('../output/hplib_database_heating.csv')
+    os.remove('../output/hplib_database_heating.csv')        
+    para = hplib.merge(paradf, how='left', on='Model')
+    para.rename(columns={'P_el_cooling_ref': 'P_el_c_ref [W]', 'Pdc_ref': 'P_th_c_ref [W]'}, inplace=True)
+    para=para[['Manufacturer', 'Model', 'Date', 'Type', 'Subtype', 'Group',
+       'Refrigerant', 'Mass of Refrigerant [kg]', 'SPL indoor [dBA]',
+       'SPL outdoor [dBA]', 'PSB [W]', 'Climate', 'P_el_h_ref [W]',
+       'P_th_h_ref [W]', 'COP_ref', 'P_el_c_ref [W]', 'P_th_c_ref [W]',
+       'p1_P_th [1/°C]', 'p2_P_th [1/°C]', 'p3_P_th [-]', 'p4_P_th [1/°C]',
+       'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]',
+       'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'MAPE_P_el',
+       'MAPE_COP', 'MAPE_P_th', 'p1_Pdc [1/°C]', 'p2_Pdc [1/°C]', 'p3_Pdc [-]',
+       'p4_Pdc [1/°C]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]',
+       'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]',
+       'p4_EER [-]']]
+    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+
+
+def validation_relative_error_cooling():
+    # Simulate every set point for every heat pump and save csv file
+    df=pd.read_csv('../output/database_cooling_reduced.csv')
+    i=0
+    prev_model='first Model'
+    while i<len(df): 
+        Model=df.iloc[i,1]
+        T_amb=df.iloc[i,2]
+        T_in=df.iloc[i,2]
+        T_out=df.iloc[i,3]
+        P_th=df.iloc[i,6]
+        P_el=df.iloc[i,7]
+        COP=df.iloc[i,4]
+        try:
+            if prev_model!=Model:
+                para=hpl.get_parameters(Model)
+            results=hpl.simulate(T_in,T_out+5,para,T_amb,2)
+            df.loc[i,'Pdc_sim']=-results.P_th[0]
+            df.loc[i,'P_el_sim']=results.P_el[0]
+            df.loc[i,'EER_sim']=results.EER[0]
+            prev_model=Model
+            i=i+1
+        except:
+            i=i+1
+            pass
+        
+    # Relative error (RE) for every set point
+    df['RE_Pdc']=(df['Pdc_sim']/df['Pdc [W]']-1)*100
+    df['RE_P_el']=(df['P_el_sim']/df['P_el [W]']-1)*100
+    df['RE_EER']=(df['EER_sim']/df['EER']-1)*100
+    df.to_csv('../output/database_cooling_reduced_normalized_validation.csv', encoding='utf-8', index=False)
+
+
+def validation_mape_cooling():
+    #calculate the mean absolute percentage error for every heat pump and save in hplib_database.csv
+    df=pd.read_csv('../output/database_cooling_reduced_normalized_validation.csv')
+    para=pd.read_csv('hplib_database.csv', delimiter=',')
+    para=para.loc[para['Model']!='Generic']
+    Models = para['Model'].values.tolist()
+    Models = list(dict.fromkeys(Models))
+    mape_eer=[]
+    mape_pel=[]
+    mape_pdc=[]
+    for model in Models:
+        df_model=df.loc[df['Model']==model]
+        mape_pdc.append((((df_model['Pdc [W]']-df_model['Pdc_sim']).abs())/df_model['Pdc [W]']*100).mean())
+        mape_pel.append((((df_model['P_el [W]']-df_model['P_el_sim']).abs())/df_model['P_el [W]']*100).mean())
+        mape_eer.append((((df_model['EER']-df_model['EER_sim']).abs())/df_model['EER']*100).mean())
+    para['MAPE_P_el_cooling']=mape_pel
+    para['MAPE_EER']=mape_eer
+    para['MAPE_Pdc']=mape_pdc
+    para.to_csv('hplib_database.csv', encoding='utf-8', index=False)
+    
