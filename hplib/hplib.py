@@ -49,6 +49,8 @@ def get_parameters(model: str, group_id: int = 0,
         Data frame containing the model parameters.
     """
     df = pd.read_csv(cwd()+r'/hplib_database.csv', delimiter=',')
+    if model=='Generic':
+        model='Generic_average'
     df = df.loc[df['Titel'] == model]
     if model.startswith('Generic'):
         df = df.loc[df['Group']==group_id]
