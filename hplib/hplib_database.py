@@ -9,6 +9,11 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import shutil
 
+
+# get path to the current file
+THIS_FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
+
+
 # Functions
 def import_keymark_data(i=0):
     #create folder to save csv files
@@ -26,7 +31,7 @@ def import_keymark_data(i=0):
             if model.text!=manufacturer:
                 filename=manufacturer+model.text.replace('/','_')
                 filename=filename.replace(' ','_')
-                if os.path.isfile('../input/csv/'+filename+'.csv')==0:
+                if os.path.isfile(THIS_FOLDER_PATH + '/../input/csv/'+filename+'.csv')==0:
                     try:
                         model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
                     except:
@@ -51,9 +56,9 @@ def import_keymark_data(i=0):
                                 if link.text=='Download':
                                     #write to csv
                                     csv_content = requests.get('https://www.heatpumpkeymark.com/'+link.get('href')).content
-                                    with open('../input/'+foldername+filename+'.csv', 'wb') as file:
+                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'wb') as file:
                                         file.write(csv_content)
-                                    with open('../input/'+foldername+filename+'.csv', 'a') as f:
+                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'a') as f:
                                         f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
                                         f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
                                         f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
@@ -69,7 +74,7 @@ def combine_raw_csv(foldername):
     lists=[manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures]
     values=['Manufacturer','Modelname','title','Date','application','Refrigerant','Mass of Refrigerant','Energy','EN12102_1_001','EN12102_1_002','EN14825_001','EN14825_002','EN14825_003','EN14825_004','EN14825_005','EN14825_008','EN14825_009','EN14825_010','EN14825_011','EN14825_012','EN14825_013','EN14825_014','EN14825_015','EN14825_016','EN14825_017','EN14825_018','EN14825_019','EN14825_020','EN14825_022','EN14825_023','EN14825_024','EN14825_025','EN14825_026','EN14825_027','EN14825_028','EN14825_030','EN14825_031','EN14825_032','EN14825_033','EN14825_034','EN14825_035','EN14825_036','EN14825_037','EN14825_038','EN14825_039']
     general_info=['Manufacturer','Modelname','Date','Refrigerant','Mass of Refrigerant', 'Energy']
-    with os.scandir('../input/'+ foldername) as dir1:
+    with os.scandir(THIS_FOLDER_PATH + '/../input/'+ foldername) as dir1:
         for file in dir1:
             j=0 #j: start index; i: end index
             df=pd.read_csv(file)
