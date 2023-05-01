@@ -10,34 +10,36 @@ This repository is based on all csv files that were downloaded for every manufac
 
 The downloaded .csv files contain the following columns:
 
-* modelID - In case multiple heatpump models are downloaded, this column contains the model ID
-* varName - Name/ID of the variable in the keymark database
-* value - Value of the variable
-* temperature - Integer indicating the temperature of the supplied medium (4,5 heating mode - 6,7 cooling mode)
-  |  | Sink temperature |
+* **modelID** - In case multiple heatpump models are downloaded, this column contains the model ID
+* **varName** - Name/ID of the variable in the keymark database
+* **value** - Value of the variable
+* **temperature** - Integer indicating the temperature of the supplied medium (4,5 heating mode - 6,7 cooling mode)
+
+| Temperature | Sink temperature |
 | --- | ---------------- |
 | int | °C               |
 | 4   | 35               |
 | 5   | 55               |
 | 6   | 7 or 12          |
 | 7   | 18 or 23         |
-* climate - Integer indicating the climate zone (1-4)
-  |  | Climate zone |
+* **climate** - Integer indicating the climate zone (1-4)
+
+| climate | Climate zone |
 | --- | ------------ |
 | int |              |
 | 1   | warmer       |
 | 2   | ?            |
 | 3   | average      |
 | 4   | ?            |
-* indoorUnittype - TODO	
-* info - TODO
-* hpType - TODO
+* **indoorUnittype** - TODO	
+* **info** - TODO
+* **hpType** - TODO
 
 
 
-Following mapping dictionary is considered for the values inside values:
+Following mapping dictionary is considered for the **varName**:
 
-| ** Keymark varName/ID**   | ** hplib varName/ID **             | ** Unit **  | ** Description **                                                                                 | ** Comment **                                                                                             |
+| Keymark varName  | hplib varName or ID             | Unit  | Description                                                                                 | Comment                                                                                             |
 | ------------ | -------------------- | ----- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Manufacturer | manufacturers        | \-    |                                                                                             |                                                                                                     |
 | Modelname    | models               | \-    |                                                                                             |                                                                                                     |
@@ -47,8 +49,8 @@ Following mapping dictionary is considered for the values inside values:
 | Refrigerant  | refrigerants         |       | Refrigerant                                                                                 | R134a, R290, R32, R407c, R410a, other                                                               |
 | Mass of Refr | mass_of_refrigerants | kg    | Mass of Refrigerant                                                                         |                                                                                                     |
 | Energy       | supply_energy        |       |                                                                                             |                                                                                                     |
-| EN12102_1_00 | spl_indoor           | dBA   | Sound emissions indoor at low power                                                         |                                                                                                     |
-| EN12102_1_00 | spl_outdoor          | dbA   | Sound emissions outdoor at low power                                                        |                                                                                                     |
+| EN12102_1_001 | spl_indoor           | dBA   | Sound emissions indoor at low power                                                         |                                                                                                     |
+| EN12102_1_002 | spl_outdoor          | dbA   | Sound emissions outdoor at low power                                                        |                                                                                                     |
 | EN14825_001  | eta                  | \-    | Efficiency?                                                                                 |                                                                                                     |
 | EN14825_002  | p_rated              | kW    |                                                                                             |                                                                                                     |
 | EN14825_003  | scop                 | \-    | Seasonal Coefficient of Performance                                                         |                                                                                                     |
@@ -74,7 +76,7 @@ Following mapping dictionary is considered for the values inside values:
 | EN14825_026  | pcks                 | kW    | Power supply with heating of ventilation                                                    |                                                                                                     |
 | EN14825_027  | supp_energy_types    | \-    | Supplementary Heater: Type of energy input                                                  |                                                                                                     |
 | EN14825_028  | p_sups               | kW    | Rated power of additional heater                                                            |                                                                                                     |
-| EN14825_029  | Q_he                 | kWh/a | Annual energy (power ?) consumption for heating                                             |                                                                                                     |
+| EN14825_029  | E_heating            | kWh/a | Annual energy (power ?) consumption for heating                                             |                                                                                                     |
 | EN14825_030  | p_design_cools       | kW    | Rated cooling load                                                                          |                                                                                                     |
 | EN14825_031  | seers                | \-    | Seasonal Coefficient of Performance for cooling                                             |                                                                                                     |
 | EN14825_032  | pdcs_35              | kW    | Cooling supply at 35°C                                                                      |                                                                                                     |
@@ -85,7 +87,7 @@ Following mapping dictionary is considered for the values inside values:
 | EN14825_037  | eer_25               | \-    | Energy efficiency rating (EER) at 25 °C - cooling output in comparison to electricity input |                                                                                                     |
 | EN14825_038  | pdcs_20              | kW    | Cooling supply at 20 °C                                                                     |                                                                                                     |
 | EN14825_039  | eer_20               | \-    | Energy efficiency rating (EER) at 20 °C - cooling output in comparison to electricity input |                                                                                                     |
-| EN14825_041  |                      | kWh/a | Annual energy (power ?) consumption for cooling                                             |                                                                                                     |
+| EN14825_041  | E_cooling            | kWh/a | Annual energy (power ?) consumption for cooling                                             |                                                                                                     |
 | EN14825_047  |                      |       |                                                                                             |                                                                                                     |
 | EN14825_048  |                      |       |                                                                                             |                                                                                                     |
 | EN14825_049  |                      |       | Cdh Tj = +12 °C                                                                             |                                                                                                     |

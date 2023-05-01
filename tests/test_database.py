@@ -4,12 +4,33 @@ import os
 import hplib.hplib_database as db
 import hplib.hplib as hpl
 
+# @pytest.mark.skip(reason="Takes too long to download")
 def test_import_keymark_data():
     """Tests if the heating relevant data can be retrieved
     from the csv files and saved in a single database/csv
     file."""
     
     db.import_keymark_data()
+
+
+def test_merge_to_database():
+    """Tests if the relevant data can be retrieved
+    from the csv files and saved in a single database/csv
+    file."""
+    
+    df_operation, df_meta = db.merge_raw_csv(foldername='csv')
+
+    # filter temperature 55°C (5) and climate average (3)
+    df = df_operation.loc[(slice(None), 5, 3), :]
+
+    assert len(df) > 1000
+    assert len(df) < 6000
+
+    assert df['scop'].astype(float).mean() > 3.1
+    assert df['scop'].astype(float).mean() > 3.5
+    
+
+
 
 
 def test_load_database():

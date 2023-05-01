@@ -13,83 +13,146 @@ import shutil
 # get path to the current file
 THIS_FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 
+# get path to the input folder
+INPUT_FOLDER_PATH = os.path.dirname(os.path.abspath(__file__)) + '/../input/' 
+
+# get path to the output folder
+OUTPUT_FOLDER_PATH = os.path.dirname(os.path.abspath(__file__)) + '/../output/'
 
 # Functions
-def import_keymark_data(i=0):
-    #create folder to save csv files
-    foldername='csv/'
+def import_keymark_data(
+        target_folder='csv',
+        manufacturer_url='https://www.heatpumpkeymark.com/?type=109126',
+        base_url='https://www.heatpumpkeymark.com/',
+        i=0
+    ):
+    """
+    Downloads the raw .csv keymark files from the keymark website.
+
+    Parameters
+    ----------
+    target_folder : str
+        Name of the folder where the raw csv files are stored.
+    manufacturer_url : str
+        URL where the manufacturers are listed on the keymark website.
+    base_url : str
+        Base URL of the keymark website.
+    i : int
+        Number of the manufacturer to start with.
+    """
+    already_downloaded = []
+    no_csv_file_available = []
+
+
     #open main page of EHPA
-    manufacturers_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/?type=109126').content, 'html.parser')
-    #look for all manufacturers
-    for manufacturer_info in manufacturers_info.find_all('td')[i:]:                                  
+    manufacturers_info = BeautifulSoup(requests.get(manufacturer_url).content, 'html.parser')
+    
+    #look for all manufacturers and progress from defined i
+    number_of_manufacturers=len(manufacturers_info.find_all('td'))
+
+    for manufacturer_info in manufacturers_info.find_all('td')[i:]:
         i+=1 
-        print('Progress: ',i, ' / ', len(manufacturers_info.find_all('td')),' In case of error: restart function with ', i-1, ' as input of function')       
+
+        # manufacturer name
         manufacturer=manufacturer_info.text
-        models_info= BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+manufacturer_info.a.get('href')).content, 'html.parser')
-        #look for models:
-        for model in models_info.find_all('td'):
-            if model.text!=manufacturer:
-                filename=manufacturer+model.text.replace('/','_')
-                filename=filename.replace(' ','_')
-                if os.path.isfile(THIS_FOLDER_PATH + '/../input/csv/'+filename+'.csv')==0:
-                    try:
-                        model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
-                    except:
-                        continue
-                    for info_col in model_info.find_all(class_='info-coll'):
-                        if (info_col.find(class_='info-label').span.text)==('Refrigerant'):
-                            ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
-                        if (info_col.find(class_='info-label').span.text)==('Mass of Refrigerant'):
-                            mass_of_ref = (info_col.find(class_='info-data').text.replace('\n',''))
-                        if (info_col.find(class_='info-label').span.text)==('Certification Date'):
-                            date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
-                        if (info_col.find(class_='info-label').span.text)==('Heat Pump Type'):
-                            type = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
-                        if (info_col.find(class_='info-label').span.text)==('Driving energy'):
-                            energy = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
-                    #choose correct export method (csv preffered) and get basic data TODO
-                    for export_method in model_info.find_all('a'):
-                        if export_method.text.startswith('Export'):
-                            soup3 = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+export_method.get('href')).content,'html.parser')
-                            #open Download link
-                            for link in soup3.find_all('a'):
-                                if link.text=='Download':
-                                    #write to csv
-                                    csv_content = requests.get('https://www.heatpumpkeymark.com/'+link.get('href')).content
-                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'wb') as file:
-                                        file.write(csv_content)
-                                    with open(THIS_FOLDER_PATH + '/../input/'+foldername+filename+'.csv', 'a') as f:
-                                        f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
-                                        f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
-                                        f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
-                                        f.write('"","Manufacturer","'+manufacturer+'","0","0","0","0"\r\n')
-                                        f.write('"","Modelname","'+model.text+'","0","0","0","0"\r\n')
-                                        f.write('"","Type","'+type+'","0","0","0","0"\r\n')
-                                        f.write('"","Energy","'+energy+'","0","0","0","0"\r\n')
+        # open manufacturer page
+        manufacturer_models= BeautifulSoup(requests.get(base_url + manufacturer_info.a.get('href')).content, 'html.parser')
+
+        print('Progress: ',i, ' / ', number_of_manufacturers,' In case of error: restart function with ', i-1, ' as input of function')       
+
+        # every model is one row in the table - tr and skip header
+        for model in manufacturer_models.find_all('tr')[1:]:
+            # get the first column
+            model_url = model.find_all('a')[0]
+
+            filename=manufacturer+model_url.text.replace('/','_')
+            filename=filename.replace(' ','_')
+
+            # download only non-existing files
+            if not os.path.isfile(
+                INPUT_FOLDER_PATH + target_folder 
+                + '/' + filename + '.csv'
+                ):
+                
+                # open model info page
+                model_info = BeautifulSoup(requests.get(base_url + model_url.get('href')).content, 'html.parser')
+
+                # retrieve supplementary values
+                for info_col in model_info.find_all(class_='info-coll'):
+                    if (info_col.find(class_='info-label').span.text)==('Refrigerant'):
+                        ref = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                    if (info_col.find(class_='info-label').span.text)==('Mass of Refrigerant'):
+                        mass_of_ref = (info_col.find(class_='info-data').text.replace('\n',''))
+                    if (info_col.find(class_='info-label').span.text)==('Certification Date'):
+                        date = (info_col.find(class_='info-data').text.replace(' ','').replace('\n','').replace('\r',''))
+                    if (info_col.find(class_='info-label').span.text)==('Heat Pump Type'):
+                        type = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+                    if (info_col.find(class_='info-label').span.text)==('Driving energy'):
+                        energy = (info_col.find(class_='info-data').text.replace('\n','')[13:-9])
+
+                # move to download page
+                download_page_url = model_info.find('a',string="Export model CSV")
+                if download_page_url:
+                    download_page = BeautifulSoup(requests.get(base_url+download_page_url.get('href')).content,'html.parser')
+                    csv_download_url = download_page.find('a',string="Download")
+                    csv_content = requests.get(base_url + csv_download_url.get('href')).content
+                    with open(INPUT_FOLDER_PATH +target_folder + '/' +filename+'.csv', 'wb') as file:
+                        file.write(csv_content)
+
+                    # add supplementary values to csv
+                    with open(INPUT_FOLDER_PATH +target_folder + '/' +filename+'.csv', 'a') as f:
+                        f.write('"","Refrigerant","'+str(ref)+'","0","0","0","0"\r\n')
+                        f.write('"","Mass of Refrigerant","'+str(mass_of_ref)+'","0","0","0","0"\r\n')
+                        f.write('"","Date","'+str(date)+'","0","0","0","0"\r\n')
+                        f.write('"","Manufacturer","'+manufacturer+'","0","0","0","0"\r\n')
+                        f.write('"","Modelname","'+model_url.text+'","0","0","0","0"\r\n')
+                        f.write('"","Type","'+type+'","0","0","0","0"\r\n')
+                        f.write('"","Energy","'+energy+'","0","0","0","0"\r\n')
+                else:
+                    no_csv_file_available.append(filename)
+
+            else:
+                already_downloaded.append(filename)
+
+    list_to_file(no_csv_file_available, INPUT_FOLDER_PATH +target_folder + '/__no_csv_file_available.txt')
+    list_to_file(already_downloaded, INPUT_FOLDER_PATH +target_folder + '/__already_downloaded.txt')
 
 
-def combine_raw_csv(foldername):
+
+def list_to_file(list, file_path):
+    """
+    Writes a list to a file.
+
+    Parameters
+    ----------
+    list : list
+        List to be written to file.
+    file_path : str
+        Path to the file.
+    """
+    with open(file_path, 'w') as f:
+        for line in list:
+            f.write(f"{line}\n")
+
+
+def combine_raw_csv(foldername, target_filename = "database.csv"):
     df_all=pd.DataFrame()
     manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures= ([] for i in range(46))
     lists=[manufacturers, models, titels, dates, types, refrigerants, mass_of_refrigerants, supply_energy, spl_indoors, spl_outdoors, eta, p_rated, scop, t_biv, tol, p_th_minus7, cop_minus7, p_th_2, cop_2, p_th_7, cop_7, p_th_12, cop_12, p_th_tbiv, cop_tbiv, p_th_tol, cop_tol, rated_airflows, wtols, poffs, ptos, psbs, pcks, supp_energy_types, p_sups, p_design_cools, seers, pdcs_35, eer_35, pdcs_30, eer_30, pdcs_25, eer_25, pdcs_20, eer_20, temperatures]
     values=['Manufacturer','Modelname','title','Date','application','Refrigerant','Mass of Refrigerant','Energy','EN12102_1_001','EN12102_1_002','EN14825_001','EN14825_002','EN14825_003','EN14825_004','EN14825_005','EN14825_008','EN14825_009','EN14825_010','EN14825_011','EN14825_012','EN14825_013','EN14825_014','EN14825_015','EN14825_016','EN14825_017','EN14825_018','EN14825_019','EN14825_020','EN14825_022','EN14825_023','EN14825_024','EN14825_025','EN14825_026','EN14825_027','EN14825_028','EN14825_030','EN14825_031','EN14825_032','EN14825_033','EN14825_034','EN14825_035','EN14825_036','EN14825_037','EN14825_038','EN14825_039']
     general_info=['Manufacturer','Modelname','Date','Refrigerant','Mass of Refrigerant', 'Energy']
     with os.scandir(THIS_FOLDER_PATH + '/../input/'+ foldername) as dir1:
+        # loop over every file in the folder
         for file in dir1:
             j=0 #j: start index; i: end index
+
             df=pd.read_csv(file)
-            try:
-                df.loc[df['varName']=='title']
-            except:
-                continue
-            try:
-                df.loc[df['varName']=='application','value']=df.loc[df['varName']=='Type','value'].values[0]
-            except:
-                print(file)
+
+            # loop over every model in the file - it always starts with a title
             for model in range(1,len(df.loc[df['varName']=='title'])+1):
                 try:
                     i=(df.loc[df['varName']=='title'].index[model])
-                except:
+                except KeyError:
                     i=len(df)
                 #df1 is dataframe of each model
                 df1=(df.iloc[j:i])
@@ -162,8 +225,165 @@ def combine_raw_csv(foldername):
     df_all['pdcs_20']=pdcs_20
     df_all['eer_20']=eer_20
     df_all['temperatures']=temperatures
-    df_all.to_csv(r'../output/database.csv', index=False)
+    df_all.to_csv(r'../output/' + target_filename, index=False)
 
+
+
+VARIABLE_MAPPING = {
+    "EN12102_1_001": "spl_indoor",
+    "EN12102_1_002": "spl_outdoor",
+    "EN14825_001": 	"eta",
+    "EN14825_002": 	"p_rated",
+    "EN14825_003": 	"scop",
+    "EN14825_004": 	"t_biv",
+    "EN14825_005": 	"tol",
+    "EN14825_008": 	"p_th_minus7",
+    "EN14825_009": 	"cop_minus7",
+    "EN14825_010": 	"p_th_2",
+    "EN14825_011": 	"cop_2",
+    "EN14825_012": 	"p_th_7",
+    "EN14825_013": 	"cop_7",
+    "EN14825_014": 	"p_th_12",
+    "EN14825_015": 	"cop_12",
+    "EN14825_016": 	"p_th_tbiv",
+    "EN14825_017": 	"cop_tbiv",
+    "EN14825_018": 	"p_th_tol",
+    "EN14825_019": 	"cop_tol",
+    "EN14825_020": 	"rated_airflows",
+    "EN14825_022": 	"wtols",
+    "EN14825_023": 	"poffs",
+    "EN14825_024": 	"ptos",
+    "EN14825_025": 	"psbs",
+    "EN14825_026": 	"pcks",
+    "EN14825_027": 	"supp_energy_types",
+    "EN14825_028": 	"p_sups",
+    "EN14825_029": 	"P_he",
+    "EN14825_030": 	"p_design_cools",
+    "EN14825_031": 	"seers",
+    "EN14825_032": 	"pdcs_35",
+    "EN14825_033": 	"eer_35",
+    "EN14825_034": 	"pdcs_30",
+    "EN14825_035": 	"eer_30",
+    "EN14825_036": 	"pdcs_25",
+    "EN14825_037": 	"eer_25",
+    "EN14825_038": 	"pdcs_20",
+    "EN14825_039": 	"eer_20",
+    "EN14825_041":  "E_cooling",
+}
+
+MANUALLY_ADDED_VARIABLES = [
+    "Date", "Manufacturer", "Modelname", "Type", "Energy",
+    "Refrigerant", "Mass of Refrigerant"
+]
+
+def merge_raw_csv(
+        foldername, 
+        filename_performance = "performance_data.csv",
+        filename_meta = "meta_data.csv"
+    ):
+    """
+    Merge all .csv files in a folder into two .csv files.
+    One for the performance data depending on the operation 
+    conditions and one for the meta data about the heatpump
+    model itself.
+
+    Parameters
+    ----------
+    foldername : str
+        Name of the folder in which the .csv files are located.
+    filename_performance : str
+        Name of the output file for the performance data.
+    filename_meta : str
+        Name of the output file for the meta data.
+    """
+
+    operation_data = {}
+    meta_data = {}
+
+    no_data = []
+    
+    with os.scandir(INPUT_FOLDER_PATH + foldername) as dir1:
+        # loop over every file in the folder
+        for file in dir1:
+            j=0 #j: start index; i: end index
+
+            if file.name.endswith(".csv"):
+                df = pd.read_csv(file)
+            
+                # skip empty .csv files 
+                if 'varName' not in df.columns:
+                    no_data.append(file.name)
+                else:
+                    # first, extract the general information
+                    df_raw = df[~df['varName'].isin(MANUALLY_ADDED_VARIABLES)]
+
+                    # manual values from web page
+                    general_info = df[df['varName'].isin(MANUALLY_ADDED_VARIABLES)].set_index('varName')['value'].to_dict()
+                    
+                    # inside a .csv can be multiple models
+                    for model_index in df_raw["modelID"].unique():
+                        
+                        # dataframe of each model
+                        # if the index is NaN, the model is not defined and
+                        # the csv containts a single model
+                        if not pd.isnull(model_index):
+                            model_data = df_raw[df_raw["modelID"] == model_index]
+                        else:
+                            model_data = df_raw[df_raw["modelID"].isnull()]
+
+                        # retrieve operation independent meta data
+                        csv_info = model_data[model_data['info'] == 1].set_index('varName')['value'].to_dict()
+
+                        # define an index for every model
+                        id = general_info['Manufacturer'] + ' ' + csv_info['title']
+
+                        # merge general info and operation independent meta data
+                        meta_data[id] = csv_info
+                        meta_data[id].update(general_info)
+
+                        # retrieve operation dependent data
+                        model_operation = model_data[model_data['info'] == 2]
+                        model_operation.drop(columns=['modelID', 'indoorUnittype',
+                                                    'hpType','info'],
+                                            inplace=True)
+
+                        # filter out the chosen values
+                        model_operation = model_operation[model_operation['varName'].isin(VARIABLE_MAPPING.keys())]
+
+                        # first remove duplicates
+                        model_operation = model_operation.drop_duplicates(['varName', 'temperature', 'climate'])
+
+                        # TODO identify where duplicates occured and why
+
+                        # set operation conditions as index
+                        model_operation.set_index(['varName','temperature', 'climate'], 
+                                                inplace=True)
+                        
+
+                        # set values as columns
+                        model_operation = model_operation['value'].unstack(level=0)
+
+                        # rename columns
+                        model_operation.rename(columns=VARIABLE_MAPPING, inplace=True)
+
+                        # and add to the operation data
+                        operation_data[id] = model_operation
+
+    # makes a dataframe from the dictionary
+    df_operation = pd.concat(operation_data, names=['id', 'temperature', 'climate'])
+
+    # and saves it to a .csv
+    df_operation.to_csv(OUTPUT_FOLDER_PATH + filename_performance)
+
+    # makes a dataframe from the dictionary
+    df_meta = pd.DataFrame.from_dict(meta_data, orient='index')
+
+    # and saves it to a .csv
+    df_meta.to_csv(OUTPUT_FOLDER_PATH + filename_meta)
+
+    list_to_file(no_data, INPUT_FOLDER_PATH + foldername + '/__empty_csv_files.txt')
+    
+    return df_operation, df_meta
 
 def reduce_heating_data():
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)

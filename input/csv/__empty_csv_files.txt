@@ -1,0 +1,5 @@
+_DAIKIN_Europe_N.V.ROTEX_HPSU_MONOBLOC_COMPACT_11KW_(500L).csv
+_Viessmann_Climate_Solutions_SEVitocal_2xx-S_R32_08_10kW_.csv
+_DAIKIN_Europe_N.V.DAIKIN_ALTHERMA_3_M_16kW.csv
+_Inventor_A.G._Electric_Appliances_S.A.Matrix_series_8_10_kW.csv
+_Bosch_Thermotechnik_GmbH_(Buderus)Buderus_Logatherm_WLW-6,8,10_SP_AR.csv
