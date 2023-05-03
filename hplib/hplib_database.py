@@ -55,6 +55,9 @@ def import_keymark_data(
 
         # manufacturer name
         manufacturer=manufacturer_info.text
+
+        # TODO read manufacturer origin country
+
         # open manufacturer page
         manufacturer_models= BeautifulSoup(requests.get(base_url + manufacturer_info.a.get('href')).content, 'html.parser')
 
@@ -279,7 +282,8 @@ MANUALLY_ADDED_VARIABLES = [
 def merge_raw_csv(
         foldername, 
         filename_performance = "performance_data.csv",
-        filename_meta = "meta_data.csv"
+        filename_meta = "meta_data.csv",
+        filetype = "csv"
     ):
     """
     Merge all .csv files in a folder into two .csv files.
@@ -295,6 +299,8 @@ def merge_raw_csv(
         Name of the output file for the performance data.
     filename_meta : str
         Name of the output file for the meta data.
+    filetype: str
+        Type of the output file. Either .csv or .json.
     """
 
     operation_data = {}
@@ -372,18 +378,66 @@ def merge_raw_csv(
     # makes a dataframe from the dictionary
     df_operation = pd.concat(operation_data, names=['id', 'temperature', 'climate'])
 
-    # and saves it to a .csv
-    df_operation.to_csv(OUTPUT_FOLDER_PATH + filename_performance)
-
     # makes a dataframe from the dictionary
     df_meta = pd.DataFrame.from_dict(meta_data, orient='index')
 
-    # and saves it to a .csv
-    df_meta.to_csv(OUTPUT_FOLDER_PATH + filename_meta)
+
+    if filetype == "json":
+        # and saves it to a .json
+        df_operation.T.to_json(OUTPUT_FOLDER_PATH + filename_performance)
+
+        # and saves it to a .json
+        df_meta.T.to_json(OUTPUT_FOLDER_PATH + filename_meta)
+    elif filetype == "csv":
+        # and saves it to a .csv
+        df_operation.to_csv(OUTPUT_FOLDER_PATH + filename_performance, sep=';')
+
+        # and saves it to a .csv
+        df_meta.to_csv(OUTPUT_FOLDER_PATH + filename_meta, sep=';')
+    else:
+        raise ValueError("filetype must be either csv or json")
 
     list_to_file(no_data, INPUT_FOLDER_PATH + foldername + '/__empty_csv_files.txt')
     
     return df_operation, df_meta
+
+def read_performance_data(filename):
+    """
+    Read the performance data from a .csv file with the
+    heatpump id, the temperature and the climate as index.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the .csv file.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        The performance data.
+    """
+    df = pd.read_csv(OUTPUT_FOLDER_PATH +filename, index_col=[0,1,2], sep=';')
+    df.index.names = ['id', 'temperature', 'climate']
+    return df
+
+def read_meta_data(filename):
+    """
+    Read the meta data (type etc.) from a .csv file with the
+    heatpump id as index.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the .csv file.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        The meta data.
+    """
+    df = pd.read_csv(OUTPUT_FOLDER_PATH +filename, index_col=[0], sep=';')
+    df.index.names = ['id']
+    return df
 
 def reduce_heating_data():
     # reduce the hplib_database_heating to a specific climate measurement series (average, warm, cold)

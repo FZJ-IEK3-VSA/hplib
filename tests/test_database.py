@@ -18,7 +18,7 @@ def test_merge_to_database():
     from the csv files and saved in a single database/csv
     file."""
     
-    df_operation, df_meta = db.merge_raw_csv(foldername='csv')
+    df_operation, df_meta = db.merge_raw_csv(foldername='csv',)
 
     # filter temperature 55°C (5) and climate average (3)
     df = df_operation.loc[(slice(None), 5, 3), :]
@@ -27,10 +27,23 @@ def test_merge_to_database():
     assert len(df) < 6000
 
     assert df['scop'].astype(float).mean() > 3.1
-    assert df['scop'].astype(float).mean() > 3.5
+    assert df['scop'].astype(float).mean() < 3.5
     
 
+def test_read_performance_data():
+    """
+    """
+    df = db.read_performance_data("performance_data.csv",)
 
+    # filter temperature 55°C (5) and climate average (3)
+    df = df.loc[(slice(None), 5, 3), :]
+
+
+    assert len(df) > 1000
+    assert len(df) < 6000
+
+    assert df['scop'].astype(float).mean() > 3.1
+    assert df['scop'].astype(float).mean() < 3.5
 
 
 def test_load_database():
