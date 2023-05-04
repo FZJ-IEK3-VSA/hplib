@@ -1,11 +1,11 @@
-def cop_carnot(T_source, T_sink, efficiency_grade = 0.45, b_hp =0):
+def cop_carnot(T_source, T_sink, efficiency_grade = 0.45, b_hp =5):
     """
     Calculates the coefficient of performance of a heat pump based on the
     carnot efficiency.
 
     E.g., used by Stadler 2018, Girardin 2012, Huchtemann 2015, Kotzur 2018, Lauinger 2016
     
-    Patteeuw 2015, Bettgenhäuser ??, use b_hp not equal zero. 
+    Patteeuw 2016, Bettgenhäuser ??, use b_hp not equal zero. 
     
     Parameters
     ----------
@@ -26,7 +26,7 @@ def cop_carnot(T_source, T_sink, efficiency_grade = 0.45, b_hp =0):
 
     return efficiency_grade * (T_sink + 273.15) / (T_sink - T_source + b_hp)
 
-def cop_schlosser(T_source, T_sink, a = 1.448e10, b = 88.730, c = 4.9460, d = 0.0):
+def cop_schlosser(T_source, T_sink, a = 1.448e12, b = 88.730, c = -4.9460, d = 0.0):
     """
     Calculates the coefficient of efficiency of a heat pump based on the
     function of Schlosser et al. 2018
@@ -52,10 +52,10 @@ def cop_schlosser(T_source, T_sink, a = 1.448e10, b = 88.730, c = 4.9460, d = 0.
         Coefficient of efficiency of the heat pump.
     """
     delta_T = T_sink - T_source
-    return a * (delta_T + 2 * b) ** c + (T_sink + b ) ** d
+    return (a * ((delta_T + 2 * b)) ** c) * ((T_sink + b ) ** d)
 
 
-def cop_poolynomial(T_source, T_sink, k_0 = 6.81, k_1 = - 0.121, k_2 = 0.00063):
+def cop_polynomial(T_source, T_sink, k_0 = 6.81, k_1 = - 0.121, k_2 = 0.00063):
     """
     Derives the coefficient of performance based on a 2n degree polynomial function.
     The proposed parameters are from Staffel 2012 for an air source heatpump.
@@ -75,7 +75,7 @@ def cop_poolynomial(T_source, T_sink, k_0 = 6.81, k_1 = - 0.121, k_2 = 0.00063):
         Parameter k_0 of the function. The default is 6.81.
     k_1 : float, optional
         Parameter k_1 of the function. The default is - 0.121.
-    k_2 : float, optional
+    k_2 : float, optionald
         Parameter k_2 of the function. The default is 0.00063.
 
     Returns
@@ -87,11 +87,13 @@ def cop_poolynomial(T_source, T_sink, k_0 = 6.81, k_1 = - 0.121, k_2 = 0.00063):
     return k_0 + k_1 * delta_T + k_2 * delta_T ** 2
 
 
-def cop_schwamberger(T_source, T_sink, p1_cop = 57.53, 
-                     p2_cop = -0.06, p3_cop = 5.67, p4_cop = -57.43):
+def cop_schwamberger(T_source, T_sink, p1_cop = 61.321, 
+                     p2_cop = -0.093, p3_cop = 7.347, p4_cop = -61.171):
     """
     COP calculation based on Schwamberg 1991.
-    K. Schwamberger: „Modellbildung und Regelung von Gebäudeheizungsanlagen mit Wärmepumpen“, VDI Verlag, Düsseldorf, Fortschrittsberichte VDI Reihe 6 Nr. 263, 1991.
+    K. Schwamberger: „Modellbildung und Regelung von Gebäudeheizungsanlagen 
+    mit Wärmepumpen“, VDI Verlag, Düsseldorf, Fortschrittsberichte 
+    VDI Reihe 6 Nr. 263, 1991.
     Used in the current version of this package. 
 
     The default values are taken from the generic regulated 
@@ -116,13 +118,12 @@ def cop_schwamberger(T_source, T_sink, p1_cop = 57.53,
     -------
     float
     """
-    # the original model goes with supply and return temperature
-    # t_in = T_source - delta_t / 2
 
     # the package defined a fixed delta t of 5 K
     delta_t = 5 # K
 
-    t_in = T_source - delta_t
+    # the original model goes with supply and return temperature
+    t_in = T_source
     t_out = T_sink
     t_amb = T_source
     return p1_cop * t_in + p2_cop * t_out + p3_cop + p4_cop * t_amb

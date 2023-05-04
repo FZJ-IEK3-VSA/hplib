@@ -31,3 +31,17 @@ def test_validate_performance_model():
     np.isclose(results['P_th'][1]/1000, 3.89, atol=0.7) # medium temperature
 
     # Comment lk: Tolerances need to be quite high...
+
+def test_cop_performance_schwarmberger():
+    """
+    Checks if proper COP values can be calculated by the schwarmberger model
+    """
+    parameters = hpl.get_parameters(model='Generic_average', group_id=1, t_in=-7, 
+                                    t_out=55, 
+                                    p_th=10000)
+    heatpump = hpl.HeatPump(parameters)
+    
+    results = heatpump.simulate(t_in_primary=-7, t_in_secondary=55, t_amb=-7, mode=1)
+    
+    assert results['COP'] > 1
+    assert results['COP'] < 3
