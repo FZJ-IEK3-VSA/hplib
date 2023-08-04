@@ -420,6 +420,48 @@ def read_performance_data(filename):
     df.index.names = ['id', 'temperature', 'climate']
     return df
 
+def read_single_model_performance(model_id, 
+                                  filename = "performance_data.csv",
+                                  climate =3):
+    """
+    Read the performance data from a .csv file with the
+    heatpump id and returns the different measured COPs.
+
+    Parameters
+    ----------
+    id : str
+        The heatpump id.
+    filename : str
+        Name of the .csv file.
+    climate : int
+        The climate zone.
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        The performance data.
+    """
+    T_source_values = {
+        'cop_minus7': -7.,	
+        'cop_2': 2.,
+        'cop_7': 7.,
+        'cop_12': 12., # TODO check but those are not measured or?
+    }
+
+
+    performance = read_performance_data(filename)
+
+    model_performance = performance.loc[( model_id, slice(None), climate), slice(None)]
+    model_performance.rename(index={4: " $T_{sink}=35°C$", 5: " $T_{sink}=55°C$"}, inplace=True)
+    model_performance.reset_index(level=['id','climate'], inplace=True)
+    model_performance_reduced = model_performance[T_source_values.keys()].T
+    model_performance_reduced.rename(index=T_source_values, inplace=True)
+
+    return model_performance_reduced
+
+
+
+
 def read_meta_data(filename):
     """
     Read the meta data (type etc.) from a .csv file with the

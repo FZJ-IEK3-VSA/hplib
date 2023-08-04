@@ -1,4 +1,4 @@
-def cop_carnot(T_source, T_sink, efficiency_grade = 0.45, b_hp =5):
+def cop_carnot(T_source, T_sink, efficiency_grade = 0.45, b_hp =0):
     """
     Calculates the coefficient of performance of a heat pump based on the
     carnot efficiency.
