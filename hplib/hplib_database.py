@@ -282,6 +282,8 @@ def identify_subtypes():
     df.loc[filt1, 'Group'] = 1
     filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'Regulated')
     df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Hybrid Air/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 8
     filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'Regulated')
     df.loc[filt1, 'Group'] = 2
     filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'Regulated')
@@ -293,6 +295,8 @@ def identify_subtypes():
     df.loc[filt1, 'Group'] = 4
     filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Hybrid Air/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 8
     filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 5
     filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'On-Off')
@@ -300,6 +304,7 @@ def identify_subtypes():
     filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 6
     df = df.loc[df['Group'] != 7]
+    df = df.loc[df['Group'] != 8]
     df.to_csv(r'../output/database_reduced_normalized_subtypes.csv', encoding='utf-8', index=False)
 
 
