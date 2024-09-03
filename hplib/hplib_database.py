@@ -31,6 +31,7 @@ def import_keymark_data(i=0):
             if model.text!=manufacturer:
                 filename=manufacturer+model.text.replace('/','_')
                 filename=filename.replace(' ','_')
+                filename=filename.replace('/','_')
                 if os.path.isfile(THIS_FOLDER_PATH + '/../input/csv/'+filename+'.csv')==0:
                     try:
                         model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
