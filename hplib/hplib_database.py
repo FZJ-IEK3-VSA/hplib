@@ -3,11 +3,8 @@ import pandas as pd
 import numpy as np
 import scipy
 import hplib as hpl
-import pickle
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
-import shutil
 
 
 # get path to the current file
@@ -31,6 +28,7 @@ def import_keymark_data(i=0):
             if model.text!=manufacturer:
                 filename=manufacturer+model.text.replace('/','_')
                 filename=filename.replace(' ','_')
+                filename=filename.replace('/','_')
                 if os.path.isfile(THIS_FOLDER_PATH + '/../input/csv/'+filename+'.csv')==0:
                     try:
                         model_info = BeautifulSoup(requests.get('https://www.heatpumpkeymark.com/'+model.a.get('href')).content, 'html.parser')
@@ -282,6 +280,8 @@ def identify_subtypes():
     df.loc[filt1, 'Group'] = 1
     filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'Regulated')
     df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Hybrid Air/Water') & (df['Subtype'] == 'Regulated')
+    df.loc[filt1, 'Group'] = 8
     filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'Regulated')
     df.loc[filt1, 'Group'] = 2
     filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'Regulated')
@@ -293,6 +293,8 @@ def identify_subtypes():
     df.loc[filt1, 'Group'] = 4
     filt1 = (df['types'] == 'Exhaust Air/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 7
+    filt1 = (df['types'] == 'Hybrid Air/Water') & (df['Subtype'] == 'On-Off')
+    df.loc[filt1, 'Group'] = 8
     filt1 = (df['types'] == 'Brine/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 5
     filt1 = (df['types'] == 'Brine/Water and Water/Water') & (df['Subtype'] == 'On-Off')
@@ -300,6 +302,7 @@ def identify_subtypes():
     filt1 = (df['types'] == 'Water/Water') & (df['Subtype'] == 'On-Off')
     df.loc[filt1, 'Group'] = 6
     df = df.loc[df['Group'] != 7]
+    df = df.loc[df['Group'] != 8]
     df.to_csv(r'../output/database_reduced_normalized_subtypes.csv', encoding='utf-8', index=False)
 
 
@@ -539,6 +542,8 @@ def calculate_fitting_parameters():
                         't_biv': 'Bivalence temperature [°C]' ,
                         'tol': 'Tolerance temperature [°C]' ,
                         'wtols': 'Max. water heating temperature [°C]' ,
+                        'p_sups_l': 'Power heating rod low T [kW]', 
+                        'p_sups_h': 'Power heating rod medium T [kW]',
                         'poffs': 'Poff [W]' ,
                         'ptos': 'PTOS [W]' ,
                         'psbs': 'PSB [W]',
@@ -559,7 +564,7 @@ def calculate_fitting_parameters():
                         'Subtype': 'Subtype' ,
                         'Group': 'Group' ,
                         }, inplace=True)
-    df=df[['Manufacturer' ,'Model' ,'Titel' ,'Date' ,'Type','Subtype' ,'Group' ,'Rated Power low T [kW]' ,'Rated Power medium T [kW]' ,'Refrigerant' ,'Mass of Refrigerant [kg]' ,'SPL indoor low Power [dBA]' ,'SPL outdoor low Power [dBA]' ,'SPL indoor high Power [dBA]' ,'SPL outdoor high Power [dBA]' ,'Bivalence temperature [°C]' ,'Tolerance temperature [°C]' ,'Max. water heating temperature [°C]' ,'Poff [W]' ,'PTOS [W]' ,'PSB [W]','PCKS [W]' ,'eta low T [%]' ,'eta medium T [%]' ,'SCOP' ,'SEER low T' ,'SEER medium T' ,'P_th_h_ref [W]' ,'P_th_c_ref [W]' ,'P_el_h_ref [W]' ,'P_el_c_ref [W]' ,'COP_ref' ,'EER_c_ref' ,'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]','p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]','p4_COP [-]','p1_P_el_c [1/°C]','p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]','p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]']]
+    df=df[['Manufacturer' ,'Model' ,'Titel' ,'Date' ,'Type','Subtype' ,'Group' ,'Rated Power low T [kW]' ,'Rated Power medium T [kW]' ,'Refrigerant' ,'Mass of Refrigerant [kg]' ,'SPL indoor low Power [dBA]' ,'SPL outdoor low Power [dBA]' ,'SPL indoor high Power [dBA]' ,'SPL outdoor high Power [dBA]' ,'Bivalence temperature [°C]' ,'Tolerance temperature [°C]' ,'Max. water heating temperature [°C]', 'Power heating rod low T [kW]', 'Power heating rod medium T [kW]' ,'Poff [W]' ,'PTOS [W]' ,'PSB [W]','PCKS [W]' ,'eta low T [%]' ,'eta medium T [%]' ,'SCOP' ,'SEER low T' ,'SEER medium T' ,'P_th_h_ref [W]' ,'P_th_c_ref [W]' ,'P_el_h_ref [W]' ,'P_el_c_ref [W]' ,'COP_ref' ,'EER_c_ref' ,'p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]','p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]','p4_COP [-]','p1_P_el_c [1/°C]','p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]','p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]']]
     df.to_csv(r'hplib_database.csv', encoding='utf-8', index=False)
 
 
@@ -776,11 +781,11 @@ def add_generic():
                         titel='Generic_bottom'
                     df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)[int(j*i):int(i*percent[percent.index(j)+1])]
                     para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
-                    df.loc[len(df.index)]=['Generic', 'Generic', titel, '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
+                    df.loc[len(df.index)]=['Generic', 'Generic', titel, '', Type, modus, group,'', '', '','', '','', '','','', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
         else:
             df_generic=(df.loc[(df['MAPE P_el']>0) & (df['MAPE P_el']<=25) & (df['Group']==group)]).sort_values(['SCOP'],ascending=False)
             para=df_generic[['p1_P_el_h [1/°C]', 'p2_P_el_h [1/°C]', 'p3_P_el_h [-]', 'p4_P_el_h [1/°C]', 'p1_COP [-]', 'p2_COP [-]', 'p3_COP [-]', 'p4_COP [-]', 'p1_P_el_c [1/°C]', 'p2_P_el_c [1/°C]', 'p3_P_el_c [-]', 'p4_P_el_c [1/°C]', 'p1_EER [-]', 'p2_EER [-]', 'p3_EER [-]', 'p4_EER [-]' ]].mean(0).to_list()
-            df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
+            df.loc[len(df.index)]=['Generic', 'Generic', 'Generic_average', '', Type, modus, group,'', '', '','', '','', '', '','','', '', '', '','', '', '', '', '','', '', '', '','', '', '', '','', '']+ para +[0,0,0,0,0,0]
     df.to_csv('hplib_database.csv', encoding='utf-8', index=False)
 
 
